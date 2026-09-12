@@ -1,0 +1,65 @@
+name: CI
+
+# Every pull request and every push to main. No job here reads a secret, so a fork pull request
+# runs the whole pipeline and the privileged fork trigger is never needed (D14, D38).
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  TZ: UTC # D53 — a Dublin date assertion must not depend on the runner's clock
+  SUPABASE_CLI_VERSION: '2.22.6' # exact, never `latest` — S2.6 needs [auth.sessions]
+
+jobs:
+  check:
+    name: check
+    runs-on: ubuntu-latest
+    env:
+      TZ: UTC
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm run format:check
+      - run: npm test
+      - run: npm run build
+      # scripts/check-env-parity.mjs is S0.5's file (its AC14). Until S0.5 ships it there is
+      # nothing to compare .env.example against, so the step reports and passes rather than
+      # failing every build in between. Once the file exists this step fails when it fails.
+      - name: Env parity
+        run: |
+          if [ -f scripts/check-env-parity.mjs ]; then
+            node scripts/check-env-parity.mjs
+          else
+            echo 'scripts/check-env-parity.mjs not present yet — added by S0.5 (deployment).'
+          fi
+
+  pr-title:
+    name: pr-title
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    env:
+      TZ: UTC
+    steps:
+      - uses: actions/checkout@v4
+      - name: Conventional commit title
+        env:
+          # Quoted through the environment, never interpolated into the shell line: a pull
+          # request title is attacker-controlled text.
+          TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          echo "$TITLE" | grep -Eq '^(feat|fix|chore|docs|refactor|test|build|ci|perf|revert)(\([a-z0-9.-]+\))?!?: .+' \
+            || { echo "PR title must be a conventional commit, e.g. 'feat(events): create event form'. Allowed types: feat, fix, chore, docs, refactor, test, build, ci, perf, revert."; exit 1; }
