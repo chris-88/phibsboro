@@ -1,0 +1,71 @@
+#!/usr/bin/env node
+// Grep-level conventions ESLint cannot see. Later stories append checks here.
+//
+// | Check                                                    | Owner | Rule                                      |
+// |----------------------------------------------------------|-------|-------------------------------------------|
+// | SERVICE_ROLE outside .env.example and supabase/           | S0.1  | belt and braces alongside the lint rule (D38) |
+// | A hex colour literal under src/ outside the token sheet   | S0.2  | no hardcoded hex in components            |
+// | The literal '/#/' outside src/lib/paths.ts                | S0.3  | one URL builder, D13                      |
+
+import { readdirSync, readFileSync, statSync } from 'node:fs'
+import { join, relative, sep } from 'node:path'
+
+const ROOT = process.cwd()
+const SKIP_DIRS = new Set(['node_modules', 'dist', 'coverage', '.git', 'spec', 'test-results'])
+
+/** @type {{name: string, roots: string[], exts: string[], pattern: RegExp, allow: (p: string) => boolean, message: string}[]} */
+const CHECKS = [
+  {
+    name: 'service-role-key',
+    roots: ['src', 'scripts', 'tests'],
+    exts: ['.ts', '.tsx', '.js', '.mjs', '.json', '.html'],
+    pattern: /SERVICE_ROLE/,
+    // This file names the pattern it searches for, so it has to exempt itself.
+    allow: (p) =>
+      p === '.env.example' ||
+      p === join('scripts', 'check-conventions.mjs') ||
+      p.startsWith(`supabase${sep}`),
+    message:
+      'The service-role key never appears in the browser bundle or the client tree. Decision D38.',
+  },
+]
+
+function* walk(dir) {
+  let entries
+  try {
+    entries = readdirSync(dir)
+  } catch {
+    return
+  }
+  for (const entry of entries) {
+    if (SKIP_DIRS.has(entry)) continue
+    const full = join(dir, entry)
+    if (statSync(full).isDirectory()) yield* walk(full)
+    else yield full
+  }
+}
+
+let failures = 0
+for (const check of CHECKS) {
+  for (const root of check.roots) {
+    for (const file of walk(join(ROOT, root))) {
+      const rel = relative(ROOT, file)
+      if (!check.exts.some((e) => file.endsWith(e))) continue
+      if (check.allow(rel)) continue
+      const lines = readFileSync(file, 'utf8').split('\n')
+      lines.forEach((line, i) => {
+        if (check.pattern.test(line)) {
+          console.error(`${rel}:${i + 1}  [${check.name}] ${check.message}`)
+          console.error(`  ${line.trim()}`)
+          failures++
+        }
+      })
+    }
+  }
+}
+
+if (failures > 0) {
+  console.error(`\ncheck-conventions: ${failures} violation${failures === 1 ? '' : 's'}.`)
+  process.exit(1)
+}
+console.log('check-conventions: clean')
