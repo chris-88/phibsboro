@@ -14,21 +14,21 @@ A failure in any job leaves the previously deployed site untouched and serving.
 
 The site is live at **https://chris-88.github.io/phibsboro/**.
 
-`app.phibsborofc.com` is not yet pointed at GitHub Pages. Shipping a `CNAME` file before the DNS resolves
+`app.phibsboro.ie` is not yet pointed at GitHub Pages. Shipping a `CNAME` file before the DNS resolves
 would take the site offline, so the custom domain is deliberately deferred. The bundle is therefore built
 with a base path of `/phibsboro/`, carried by the `VITE_BASE_PATH` repository variable rather than
 hardcoded in `vite.config.ts`.
 
-### Switching to app.phibsborofc.com
+### Switching to app.phibsboro.ie
 
 Three steps, in this order:
 
 1. **DNS.** Add a `CNAME` record at your registrar: host `app`, value `chris-88.github.io`. No apex
-   records — this is a subdomain. Wait for it to resolve (`dig +short app.phibsborofc.com`).
-2. **CNAME file.** `echo app.phibsborofc.com > public/CNAME` and commit it. `scripts/verify-dist.sh`
+   records — this is a subdomain. Wait for it to resolve (`dig +short app.phibsboro.ie`).
+2. **CNAME file.** `echo app.phibsboro.ie > public/CNAME` and commit it. `scripts/verify-dist.sh`
    starts enforcing AC9 automatically once that file exists.
 3. **Base path.** Set the `VITE_BASE_PATH` repository variable to `/` and `VITE_APP_BASE_URL` to
-   `https://app.phibsborofc.com`. Then confirm "Enforce HTTPS" is ticked in Settings → Pages (AC8).
+   `https://app.phibsboro.ie`. Then confirm "Enforce HTTPS" is ticked in Settings → Pages (AC8).
 
 Run the workflow by hand (`gh workflow run deploy.yml`) rather than waiting for a commit.
 

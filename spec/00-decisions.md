@@ -274,7 +274,7 @@ Worked example:
 Saturday 14 March, 7.30pm
 Fairview Park pitch 3
 
-Are you available? https://app.phibsborofc.com/#/event/9f1c...
+Are you available? https://app.phibsboro.ie/#/event/9f1c...
 ```
 
 The S5.3 reminder is the same first block with a different last line, and names nobody:
@@ -356,12 +356,12 @@ site; no throw-on-purpose route ships. S0.6 depends on S0.5.
 ### D17 — Playwright drives `vite preview`, never the live site
 
 **Issue** — S7.3 never says what Playwright drives. Supabase config is baked in at build time, so E2E
-needs its own build, and pointing it at `app.phibsborofc.com` would write to the production database and
+needs its own build, and pointing it at `app.phibsboro.ie` would write to the production database and
 race with deploys.
 
 **Decision** — The `e2e` job builds from `.env.test`, pointing at the local Supabase stack, and Playwright's
 `webServer` config serves `vite preview` on `http://127.0.0.1:4173`. E2E never touches
-`app.phibsborofc.com`. S0.5 gains a separate post-deploy smoke job: one Playwright page opens the live
+`app.phibsboro.ie`. S0.5 gains a separate post-deploy smoke job: one Playwright page opens the live
 site, asserts the 404 screen renders for `/#/event/00000000-0000-0000-0000-000000000000` after a hard
 reload, and asserts the loaded release string equals `github.sha`. No sign-in, no writes.
 
@@ -394,7 +394,7 @@ holds, S2.1 and S2.2 cannot be built as written.
 **Decision** — First task of S1.2, and a hard gate on all of Epic 2: on the real project, enable the
 phone provider, disable phone confirmations, and sign up a user with no SMS provider credentials
 configured. If it works, nothing changes. If it does not, switch to email auth with confirmations off,
-deriving a synthetic address `{e164 without +}@phibsborofc.invalid` inside the auth helper in
+deriving a synthetic address `{e164 without +}@phibsboro.invalid` inside the auth helper in
 `src/lib/auth.ts`, so the number stays the only user-facing identifier and `profiles.phone` stays the only
 stored one. Which path was taken is recorded in this file as an amendment before any Epic 2 work starts.
 Either way, no SMS is ever sent, no OTP step exists, and a number is never proof of identity.
@@ -1285,6 +1285,29 @@ control is a go-live gate, not a lint rule.
 
 **Affects** — S1.4, S1.2, S7.3, and `docs/database.md`.
 
+### D64 — The app lives at app.phibsboro.ie
+
+**Issue** — `CLAUDE.md` names `app.phibsborofc.com` as the custom domain, and forty-two references across
+the specs, the deploy workflow and the share-message format followed it. That domain **is not registered**:
+the .com registry returns 404 for it. The club's real domain is `phibsboro.ie`, live at Letshost.
+
+**Decision** — The app is served from `app.phibsboro.ie`, a CNAME to `chris-88.github.io` added in
+Letshost's DNS. The existing site at the `phibsboro.ie` apex is untouched — different record, different
+host. `phibsborofc.com` is not registered and will not be. Every reference is renamed, including D13's
+share message, which now reads `https://app.phibsboro.ie/#/event/{id}`. The synthetic auth email domain
+becomes `@phibsboro.invalid`.
+
+**This must happen before any player installs the app.** A PWA installed from
+`chris-88.github.io/phibsboro/` does not follow a domain change: the home-screen icon keeps pointing at the
+old origin and the service worker's scope is tied to it, so an installed player would be stranded and have
+to delete and re-add. S2.8 exists to earn exactly one install; it should be spent on the final address.
+The same applies to every WhatsApp message already sent, since D13 embeds the URL.
+
+**Rationale** — Using the club's real domain costs nothing, adds no renewal for a volunteer committee to
+forget, and is the address players already recognise when a link arrives from a manager.
+
+**Amends** — `CLAUDE.md` section 2, D13, S0.5, S5.1, S5.3, S0.3, S0.6, S2.7, S3.3, S7.3, S7.4.
+
 ## Deferred questions
 
 The club answers these. Each has a proposed default, already written into the specs, so no story waits.
@@ -1302,5 +1325,5 @@ The club answers these. Each has a proposed default, already written into the sp
 | Q9 | Should the reminder message say how many are outstanding? | Yes, a number, never a name (D13, S5.3). |
 | Q10 | How long do we keep a removed member's history? | Forever. Nothing is ever deleted on removal (D33). |
 | Q11 | Should a player be able to change their own name or number? | No. Number correction is admin-only (D51); there is no profile edit screen in v1. |
-| Q12 | Is `app.phibsborofc.com` registered and is the DNS ours to point? | Assume yes; S0.5 is blocked on it and nothing else is. |
+| Q12 | ~~Is the domain ours to point?~~ | **Answered.** `phibsborofc.com` was never registered; the app uses `app.phibsboro.ie`, DNS at Letshost (D64). |
 | Q13 | Should the RLS suite get its own Supabase project? | Not before go-live. One project, tests truncate, re-seed after (D63). At go-live it must move. |

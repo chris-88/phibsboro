@@ -30,7 +30,7 @@ check_secret_absent SENTRY_AUTH_TOKEN "${SENTRY_AUTH_TOKEN:-}"
 check_secret_absent SUPABASE_SERVICE_ROLE_KEY "${SUPABASE_SERVICE_ROLE_KEY:-}"
 
 # AC9 — only meaningful once the custom domain is live. public/CNAME is absent until the
-# DNS for app.phibsborofc.com points at Pages; see docs/deployment.md.
+# DNS for app.phibsboro.ie points at Pages; see docs/deployment.md.
 if [ -f public/CNAME ]; then
   [ -f "$DIST/CNAME" ] || fail "public/CNAME exists but $DIST/CNAME does not"
   expected=$(tr -d '[:space:]' < public/CNAME)

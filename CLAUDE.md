@@ -22,7 +22,7 @@ Keep it boring. If a feature does not materially improve that journey, do not bu
 | Validation   | Zod. One schema per entity, shared between forms and API boundaries                       |
 | Forms        | React Hook Form + zodResolver                                                             |
 | Backend      | Supabase: Auth, Postgres, RLS                                                             |
-| Hosting      | GitHub Pages, deployed by GitHub Actions, custom domain `app.phibsborofc.com`             |
+| Hosting      | GitHub Pages, deployed by GitHub Actions, custom domain `app.phibsboro.ie`                |
 | Errors       | Sentry                                                                                    |
 | Tests        | Vitest (unit), Playwright (E2E)                                                           |
 
@@ -103,7 +103,7 @@ Manifest, icons, service worker, installable on iOS and Android.
 
 ### S0.5 Deployment
 
-GitHub Actions workflow building and publishing to Pages on merge to `main`. CNAME for `app.phibsborofc.com`.
+GitHub Actions workflow building and publishing to Pages on merge to `main`. CNAME for `app.phibsboro.ie`.
 
 - Push to main results in a live updated site.
 - Env vars injected from repo secrets.
