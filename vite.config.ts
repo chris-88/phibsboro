@@ -3,10 +3,11 @@ import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
 
-// base is '/' because the site is served from the apex of app.phibsborofc.com (S0.5),
-// not from a /{repo}/ path. build.sourcemap is set by S0.6 per D16 — leave it alone here.
+// The custom domain app.phibsborofc.com serves from the root, so base is '/'. Until its DNS is
+// pointed at Pages we publish to the project page instead, which serves from /phibsboro/ — hence
+// VITE_BASE_PATH rather than a hardcoded value (S0.5 deviation). build.sourcemap is set by S0.6 per D16.
 export default defineConfig({
-  base: '/',
+  base: process.env.VITE_BASE_PATH ?? '/',
   plugins: [react(), tailwindcss()],
   resolve: {
     alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
