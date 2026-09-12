@@ -1,4 +1,10 @@
 {
+  // Solution file: it compiles nothing itself. `paths` is repeated here because the
+  // shadcn CLI reads the root tsconfig to resolve the `@/` alias and would otherwise
+  // write generated components to a literal `@/` directory.
+  "compilerOptions": {
+    "paths": { "@/*": ["./src/*"] }
+  },
   "files": [],
   "references": [{ "path": "./tsconfig.app.json" }, { "path": "./tsconfig.node.json" }]
 }

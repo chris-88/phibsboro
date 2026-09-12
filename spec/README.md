@@ -20,7 +20,7 @@ shell, routing and PWA are exempt because they touch no data.
 | # | ID | Story | Epic | Depends on | Size | Status |
 |---|---|---|---|---|---|---|
 | 1 | [S0.1](stories/S0.1-project-scaffold.md) | Project scaffold | 0 Foundation | — | M | **Done** |
-| 2 | [S0.2](stories/S0.2-ui-system.md) | UI system | 0 Foundation | S0.1 | M | Not started |
+| 2 | [S0.2](stories/S0.2-ui-system.md) | UI system | 0 Foundation | S0.1 | M | **Done** |
 | 3 | [S0.7](stories/S0.7-ci-pipeline.md) | CI pipeline | 0 Foundation | S0.1 | S | Not started |
 | 4 | [S0.5](stories/S0.5-deployment.md) | Deployment | 0 Foundation | S0.1, S0.7 | M | Not started |
 | 5 | [S0.3](stories/S0.3-routing.md) | Routing | 0 Foundation | S0.1, S0.2, S0.5, S0.7 | M | Not started |

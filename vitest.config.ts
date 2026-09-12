@@ -10,8 +10,12 @@ export default mergeConfig(
   defineConfig({
     test: {
       globals: true,
-      // S0.2 switches this to 'jsdom' when Testing Library arrives.
-      environment: 'node',
+      environment: 'jsdom',
+      setupFiles: ['src/test/setup.ts'],
+      // Vitest stubs .css imports to an empty string by default, which also empties
+      // `import css from '@/index.css?raw'`. The token contrast test reads the
+      // stylesheet that way, so let the CSS through.
+      css: true,
       // A clean clone has no .env. Without these, anything reading import.meta.env
       // sees undefined and `npm run test` fails on a fresh checkout (AC1).
       env: {

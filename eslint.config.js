@@ -46,6 +46,14 @@ export default tseslint.config(
     },
   },
 
+  // Generated shadcn primitives export their cva variants next to the component, which is
+  // the library's own shape and what every consuming story imports. Fast refresh is a dev
+  // convenience; the rule is off for these files only, and nothing else is relaxed.
+  {
+    files: ['src/components/ui/**/*.tsx'],
+    rules: { 'react-refresh/only-export-components': 'off' },
+  },
+
   // The one formatter in the codebase is allowed to format. Scoped to the date rules only,
   // so no-explicit-any and everything else still apply here. Must be its own block: an
   // `ignores` entry on the project block would lift no-explicit-any too. Turning off
