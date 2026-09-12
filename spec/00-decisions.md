@@ -1249,6 +1249,32 @@ There is no S2.10. There is no second S2.2.
 
 ---
 
+### D63 — One project, self-scoping test fixtures, never a truncate
+
+**Issue** — S1.4's RLS suite needs to create users, teams and events as every role and assert both the
+permitted and the denied paths. Written the obvious way it truncates between runs, which would wipe the
+live POC data, because there is only one Supabase project. A second project cannot be created from here:
+the personal access token has no organisation scope, so `POST /v1/projects` returns 403.
+
+**Decision** — One project. The suite isolates itself rather than isolating the database.
+
+- Every run generates a run id. Fixture teams are named `test-<runId>-…`; fixture users take phone
+  numbers from a reserved E.164 range that no real member can hold.
+- Teardown deletes only rows carrying that run id, in an `afterAll`. A crashed run leaves stale fixtures,
+  which a later run may sweep by run-id age; it never sweeps by "everything that looks like a test".
+- `truncate`, `drop schema`, and any `delete from` without a run-id predicate are forbidden under
+  `tests/`. `scripts/check-conventions.mjs` fails the lint on all three, so this cannot be regressed by a
+  later story quietly.
+- The suite runs against the same project that serves the site. That is acceptable only because of the
+  three rules above.
+
+**Rationale** — Test isolation is a property of the fixtures, not of the infrastructure. Scoping them
+properly is better engineering than buying a second database, and it removes an external dependency from
+the critical path. If an organisation-scoped token appears later, a dedicated project becomes a
+config change rather than a rewrite.
+
+**Affects** — S1.4, S1.2, S7.3, and `docs/database.md`.
+
 ## Deferred questions
 
 The club answers these. Each has a proposed default, already written into the specs, so no story waits.
@@ -1267,3 +1293,4 @@ The club answers these. Each has a proposed default, already written into the sp
 | Q10 | How long do we keep a removed member's history? | Forever. Nothing is ever deleted on removal (D33). |
 | Q11 | Should a player be able to change their own name or number? | No. Number correction is admin-only (D51); there is no profile edit screen in v1. |
 | Q12 | Is `app.phibsborofc.com` registered and is the DNS ours to point? | Assume yes; S0.5 is blocked on it and nothing else is. |
+| Q13 | Should the RLS suite get its own Supabase project? | No. One project with self-scoping fixtures (D63). Revisit only if an org-scoped token appears. |

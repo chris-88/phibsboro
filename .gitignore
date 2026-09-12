@@ -22,3 +22,6 @@ playwright-report/
 *.tsbuildinfo
 
 .claude/settings.local.json
+
+# supabase link writes a credentialed pooler URL in here
+supabase/.temp/
