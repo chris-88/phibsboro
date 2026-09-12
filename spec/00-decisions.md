@@ -805,6 +805,12 @@ twice, assert the new release string is on screen.
 
 **Affects** — S0.3, S0.4, S0.5, S7.3.
 
+**Reaffirmed 2026-09-12**, when a visible "new version available" refresh bar was proposed. Rejected, and
+the reasoning is worth keeping: a prompt makes updating optional, and an optional update on a squad app
+means a manager cannot rely on everyone having the fix they just shipped. `autoUpdate` keeps that
+guarantee. The real gap the proposal identified was that nobody can tell which build a player is on, which
+S0.4 AC14–AC16 close with a readable version string rather than with a prompt.
+
 ### D44 — iOS installability is a manual check, and `isStandalone()` is one helper
 
 **Issue** — S0.4 asserts iOS installability against a Chrome-only automated check, and S2.8's suppression
