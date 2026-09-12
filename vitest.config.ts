@@ -1,4 +1,4 @@
-import { defineConfig, mergeConfig } from 'vitest/config'
+import { configDefaults, defineConfig, mergeConfig } from 'vitest/config'
 import viteConfig from './vite.config.ts'
 
 // Set before anything in this process constructs a Date. test.env applies to the
@@ -11,6 +11,10 @@ export default mergeConfig(
     test: {
       globals: true,
       environment: 'jsdom',
+      // tests/e2e belongs to Playwright. Vitest's default include glob matches
+      // **/*.spec.ts anywhere, so without this it loads the Playwright specs and dies
+      // on "Playwright Test did not expect test() to be called here".
+      exclude: [...configDefaults.exclude, 'tests/e2e/**'],
       setupFiles: ['src/test/setup.ts'],
       // Vitest stubs .css imports to an empty string by default, which also empties
       // `import css from '@/index.css?raw'`. The token contrast test reads the
