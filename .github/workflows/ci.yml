@@ -16,7 +16,7 @@ concurrency:
 
 env:
   TZ: UTC # D53 — a Dublin date assertion must not depend on the runner's clock
-  SUPABASE_CLI_VERSION: '2.22.6' # exact, never `latest` — S2.6 needs [auth.sessions]
+  SUPABASE_CLI_VERSION: '2.108.0' # exact, never `latest`; matches the dev machine — S2.6 needs [auth.sessions]
 
 jobs:
   check:
