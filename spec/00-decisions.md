@@ -1249,29 +1249,33 @@ There is no S2.10. There is no second S2.2.
 
 ---
 
-### D63 — One project, self-scoping test fixtures, never a truncate
+### D63 — One project. Tests truncate freely until go-live
 
-**Issue** — S1.4's RLS suite needs to create users, teams and events as every role and assert both the
-permitted and the denied paths. Written the obvious way it truncates between runs, which would wipe the
-live POC data, because there is only one Supabase project. A second project cannot be created from here:
-the personal access token has no organisation scope, so `POST /v1/projects` returns 403.
+**Issue** — S1.4's RLS suite creates users, teams and events as every role and asserts the denied paths
+as well as the permitted ones. The obvious implementation truncates between runs. There is one Supabase
+project, so that wipes whatever is in it.
 
-**Decision** — One project. The suite isolates itself rather than isolating the database.
+**Decision** — Let it truncate. One project, no fixture-scoping ceremony.
 
-- Every run generates a run id. Fixture teams are named `test-<runId>-…`; fixture users take phone
-  numbers from a reserved E.164 range that no real member can hold.
-- Teardown deletes only rows carrying that run id, in an `afterAll`. A crashed run leaves stale fixtures,
-  which a later run may sweep by run-id age; it never sweeps by "everything that looks like a test".
-- `truncate`, `drop schema`, and any `delete from` without a run-id predicate are forbidden under
-  `tests/`. `scripts/check-conventions.mjs` fails the lint on all three, so this cannot be regressed by a
-  later story quietly.
-- The suite runs against the same project that serves the site. That is acceptable only because of the
-  three rules above.
+The project holds no real data and will not until the club's members register. Until then the cost of a
+test run is a re-seed, which `npm run db:seed` does in seconds. Scoping every fixture to a run id, and
+policing it with lint rules, buys nothing today and makes the suite harder to read — the opposite of what
+`CLAUDE.md` asks for.
 
-**Rationale** — Test isolation is a property of the fixtures, not of the infrastructure. Scoping them
-properly is better engineering than buying a second database, and it removes an external dependency from
-the critical path. If an organisation-scoped token appears later, a dedicated project becomes a
-config change rather than a rewrite.
+The suite prints the project ref and the row counts it is about to destroy before it does, so nobody is
+ever surprised by what it wiped.
+
+**This has one expiry date, and it is go-live.** The moment real members register, a CI run that truncates
+production is a data-loss incident. `docs/database.md` carries the go-live checklist; the item is: point
+the RLS suite at a separate project, or stop running it in CI against production. An organisation-scoped
+personal access token creates that second project in a minute — the current token cannot, which is why
+this decision exists rather than a second project simply being provisioned.
+
+**Rationale** — The right amount of safety machinery for a database with no data in it is none. The real
+control is a go-live gate, not a lint rule.
+
+**Supersedes** — an earlier version of this decision that required run-id-scoped fixtures and forbade
+`truncate` under `tests/`. That was solving a problem the project does not yet have.
 
 **Affects** — S1.4, S1.2, S7.3, and `docs/database.md`.
 
@@ -1293,4 +1297,4 @@ The club answers these. Each has a proposed default, already written into the sp
 | Q10 | How long do we keep a removed member's history? | Forever. Nothing is ever deleted on removal (D33). |
 | Q11 | Should a player be able to change their own name or number? | No. Number correction is admin-only (D51); there is no profile edit screen in v1. |
 | Q12 | Is `app.phibsborofc.com` registered and is the DNS ours to point? | Assume yes; S0.5 is blocked on it and nothing else is. |
-| Q13 | Should the RLS suite get its own Supabase project? | No. One project with self-scoping fixtures (D63). Revisit only if an org-scoped token appears. |
+| Q13 | Should the RLS suite get its own Supabase project? | Not before go-live. One project, tests truncate, re-seed after (D63). At go-live it must move. |

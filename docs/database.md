@@ -44,20 +44,24 @@ CI does the same in `deploy.yml`'s `migrate` job, which gates the publish (D18).
 skips itself when the Supabase secrets are absent — they are now set, so it will run for real as soon as
 `supabase/migrations/` exists.
 
-## Test isolation
+## Test data
 
 There is one Supabase project, not two. The access token has no organisation scope, so project creation
 returns 403 and a dedicated test project cannot be created from here.
 
-The S1.4 RLS suite therefore **must not truncate anything**. Every test run:
+That is fine for now. The project holds no real data, so the S1.4 RLS suite truncates freely and
+`npm run db:seed` puts it back. The suite prints the project ref and the row counts it is about to
+destroy before it does ([D63](../spec/00-decisions.md)).
 
-- creates its own fixtures under a unique run id — teams named `test-<runId>-…`, users with phone numbers
-  in a reserved range — so two runs never collide and a run never touches real data;
-- deletes only the rows it created, in an `afterAll`, keyed on that run id;
-- never issues `truncate`, `drop schema`, or a delete without a run-id predicate.
+## Go-live checklist
 
-This is enforced, not merely intended: `scripts/check-conventions.mjs` fails on a bare `truncate` or an
-unscoped `delete from` under `tests/`. See [D63](../spec/00-decisions.md).
+Before the club's members register, in this order:
 
-That keeps the POC data intact while the suite runs against the same project as the live site. If a
-second project is wanted later, issue a PAT with organisation scope and it can be created in a minute.
+1. **Stop the RLS suite pointing at production.** From the moment real data exists, a CI run that
+   truncates it is a data-loss incident. Either create a second project — an organisation-scoped personal
+   access token does it in a minute — and point CI's `SUPABASE_PROJECT_REF` at that, or stop running the
+   suite in CI against production.
+2. **Nuke the test data and seed for real.** Drop the seeded fixtures, create the club's actual teams
+   (S6.1) and generate their join links (S6.2).
+3. **Rotate the credentials** that have been used during development.
+4. **Point the custom domain** — the three steps in [deployment.md](deployment.md).
