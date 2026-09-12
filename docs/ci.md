@@ -12,7 +12,7 @@ runs no tests: the pipeline gates the merge, the merge gates the deploy (D14).
   constants, committed in `.env.example` (D38). Hosted credentials belong to the deploy workflow alone.
 - **`TZ: UTC`** at workflow level and on each job (D53). A Dublin date assertion that passes locally in July
   fails on a UTC runner in January.
-- **Node from `.nvmrc`.** `actions/setup-node@v4` with `node-version-file: .nvmrc` and `cache: npm`, so the
+- **Node from `.nvmrc`.** `actions/setup-node@v5` with `node-version-file: .nvmrc` and `cache: npm`, so the
   runner and the pin in S0.1 cannot drift apart. No Node matrix: a matrix tests a configuration nobody
   ships.
 - **One pinned Supabase CLI.** The workflow-level `env` key `SUPABASE_CLI_VERSION` holds an exact version,
