@@ -8,6 +8,7 @@
 //
 // Refuses a non-empty database unless --reset is passed (AC24), and refuses a non-localhost URL
 // unless PFC_SEED_ALLOW_REMOTE=1 (AC25). Runs on Node 24 directly; no build step, no tsx.
+import { localStack } from './local-stack.ts'
 import { createClient } from '@supabase/supabase-js'
 
 import type { Database } from '../../src/lib/database.types.ts'
@@ -24,10 +25,10 @@ import {
   TEAMS,
 } from './fixtures.ts'
 
-// The CLI's local stack: published constants (D38), repeated in .env.example.
-const LOCAL_URL = 'http://127.0.0.1:54321'
-const LOCAL_SERVICE_ROLE_KEY =
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU'
+// The CLI's local stack, resolved from `supabase status` with a pinned fallback (D38). The keys
+// changed format between CLI versions, which is why nothing here is a literal.
+const LOCAL = localStack()
+const LOCAL_URL = LOCAL.url
 
 // A function declaration, so TypeScript narrows on `if (!x) fail(...)`.
 function fail(message: string): never {
@@ -43,7 +44,7 @@ if (!isLocal && process.env.PFC_SEED_ALLOW_REMOTE !== '1') {
 }
 // Local has exactly one key. A hosted key left in .env.local must not be sent to the local stack.
 const serviceRoleKey = isLocal
-  ? LOCAL_SERVICE_ROLE_KEY
+  ? LOCAL.serviceRoleKey
   : (process.env.SUPABASE_SERVICE_ROLE_KEY ?? fail('SUPABASE_SERVICE_ROLE_KEY is not set'))
 
 const reset = process.argv.includes('--reset')
@@ -64,10 +65,41 @@ const TABLES: readonly Table[] = [
   'attendance',
 ]
 
+// A HEAD request has no body, so a failed count carries an empty `message`. Say what is known.
+function describe(
+  error: { message?: string; code?: string; details?: string; hint?: string },
+  status?: number,
+) {
+  const parts = [
+    error.message,
+    error.code,
+    error.details,
+    error.hint,
+    status ? `HTTP ${String(status)}` : undefined,
+  ]
+  return parts.filter(Boolean).join(' | ') || 'no detail — a HEAD request returned an error status'
+}
+
 async function count(table: Table) {
-  const { count: n, error } = await admin.from(table).select('*', { count: 'exact', head: true })
-  if (error) fail(`count ${table}: ${error.message}`)
-  return n ?? 0
+  // Right after `supabase db reset` the gateway can answer 502/503 for a few seconds while
+  // PostgREST reloads. Wait for it rather than fail the first query of the run.
+  for (let attempt = 1; ; attempt++) {
+    const {
+      count: n,
+      error,
+      status,
+    } = await admin.from(table).select('*', { count: 'exact', head: true })
+    if (!error) return n ?? 0
+    const transient = status === 502 || status === 503 || status === 504 || status === 0
+    if (transient && attempt < 30) {
+      if (attempt === 1) console.log(`seed: waiting for ${LOCAL_URL} to answer …`)
+      await new Promise((r) => setTimeout(r, 1000))
+      continue
+    }
+    fail(
+      `count ${table} against ${new URL(url).host} (key source: ${LOCAL.source}): ${describe(error, status)}`,
+    )
+  }
 }
 
 async function listAllUsers() {

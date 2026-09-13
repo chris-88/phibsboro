@@ -18,6 +18,18 @@ concurrency:
 
 env:
   TZ: UTC # D53 — a Dublin date assertion must not depend on the runner's clock
+  # ci-env-parity:start — every VITE_ key in .env.example. The build that the pwa job drives
+  # in a browser must carry them: src/lib/env.ts throws at boot on a missing anon key, and a
+  # thrown boot never registers the service worker, so every pwa test then times out. That is
+  # how the first post-S1.5 run failed. Fallbacks keep a fork pull request (no vars) building.
+  VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL || 'http://127.0.0.1:54321' }}
+  VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY || 'sb_publishable_ci-placeholder-not-a-real-key' }}
+  VITE_APP_BASE_URL: ${{ vars.VITE_APP_BASE_URL || 'http://127.0.0.1:4173' }}
+  VITE_BASE_PATH: '/'
+  VITE_SENTRY_DSN: ''
+  VITE_SENTRY_RELEASE: ${{ github.sha }}
+  VITE_SENTRY_ENVIRONMENT: ci
+  # ci-env-parity:end
   SUPABASE_CLI_VERSION: '2.108.0' # exact, never `latest`; matches the dev machine — S2.6 needs [auth.sessions]
 
 jobs:
@@ -100,6 +112,8 @@ jobs:
           version: ${{ env.SUPABASE_CLI_VERSION }}
       - run: npm ci
       - run: supabase start
+      - name: Local stack key names (values never printed)
+        run: supabase status -o env | cut -d= -f1 | sort | tr '\n' ' '; echo
       # S1.1 AC1 — clean from empty, twice in a row. The second reset is S1.2's `db:reset`, which
       # applies the migrations and then runs the seed (S1.2 AC15, AC28).
       - run: supabase db reset

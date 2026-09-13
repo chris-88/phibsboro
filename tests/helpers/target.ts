@@ -10,13 +10,19 @@
 // supplies the repository secrets — then from .env.local. One project, no real data until go-live,
 // and the suite may wipe it (D63), so the URL must belong to the project SUPABASE_PROJECT_REF
 // names: a mismatch is refused before a single request is sent.
+import { localStack } from '../../supabase/seed/local-stack.ts'
 import { readFileSync } from 'node:fs'
 
+// Resolved from `supabase status`, with the CLI-2.108 constants as fallback. See local-stack.ts.
+const stack = localStack()
 export const LOCAL = {
-  url: 'http://127.0.0.1:54321',
-  anonKey:
-    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0',
-  databaseUrl: 'postgresql://postgres:postgres@127.0.0.1:54322/postgres',
+  url: stack.url,
+  anonKey: stack.anonKey,
+  databaseUrl: stack.databaseUrl,
+  // Lazy: throws only if a local service-role key is actually needed with no stack running.
+  get serviceRoleKey(): string {
+    return stack.serviceRoleKey
+  },
 } as const
 
 export type TargetKind = 'local' | 'hosted'

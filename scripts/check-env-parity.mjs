@@ -8,6 +8,7 @@ import { readFileSync } from 'node:fs'
 const ENV_EXAMPLE = '.env.example'
 const WORKFLOW = '.github/workflows/deploy.yml'
 const VITEST = 'vitest.config.ts'
+const CI = '.github/workflows/ci.yml'
 
 // VITE_SENTRY_RELEASE is set by the workflow to ${{ github.sha }}, deliberately outside the marked
 // block because it comes from the commit rather than from a repository variable. .env.example still
@@ -56,6 +57,24 @@ const fromVitest = new Set(
 )
 const missingFromVitest = [...fromEnvExample].filter((k) => !fromVitest.has(k))
 
+// ci.yml builds the bundle the pwa job drives in a real browser, so it needs the keys too.
+const ciSrc = readFileSync(CI, 'utf8')
+const ciFrom = ciSrc.indexOf('# ci-env-parity:start')
+const ciTo = ciSrc.indexOf('# ci-env-parity:end')
+if (ciFrom === -1 || ciTo === -1) {
+  console.error(`check-env-parity: ${CI} is missing the ci-env-parity markers.`)
+  process.exit(1)
+}
+const fromCi = new Set(
+  ciSrc
+    .slice(ciFrom, ciTo)
+    .split('\n')
+    .map((l) => l.trim())
+    .filter((l) => l.startsWith('VITE_'))
+    .map((l) => l.split(':')[0]),
+)
+const missingFromCi = [...fromEnvExample].filter((k) => !fromCi.has(k))
+
 const missingFromWorkflow = [...fromEnvExample].filter(
   (k) => !fromWorkflow.has(k) && !SET_BY_WORKFLOW.has(k),
 )
@@ -70,6 +89,12 @@ for (const k of missingFromExample) {
   console.error(`${k} is in the build job's env block but not in ${ENV_EXAMPLE}.`)
   failed = true
 }
+for (const k of missingFromCi) {
+  console.error(
+    `${k} is in ${ENV_EXAMPLE} but not in ${CI}'s env block — the pwa job's build will lack it.`,
+  )
+  failed = true
+}
 for (const k of missingFromVitest) {
   console.error(
     `${k} is in ${ENV_EXAMPLE} but not in ${VITEST}'s test.env — the unit suite is not hermetic.`,
@@ -82,5 +107,5 @@ if (failed) {
   process.exit(1)
 }
 console.log(
-  `check-env-parity: clean (${fromEnvExample.size} VITE_ keys in .env.example, deploy.yml and vitest.config.ts)`,
+  `check-env-parity: clean (${fromEnvExample.size} VITE_ keys in .env.example, deploy.yml, ci.yml and vitest.config.ts)`,
 )

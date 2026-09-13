@@ -15,16 +15,23 @@ if [ -n "$maps" ]; then
   fail "sourcemaps found in $DIST; they are uploaded to Sentry, never published"
 fi
 
-# AC7 — a secret that reached the bundle is already public. Compare on a prefix so this
-# script never has to echo a whole credential to fail.
+# AC7 — a secret that reached the bundle is already public. Compare the whole value with
+# grep -qF: it is never printed, and a prefix is not safe — every HS256 JWT opens with the same
+# base64 header, so an 8-char prefix of the service-role key also matches the anon key that
+# is legitimately in the bundle. That false positive broke the first deploy after S1.5.
 check_secret_absent() {
   local name=$1 value=${2:-}
   [ -n "$value" ] || return 0
-  local prefix=${value:0:8}
-  if grep -rqF "$prefix" "$DIST"; then
+  if grep -rqF -- "$value" "$DIST"; then
     fail "$name appears in the built bundle"
   fi
 }
+
+# The anon key is public and MUST be in the bundle from S1.5 on — its absence means the build
+# ran without VITE_SUPABASE_ANON_KEY and the app cannot reach Supabase.
+if [ -n "${VITE_SUPABASE_ANON_KEY:-}" ] && ! grep -rqF -- "$VITE_SUPABASE_ANON_KEY" "$DIST"; then
+  fail "VITE_SUPABASE_ANON_KEY is set but absent from the bundle — was the build env applied?"
+fi
 check_secret_absent SUPABASE_ACCESS_TOKEN "${SUPABASE_ACCESS_TOKEN:-}"
 check_secret_absent SENTRY_AUTH_TOKEN "${SENTRY_AUTH_TOKEN:-}"
 check_secret_absent SUPABASE_SERVICE_ROLE_KEY "${SUPABASE_SERVICE_ROLE_KEY:-}"

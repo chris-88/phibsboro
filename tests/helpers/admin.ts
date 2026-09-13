@@ -1,16 +1,13 @@
 // Service-role access, for test setup only: fixtures and throwaway auth users. Never an
-// assertion, never imported under src/ (D15, D38). The CLI's fixed local key, a published
-// constant; read from .env.local only under the explicit hosted target (target.ts).
+// assertion, never imported under src/ (D15, D38). The local key comes from `supabase status`
+// via target.ts; the hosted one from .env.local only under the explicit hosted target.
 import { createClient } from '@supabase/supabase-js'
 
 import type { Database } from '../../src/lib/database.types.ts'
-import { TARGET, hostedValue } from './target.ts'
-
-const LOCAL_SERVICE_ROLE_KEY =
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU'
+import { LOCAL, TARGET, hostedValue } from './target.ts'
 
 const serviceRoleKey = () =>
-  TARGET.kind === 'hosted' ? hostedValue('SUPABASE_SERVICE_ROLE_KEY') : LOCAL_SERVICE_ROLE_KEY
+  TARGET.kind === 'hosted' ? hostedValue('SUPABASE_SERVICE_ROLE_KEY') : LOCAL.serviceRoleKey
 
 /**
  * The environment a child process needs to run supabase/seed/seed.ts against the current target:
