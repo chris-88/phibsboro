@@ -117,9 +117,17 @@ jobs:
       # S1.1 AC1 — clean from empty, twice in a row. The second reset is S1.2's `db:reset`, which
       # applies the migrations and then runs the seed (S1.2 AC15, AC28).
       - run: supabase db reset
+      # The workflow-level VITE_SUPABASE_URL is the hosted project, for the pwa build. The seed
+      # reads SUPABASE_URL first and refuses any non-local host, so pin these two steps to the
+      # stack `supabase start` just brought up. That refusal is what kept the first run of this
+      # job off production.
       - run: npm run db:reset
+        env:
+          SUPABASE_URL: http://127.0.0.1:54321
       # tests/db: schema (S1.1), profile trigger and seed (S1.2). seed.test.ts reseeds itself.
       - run: npm run test:db
+        env:
+          SUPABASE_URL: http://127.0.0.1:54321
       # S1.4 — the RLS suite, as every role with real JWTs, against the hosted project: there is
       # one project and no real data until go-live, so the suite wipes and reseeds it (D63; the
       # go-live checklist in docs/database.md retires this). Needs the repository secrets, so it
