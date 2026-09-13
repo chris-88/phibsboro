@@ -25,7 +25,7 @@ shell, routing and PWA are exempt because they touch no data.
 | 4 | [S0.5](stories/S0.5-deployment.md) | Deployment | 0 Foundation | S0.1, S0.7 | M | **Done** |
 | 5 | [S0.3](stories/S0.3-routing.md) | Routing | 0 Foundation | S0.1, S0.2, S0.5, S0.7 | M | **Done** |
 | 6 | [S0.4](stories/S0.4-pwa.md) | PWA | 0 Foundation | S0.1, S0.2, S0.3, S0.5, S0.7 | M | **Done** |
-| 7 | [S0.6](stories/S0.6-observability.md) | Observability | 0 Foundation | S0.1, S0.2, S0.3, S0.5 | S | Not started |
+| 7 | [S0.6](stories/S0.6-observability.md) | Observability | 0 Foundation | S0.1, S0.2, S0.3, S0.5 | S | **Done** |
 | 8 | [S1.1](stories/S1.1-schema.md) | Schema | 1 Database and security | S0.1, S0.5, S0.7 | M | Not started |
 | 9 | [S1.2](stories/S1.2-profile-provisioning-and-seed.md) | Profile provisioning and seed — **gate: phone auth (D19)** | 1 Database and security | S1.1, S0.7 | L | Not started |
 | 10 | [S1.3](stories/S1.3-rls-policies-and-rpcs.md) | RLS policies and RPCs | 1 Database and security | S1.1, S1.2 | L | Not started |

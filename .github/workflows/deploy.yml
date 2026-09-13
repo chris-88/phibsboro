@@ -75,6 +75,27 @@ jobs:
           cache: npm
       - run: npm ci
 
+      # S0.6 — sourcemaps are built and uploaded only when Sentry is configured (D16). Same guard
+      # shape as `migrate`: absent credentials skip the upload rather than fail the deploy.
+      #
+      # DEVIATION: Sentry is not yet provisioned. Until SENTRY_AUTH_TOKEN, SENTRY_ORG and
+      # SENTRY_PROJECT exist the bundle ships with no sourcemaps and no upload happens; the app
+      # itself skips Sentry init on a blank VITE_SENTRY_DSN. See docs/deployment.md.
+      - name: Skip the Sentry sourcemap upload when not configured
+        id: sentry
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ vars.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ vars.SENTRY_PROJECT }}
+        run: |
+          if [ -z "${SENTRY_AUTH_TOKEN}" ] || [ -z "${SENTRY_ORG}" ] || [ -z "${SENTRY_PROJECT}" ]; then
+            echo 'Sentry not configured — building without sourcemaps, uploading nothing. Set'
+            echo 'SENTRY_AUTH_TOKEN, SENTRY_ORG and SENTRY_PROJECT to enable the upload (docs/deployment.md).'
+            echo 'configured=false' >> "$GITHUB_OUTPUT"
+          else
+            echo 'configured=true' >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Build
         env:
           # env-parity:start — scripts/check-env-parity.mjs compares this block against .env.example (AC14)
@@ -87,6 +108,10 @@ jobs:
           # env-parity:end
           # AC2 — the release is the commit SHA, substituted into the pfc-release meta tag.
           VITE_SENTRY_RELEASE: ${{ github.sha }}
+          # S0.6 — read by vite.config.ts; the plugin only loads when all three are set.
+          SENTRY_AUTH_TOKEN: ${{ steps.sentry.outputs.configured == 'true' && secrets.SENTRY_AUTH_TOKEN || '' }}
+          SENTRY_ORG: ${{ vars.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ vars.SENTRY_PROJECT }}
         run: npm run build
 
       # AC6, AC7, AC9. Secrets are passed in so the script can prove they are absent from dist/.

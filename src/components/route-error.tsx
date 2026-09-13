@@ -1,3 +1,5 @@
+import * as Sentry from '@sentry/react'
+import { useEffect } from 'react'
 import { Link, useRouteError } from 'react-router'
 import { AppShell } from '@/components/app-shell'
 import { NotFound } from '@/components/not-found'
@@ -18,8 +20,12 @@ export interface RouteErrorProps {
 
 /**
  * The route-level `errorElement`. A missing route param is a bad link, so it gets the 404
- * screen; anything else gets the error state with a retry and a way home (D49). No Sentry
- * import here on purpose — S0.6 wraps the root, and this stays a plain component.
+ * screen; anything else gets the error state with a retry and a way home (D49).
+ *
+ * This is a React error boundary sitting inside `AppErrorBoundary`, so it — not Sentry's
+ * boundary — catches every screen that throws during render. It therefore has to report
+ * (S0.6 AC5); the root boundary only ever sees what throws outside the router. A bad link
+ * is not a bug and is not reported.
  */
 export function RouteError({
   reload = () => {
@@ -29,6 +35,14 @@ export function RouteError({
   const error = useRouteError()
   const notFound = error instanceof RouteParamMissingError
   useDocumentTitle(notFound ? NOT_FOUND_TITLE : ERROR_TITLE)
+  useEffect(() => {
+    if (notFound) return
+    // Same shape Sentry's own boundary uses, so the two group alike. StrictMode re-runs this
+    // in dev with the same error object; the default dedupe integration drops the repeat.
+    Sentry.captureException(error, {
+      mechanism: { type: 'auto.function.react.error_element', handled: true },
+    })
+  }, [error, notFound])
 
   return (
     <AppShell chrome="bare" role="player">

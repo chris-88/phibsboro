@@ -2,7 +2,11 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import '@/index.css'
 import App from '@/App'
+import { initSentry } from '@/lib/sentry'
 import { registerServiceWorker } from '@/pwa/registerServiceWorker'
+
+// Before anything else runs, so a failure in the render below is itself reported (S0.6 AC1).
+initSentry()
 
 const rootElement = document.getElementById('root')
 if (!rootElement) throw new Error('Root element #root is missing from index.html')

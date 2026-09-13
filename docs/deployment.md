@@ -50,13 +50,21 @@ Set a variable with `gh variable set NAME --body VALUE`, a secret with `gh secre
 - **`SUPABASE_ACCESS_TOKEN` / `SUPABASE_PROJECT_REF`** — the `migrate` job skips itself while either is
   absent, so deploys succeed but no migration is ever applied. **These must be set before S1.1 merges**,
   or the first schema change will silently never reach production.
-- **Sentry** — S0.6 skips initialisation on a blank DSN, and the sourcemap upload step is guarded.
+- **Sentry** — the app skips initialisation on a blank `VITE_SENTRY_DSN`, so nothing is reported and
+  nothing is sent anywhere. The `build` job's `Skip the Sentry sourcemap upload when not configured`
+  step reports `configured=false` while `SENTRY_AUTH_TOKEN`, `SENTRY_ORG` or `SENTRY_PROJECT` is
+  absent; the bundle is then built with no sourcemaps at all and nothing is uploaded. Set all three
+  plus the DSN, and the next deploy builds hidden maps, uploads them under the commit SHA and deletes
+  them before publish. Then run the once-per-release check in S0.6's test plan. Note the plugin logs
+  an upload failure (bad token, wrong project) without failing the build, so a deploy can go green
+  with no maps in Sentry — the manual check is what catches that.
 
 ## Guards
 
 - `scripts/verify-dist.sh` gates the publish: no `*.map` in the artifact (AC6), no secret prefix present
   in the bundle (AC7), `CNAME` correct when one is configured (AC9), and the `pfc-release` meta tag
-  present.
+  present. Sourcemaps exist only in a build with Sentry credentials, where `@sentry/vite-plugin`
+  deletes them after upload (S0.6 AC4); `vite.config.ts` sets `build.sourcemap: false` otherwise.
 - `scripts/check-env-parity.mjs` fails if `.env.example` and the build job's `env:` block disagree about
   which `VITE_` keys exist (AC14). It runs in S0.7's `check` job, so the drift is caught on the pull
   request rather than at deploy time.

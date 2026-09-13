@@ -19,6 +19,7 @@
     "format:check": "prettier --check ."
   },
   "dependencies": {
+    "@sentry/react": "^10.74.0",
     "class-variance-authority": "^0.7.1",
     "cn": "^0.2.6",
     "lucide-react": "^1.45.0",
@@ -33,6 +34,7 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.63.0",
+    "@sentry/vite-plugin": "^5.4.0",
     "@tailwindcss/vite": "^4.3.3",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.3",

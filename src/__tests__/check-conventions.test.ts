@@ -57,3 +57,28 @@ describe('check-conventions release-tag rule (S0.4 AC14)', () => {
     expect(stderr).toContain('[release-tag-reader]')
   })
 })
+
+describe('check-conventions setUser rule (S0.6 AC10)', () => {
+  it('fails on Sentry.setUser( outside src/lib/sentry.ts', () => {
+    const { status, stderr } = check(
+      'src/features/auth/x.ts',
+      'Sentry.setUser({ id, username: name, phone })\n',
+    )
+    expect(status).toBe(1)
+    expect(stderr).toContain('[sentry-set-user]')
+  })
+
+  it('fails on a bare setUser( too', () => {
+    const { status, stderr } = check('src/x.tsx', 'setUser({ id: user.id })\n')
+    expect(status).toBe(1)
+    expect(stderr).toContain('[sentry-set-user]')
+  })
+
+  it('allows the wrapper itself', () => {
+    const { status } = check(
+      'src/lib/sentry.ts',
+      'export const setSentryUser = (id: string | null) => Sentry.setUser(id === null ? null : { id })\n',
+    )
+    expect(status).toBe(0)
+  })
+})

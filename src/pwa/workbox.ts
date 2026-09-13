@@ -17,6 +17,10 @@ export const workboxOptions = {
   // with directoryIndex left alone, reload one came from cache-storage with build A.
   navigateFallback: null,
   directoryIndex: null,
+  // Left to its default, the plugin mirrors build.sourcemap and writes sw.js.map after the
+  // Sentry plugin has already deleted the app maps, so a map would reach Pages (S0.6 AC4).
+  // Nobody needs a trace from the worker; the app maps are what Sentry gets.
+  sourcemap: false,
   cleanupOutdatedCaches: true,
   clientsClaim: true,
   skipWaiting: true,

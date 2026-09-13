@@ -9,6 +9,7 @@
 // | useParams() outside src/lib/use-route-param.ts            | S0.3  | typed params, no `!` on a segment, AC10   |
 // | display-mode: standalone / navigator.standalone elsewhere | S0.4  | one isStandalone() helper, AC9, D44       |
 // | The pfc-release meta read outside src/lib/version.ts      | S0.4  | one reader of the release tag, AC14       |
+// | setUser( outside src/lib/sentry.ts                        | S0.6  | Sentry user is the auth uuid only, AC10   |
 
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join, relative, sep } from 'node:path'
@@ -51,10 +52,12 @@ const CHECKS = [
     roots: ['src'],
     exts: ['.ts', '.tsx', '.js', '.jsx'],
     pattern: /\/#\//,
-    // The builder, and the test that pins its output byte for byte. Nothing else.
+    // The builder, the test that pins its output byte for byte, and the scrubber fixtures.
     allow: (p) =>
       p === join('src', 'lib', 'paths.ts') ||
-      p === join('src', 'lib', '__tests__', 'paths.test.ts'),
+      p === join('src', 'lib', '__tests__', 'paths.test.ts') ||
+      // S0.6: the token fixtures the scrubber must truncate are literal hash URLs.
+      p === join('src', 'lib', '__tests__', 'sentry-scrub.test.ts'),
     message:
       'Only src/lib/paths.ts builds a URL containing the hash. Import absoluteUrl/eventUrl from @/lib/paths. S0.3 AC8, D13.',
   },
@@ -94,6 +97,19 @@ const CHECKS = [
       p === FIXTURE_TEST,
     message:
       'Read the running build with getAppVersion() from @/lib/version, the only reader of the pfc-release tag. S0.4 AC14.',
+  },
+  {
+    name: 'sentry-set-user',
+    roots: ['src'],
+    exts: ['.ts', '.tsx', '.js', '.jsx'],
+    pattern: /\bsetUser\s*\(/,
+    // The wrapper, its test (which asserts the call it makes), and the fixture test.
+    allow: (p) =>
+      p === join('src', 'lib', 'sentry.ts') ||
+      p === join('src', 'lib', '__tests__', 'sentry.test.ts') ||
+      p === FIXTURE_TEST,
+    message:
+      'Identify the user to Sentry with setSentryUser(id) from @/lib/sentry: the auth uuid and nothing else, never phone or name. S0.6 AC10, D16.',
   },
 ]
 
