@@ -64,4 +64,4 @@ Before the club's members register, in this order:
 2. **Nuke the test data and seed for real.** Drop the seeded fixtures, create the club's actual teams
    (S6.1) and generate their join links (S6.2).
 3. **Rotate the credentials** that have been used during development.
-4. **Point the custom domain** — the three steps in [deployment.md](deployment.md).
+4. ~~Point the custom domain~~ — done 2026-09-13, `app.phibsboro.ie` is live.

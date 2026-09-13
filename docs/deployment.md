@@ -10,27 +10,15 @@ migrate  →  build  →  deploy  →  smoke
 
 A failure in any job leaves the previously deployed site untouched and serving.
 
-## Current state: project page, not the custom domain
+## Live at app.phibsboro.ie
 
-The site is live at **https://chris-88.github.io/phibsboro/**.
+Cut over on 2026-09-13. `phibsboro.ie` delegates to `ns9`/`ns10.dnsireland.com` (Letshost); the zone
+holds one record, `app CNAME chris-88.github.io`. `public/CNAME` is committed, `VITE_BASE_PATH` is `/`,
+HTTPS is enforced and the certificate is from Let's Encrypt via GitHub. The old project-page address
+`chris-88.github.io/phibsboro/` redirects here.
 
-`app.phibsboro.ie` is not yet pointed at GitHub Pages. Shipping a `CNAME` file before the DNS resolves
-would take the site offline, so the custom domain is deliberately deferred. The bundle is therefore built
-with a base path of `/phibsboro/`, carried by the `VITE_BASE_PATH` repository variable rather than
-hardcoded in `vite.config.ts`.
-
-### Switching to app.phibsboro.ie
-
-Three steps, in this order:
-
-1. **DNS.** Add a `CNAME` record at your registrar: host `app`, value `chris-88.github.io`. No apex
-   records — this is a subdomain. Wait for it to resolve (`dig +short app.phibsboro.ie`).
-2. **CNAME file.** `echo app.phibsboro.ie > public/CNAME` and commit it. `scripts/verify-dist.sh`
-   starts enforcing AC9 automatically once that file exists.
-3. **Base path.** Set the `VITE_BASE_PATH` repository variable to `/` and `VITE_APP_BASE_URL` to
-   `https://app.phibsboro.ie`. Then confirm "Enforce HTTPS" is ticked in Settings → Pages (AC8).
-
-Run the workflow by hand (`gh workflow run deploy.yml`) rather than waiting for a commit.
+`scripts/switch-domain.sh` did the cutover and stays in the repo as the record of how; the reverse is
+documented at the top of that file.
 
 ## Repository variables and secrets
 
