@@ -1,10 +1,11 @@
+import { Link } from 'react-router'
 import { cn } from '@/lib/utils'
 import { isNavItemActive, navItemsForRole, type AppRole } from '@/lib/nav'
 
 export interface BottomNavProps {
   role: AppRole
-  /** A plain string, not a router hook, so the nav stays unit testable. S0.3 supplies it
-   *  from useLocation(). */
+  /** A plain string, not a router hook, so the active state stays unit testable. S0.3's
+   *  root layout supplies it from useLocation(). */
   currentPath: string
 }
 
@@ -27,8 +28,11 @@ export function BottomNav({ role, currentPath }: BottomNavProps): React.JSX.Elem
           const Icon = item.icon
           return (
             <li key={item.to} className="flex-1">
-              <a
-                href={`#${item.to}`}
+              {/* A router Link, not a bare `<a href="#/…">`: a native fragment jump arrives as a
+                  popstate with no history key, so ScrollRestoration restores the old page's
+                  scroll onto the new one instead of starting at the top (S0.3 AC14). */}
+              <Link
+                to={item.to}
                 aria-current={active ? 'page' : undefined}
                 className={cn(
                   'relative flex min-h-tap flex-col items-center justify-center gap-0.5 px-2 py-1 text-xs',
@@ -46,7 +50,7 @@ export function BottomNav({ role, currentPath }: BottomNavProps): React.JSX.Elem
                 />
                 <Icon className="size-5" aria-hidden="true" />
                 {item.label}
-              </a>
+              </Link>
             </li>
           )
         })}

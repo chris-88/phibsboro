@@ -1,6 +1,10 @@
-import { render, screen } from '@testing-library/react'
+import { render as rtlRender, screen } from '@testing-library/react'
+import { MemoryRouter } from 'react-router'
 import { describe, expect, it } from 'vitest'
 import { BottomNav } from '@/components/bottom-nav'
+
+// The nav renders router Links (S0.3), so every render needs a router around it.
+const render = (ui: React.ReactElement) => rtlRender(<MemoryRouter>{ui}</MemoryRouter>)
 
 describe('BottomNav', () => {
   it('renders one item per role entry', () => {
@@ -32,8 +36,8 @@ describe('BottomNav', () => {
     expect(nav?.className).toContain('pb-[env(safe-area-inset-bottom)]')
   })
 
-  it('links through the hash, which is what HashRouter reads', () => {
+  it('links to the route path; the hash router turns it into #/history in the browser', () => {
     render(<BottomNav role="player" currentPath="/" />)
-    expect(screen.getByRole('link', { name: /history/i })).toHaveAttribute('href', '#/history')
+    expect(screen.getByRole('link', { name: /history/i })).toHaveAttribute('href', '/history')
   })
 })

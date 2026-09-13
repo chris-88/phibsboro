@@ -1,11 +1,10 @@
-import { AppShell } from '@/components/app-shell'
+import { RouterProvider, createHashRouter } from 'react-router'
+import { routes } from '@/routes'
 
-// The shell and nothing else. Routing is S0.3, the real role comes from useCurrentUser()
-// in S2.9, and the first real screen is S3.1.
-export default function App() {
-  return (
-    <AppShell chrome="nav" role="player" title="Phibsboro FC" currentPath="/">
-      <p className="py-6 text-sm text-muted-foreground">Shell only. Screens start at S3.1.</p>
-    </AppShell>
-  )
+// HashRouter, never BrowserRouter: GitHub Pages serves static files, and everything after
+// the fragment never leaves the browser, so every deep link fetches index.html (CLAUDE.md §2).
+const router = createHashRouter(routes)
+
+export default function App(): React.JSX.Element {
+  return <RouterProvider router={router} />
 }

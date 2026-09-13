@@ -12,4 +12,13 @@ export default defineConfig({
   resolve: {
     alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
   },
+  build: {
+    // 404.html is a second HTML entry so %BASE_URL% is substituted; see the comment in it.
+    rollupOptions: {
+      input: {
+        main: fileURLToPath(new URL('./index.html', import.meta.url)),
+        404: fileURLToPath(new URL('./404.html', import.meta.url)),
+      },
+    },
+  },
 })

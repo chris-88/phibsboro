@@ -23,7 +23,7 @@ shell, routing and PWA are exempt because they touch no data.
 | 2 | [S0.2](stories/S0.2-ui-system.md) | UI system | 0 Foundation | S0.1 | M | **Done** |
 | 3 | [S0.7](stories/S0.7-ci-pipeline.md) | CI pipeline | 0 Foundation | S0.1 | S | **Done** |
 | 4 | [S0.5](stories/S0.5-deployment.md) | Deployment | 0 Foundation | S0.1, S0.7 | M | **Done** |
-| 5 | [S0.3](stories/S0.3-routing.md) | Routing | 0 Foundation | S0.1, S0.2, S0.5, S0.7 | M | Not started |
+| 5 | [S0.3](stories/S0.3-routing.md) | Routing | 0 Foundation | S0.1, S0.2, S0.5, S0.7 | M | **Done** |
 | 6 | [S0.4](stories/S0.4-pwa.md) | PWA | 0 Foundation | S0.1, S0.2, S0.3, S0.5, S0.7 | M | Not started |
 | 7 | [S0.6](stories/S0.6-observability.md) | Observability | 0 Foundation | S0.1, S0.2, S0.3, S0.5 | S | Not started |
 | 8 | [S1.1](stories/S1.1-schema.md) | Schema | 1 Database and security | S0.1, S0.5, S0.7 | M | Not started |

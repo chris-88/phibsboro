@@ -18,3 +18,7 @@ if (!('matchMedia' in window)) {
       }) as MediaQueryList,
   })
 }
+
+// jsdom has no layout, so scrollTo logs "Not implemented" instead of scrolling. React
+// Router's <ScrollRestoration> calls it on every navigation; make it a no-op.
+window.scrollTo = () => undefined

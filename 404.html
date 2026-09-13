@@ -1,0 +1,22 @@
+<!doctype html>
+<!--
+  GitHub Pages serves this for any path it has no file for, so a link that lost its `#`
+  still reaches the app (S0.3 AC7): /event/<id> becomes /#/event/<id>. It never runs on a
+  known path. It lives at the project root, not in public/, because Vite substitutes the
+  base placeholder only in HTML entries — and the base is /phibsboro/ on the project page and
+  / on the custom domain, so it cannot be written down here.
+-->
+<html lang="en-IE">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Phibsboro FC</title>
+    <script>
+      var base = '%BASE_URL%'
+      var l = window.location
+      var path = l.pathname.indexOf(base) === 0 ? l.pathname.slice(base.length - 1) : l.pathname
+      l.replace(l.origin + base + '#' + path + l.search + l.hash)
+    </script>
+  </head>
+  <body></body>
+</html>

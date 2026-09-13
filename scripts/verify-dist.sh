@@ -44,4 +44,17 @@ fi
 [ -f "$DIST/index.html" ] || fail "$DIST/index.html is missing"
 grep -q 'name="pfc-release"' "$DIST/index.html" || fail "the pfc-release meta tag is missing from index.html"
 
+# S0.3 AC7 — Pages serves 404.html for a link that lost its `#`; it must carry the real base,
+# not the unsubstituted placeholder.
+[ -f "$DIST/404.html" ] || fail "$DIST/404.html is missing"
+grep -q '%BASE_URL%' "$DIST/404.html" && fail "404.html still contains the %BASE_URL% placeholder"
+
+# S0.3 AC12 — the manager and admin screens are lazy chunks index.html never references.
+lazy=0
+for chunk in "$DIST"/assets/*.js; do
+  grep -qF "$(basename "$chunk")" "$DIST/index.html" || lazy=$((lazy + 1))
+done
+[ "$lazy" -ge 2 ] || fail "expected at least two lazily loaded chunks, found $lazy"
+echo "verify-dist: $lazy lazy chunks"
+
 echo "verify-dist: clean"

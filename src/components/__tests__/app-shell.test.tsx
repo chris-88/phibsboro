@@ -1,7 +1,11 @@
-import { render, screen } from '@testing-library/react'
+import { render as rtlRender, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { MemoryRouter } from 'react-router'
 import { describe, expect, it, vi } from 'vitest'
 import { AppShell, AppShellSkeleton } from '@/components/app-shell'
+
+// The nav renders router Links (S0.3), so every render needs a router around it.
+const render = (ui: React.ReactElement) => rtlRender(<MemoryRouter>{ui}</MemoryRouter>)
 
 describe('AppShell (AC8)', () => {
   it('renders the bottom nav for chrome="nav"', () => {

@@ -1,4 +1,5 @@
 import { ClipboardList, History, House, Shield, type LucideIcon } from 'lucide-react'
+import { paths } from '@/lib/paths'
 
 export type AppRole = 'player' | 'manager' | 'admin'
 
@@ -12,20 +13,17 @@ export interface NavItem {
  * What the bottom nav shows for a role. This is presentation convenience and nothing
  * more: RLS is the enforcement layer, and a player who types /manage into the address
  * bar sees no data regardless of what this function returns.
- *
- * `to` values are the D34 route paths as plain strings. S0.3 replaces them with its
- * `paths` helpers when that story lands.
  */
 export function navItemsForRole(role: AppRole): NavItem[] {
   const items: NavItem[] = [
-    { label: 'Home', to: '/', icon: House },
-    { label: 'History', to: '/history', icon: History },
+    { label: 'Home', to: paths.home(), icon: House },
+    { label: 'History', to: paths.history(), icon: History },
   ]
   if (role === 'manager' || role === 'admin') {
-    items.push({ label: 'Manage', to: '/manage', icon: ClipboardList })
+    items.push({ label: 'Manage', to: paths.manage(), icon: ClipboardList })
   }
   if (role === 'admin') {
-    items.push({ label: 'Admin', to: '/admin', icon: Shield })
+    items.push({ label: 'Admin', to: paths.admin(), icon: Shield })
   }
   return items
 }

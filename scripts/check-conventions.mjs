@@ -5,7 +5,8 @@
 // |----------------------------------------------------------|-------|-------------------------------------------|
 // | SERVICE_ROLE outside .env.example and supabase/           | S0.1  | belt and braces alongside the lint rule (D38) |
 // | A hex colour literal under src/ outside the token sheet   | S0.2  | no hardcoded hex in components, AC3       |
-// | The literal '/#/' outside src/lib/paths.ts                | S0.3  | one URL builder, D13                      |
+// | The literal '/#/' outside src/lib/paths.ts                | S0.3  | one URL builder, AC8, D13                 |
+// | useParams() outside src/lib/use-route-param.ts            | S0.3  | typed params, no `!` on a segment, AC10   |
 
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join, relative, sep } from 'node:path'
@@ -40,6 +41,27 @@ const CHECKS = [
     allow: (p) => p === join('src', 'index.css') || p === join('src', 'pwa', 'manifest.ts'),
     message:
       'Colours are semantic tokens from src/index.css, never hex literals. CLAUDE.md section 3, S0.2 AC3.',
+  },
+  {
+    name: 'hash-literal',
+    roots: ['src'],
+    exts: ['.ts', '.tsx', '.js', '.jsx'],
+    pattern: /\/#\//,
+    // The builder, and the test that pins its output byte for byte. Nothing else.
+    allow: (p) =>
+      p === join('src', 'lib', 'paths.ts') ||
+      p === join('src', 'lib', '__tests__', 'paths.test.ts'),
+    message:
+      'Only src/lib/paths.ts builds a URL containing the hash. Import absoluteUrl/eventUrl from @/lib/paths. S0.3 AC8, D13.',
+  },
+  {
+    name: 'use-params',
+    roots: ['src'],
+    exts: ['.ts', '.tsx'],
+    pattern: /\buseParams\s*\(/,
+    allow: (p) => p === join('src', 'lib', 'use-route-param.ts'),
+    message:
+      'Read route segments with useRouteParam() from @/lib/use-route-param, which returns a string or throws. S0.3 AC10.',
   },
 ]
 

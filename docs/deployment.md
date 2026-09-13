@@ -81,5 +81,10 @@ Set a variable with `gh variable set NAME --body VALUE`, a secret with `gh secre
 read-only by construction: it signs in to nothing and writes nothing, so it is safe against production.
 It asserts the site returns 200 and that the `pfc-release` meta tag carries the commit that built it.
 
-`tests/e2e/smoke.deployed.spec.ts` holds a short `ROUTES` list and a skipped 404 assertion. S0.3 owns
-routing and fills both in the same PR that ships the 404 screen.
+`tests/e2e/smoke.deployed.spec.ts` walks every D34 route with a real segment value, hard-reloads each,
+and asserts a 200 plus a per-route document title (S0.3 AC1, AC5); asserts the 404 screen for `/#/nope`;
+and asserts that the path form `event/<uuid>` is redirected to `/#/event/<uuid>` by `404.html` (S0.3
+AC7). Every URL in it is relative with no leading slash, because `SMOKE_BASE_URL` carries `/phibsboro/`
+while the site is on the project page and Playwright resolves a leading slash against the bare origin.
+S3.3 switches the unknown-route target to `/event/00000000-0000-0000-0000-000000000000` when it ships
+the real not-found state (D17).
