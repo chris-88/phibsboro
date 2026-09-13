@@ -1,9 +1,10 @@
-import { Outlet, ScrollRestoration, useLocation, useMatches } from 'react-router'
+import { Outlet, ScrollRestoration, useLocation, useMatches, useNavigate } from 'react-router'
 import { AppShell, AppShellSkeleton } from '@/components/app-shell'
 import { LoadingState } from '@/components/states'
 import { useCurrentUser } from '@/features/auth/use-current-user'
 import { NOT_FOUND_TITLE, useDocumentTitle } from '@/lib/document-title'
 import type { AppRole } from '@/lib/nav'
+import { paths } from '@/lib/paths'
 import { type AppRouteMeta, type GuardLevel, isAppRouteMeta } from '@/lib/route-meta'
 
 /** The deepest match carrying route metadata. Every route in the table has one. */
@@ -22,6 +23,7 @@ function useRouteMeta(): AppRouteMeta | undefined {
 export function RootLayout(): React.JSX.Element {
   const meta = useRouteMeta()
   const { pathname } = useLocation()
+  const navigate = useNavigate()
   const user = useCurrentUser()
   const chrome = meta?.chrome ?? 'bare'
   const guard: GuardLevel = meta?.guard ?? 'public'
@@ -45,6 +47,18 @@ export function RootLayout(): React.JSX.Element {
           : 'player'
       : 'player'
 
+  // A bare screen is a deep-link target: a WhatsApp tap opens it cold with no in-app history, so
+  // "back" must go home rather than out of the SPA. React Router writes `idx` into history state,
+  // which is 0 on a cold arrival and grows with in-app navigation (S3.3 AC16, D41).
+  const onBack =
+    chrome === 'bare'
+      ? () => {
+          const idx = (window.history.state as { idx?: number } | null)?.idx ?? 0
+          if (idx > 0) void navigate(-1)
+          else void navigate(paths.home())
+        }
+      : undefined
+
   return (
     <>
       <ScrollRestoration />
@@ -54,6 +68,7 @@ export function RootLayout(): React.JSX.Element {
         chrome={chrome}
         role={role}
         title={chrome === 'nav' ? meta?.title : undefined}
+        onBack={onBack}
         currentPath={pathname}
       >
         <Outlet />

@@ -8,7 +8,9 @@ import {
 } from '@tanstack/react-query'
 import type { PostgrestError } from '@supabase/supabase-js'
 import { z } from 'zod'
-import { teamKeys } from '@/api/queryKeys'
+import { eventKeys, teamKeys, userKeys } from '@/api/queryKeys'
+import { callRpc } from '@/api/rpc'
+import { AppError } from '@/lib/errors'
 import { supabase } from '@/lib/supabase'
 import {
   byActiveThenName,
@@ -129,5 +131,37 @@ export function useSetTeamActive(): UseMutationResult<
       if (ctx?.previous) qc.setQueryData(teamKeys.all, ctx.previous)
     },
     onSettled: () => qc.invalidateQueries({ queryKey: teamKeys.all }),
+  })
+}
+
+export interface JoinedTeam {
+  teamId: string
+  teamName: string
+}
+
+/**
+ * Joins the caller to the team that owns an event, as a player (D6). The event link is a standing
+ * join credential with the same trust basis as the squad WhatsApp group, so this is the join S3.3
+ * offers a signed-in non-member. The RPC returns a set of one row and raises `invalid_invite` for
+ * an inactive team, an unknown event, or one that started more than seven days ago;
+ * `noUncheckedIndexedAccess` makes the empty-set guard a compile requirement rather than a choice.
+ *
+ * `userKeys.current()` is the invalidation that re-renders S3.3 as the member view without a
+ * reload (AC10): the membership query refetches, the detail read is enabled, and the buttons
+ * appear. `eventKeys.all` refreshes the event itself.
+ */
+export function useJoinTeamByEvent(): UseMutationResult<JoinedTeam, AppError, string> {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (eventId: string): Promise<JoinedTeam> => {
+      const rows = await callRpc('join_team_by_event', { p_event_id: eventId })
+      const row = rows[0]
+      if (!row) throw new AppError('invalid_invite')
+      return { teamId: row.team_id, teamName: row.team_name }
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: eventKeys.all })
+      void qc.invalidateQueries({ queryKey: userKeys.current() })
+    },
   })
 }

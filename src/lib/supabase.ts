@@ -1,6 +1,18 @@
 import { createClient, type SupabaseClientOptions } from '@supabase/supabase-js'
 import type { Database } from '@/lib/db'
 import { env } from '@/lib/env'
+import { recordServerDate } from '@/lib/serverClock'
+
+/**
+ * Every request the client makes passes through here so the server clock can be captured from the
+ * `Date` header (S3.3, D48) without a dedicated round trip. It only reads a header; it never
+ * changes the request or the response.
+ */
+const trackingFetch: typeof fetch = async (input, init) => {
+  const res = await fetch(input, init)
+  recordServerDate(res.headers.get('Date'))
+  return res
+}
 
 /**
  * Exported so a test can pin the four flags S2.6 depends on (S1.5 AC5). Session longevity
@@ -23,4 +35,5 @@ export const authOptions = {
  */
 export const supabase = createClient<Database>(env.VITE_SUPABASE_URL, env.VITE_SUPABASE_ANON_KEY, {
   auth: authOptions,
+  global: { fetch: trackingFetch },
 })

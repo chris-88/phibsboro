@@ -28,10 +28,10 @@ const ROUTES = [
 const TITLE_SUFFIX = ' · Phibsboro FC'
 const NOT_FOUND_TITLE = `Nothing here.${TITLE_SUFFIX}`
 
-// S3.3 ships the real not-found state for an unknown event, at which point this becomes
-// `/event/00000000-0000-0000-0000-000000000000` (D17). Until then that path renders the S3.3
-// placeholder, so the unknown-route target is a path no story will ever claim.
-const UNKNOWN_ROUTE = '/nope'
+// S3.3 ships the real not-found state for an unknown event, so the unknown-route target is now a
+// real event route with a uuid nothing in the database carries (S0.5 AC10, D17). The preview RPC
+// returns zero rows for it and the screen renders its own 404 with the event copy.
+const UNKNOWN_ROUTE = '/event/00000000-0000-0000-0000-000000000000'
 
 test('the site is up and serving this commit', async ({ page }) => {
   const response = await page.goto('')
@@ -61,13 +61,16 @@ for (const route of ROUTES) {
   })
 }
 
-test('an unknown route renders the 404 screen', async ({ page }) => {
+test('an unknown event renders the not-found screen after a hard reload', async ({ page }) => {
   await page.goto(`#${UNKNOWN_ROUTE}`)
   await page.reload()
-  await expect(page.getByRole('heading', { name: 'Nothing here.' })).toBeVisible()
+  // The event route ships its own copy (S3.3 AC13), not the generic "Nothing here.".
+  await expect(page.getByRole('heading', { name: "We can't find that event." })).toBeVisible()
   await expect(page.getByRole('link', { name: 'Go to the app' })).toBeVisible()
   await expect(page.getByRole('navigation', { name: 'Main' })).toHaveCount(0)
-  await expect(page).toHaveTitle(NOT_FOUND_TITLE)
+  // The route resolved (its title carries the suffix); it did not fall through to `*`.
+  await expect(page).toHaveTitle(new RegExp(`${TITLE_SUFFIX}$`))
+  await expect(page).not.toHaveTitle(NOT_FOUND_TITLE)
 })
 
 // S0.3 AC7 — a link that lost its `#` is caught by 404.html and put back together.

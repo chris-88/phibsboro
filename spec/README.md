@@ -37,7 +37,7 @@ shell, routing and PWA are exempt because they touch no data.
 | 16 | [S2.1](stories/S2.1-registration.md) | Registration | 2 Auth and install | S0.2, S0.3, S1.2, S1.3, S1.4, S1.5, S2.9, S6.2 | M | **Done** |
 | 17 | [S2.2](stories/S2.2-sign-in.md) | Sign in | 2 Auth and install | S0.2, S0.3, S1.2, S1.4, S1.5, S2.1, S2.9 | S | **Done** |
 | 18 | [S2.6](stories/S2.6-session-persistence.md) | Session persistence | 2 Auth and install | S0.1, S0.4, S0.7, S1.5, S2.2, S2.9 | M | **Done** |
-| 19 | [S3.3](stories/S3.3-event-detail-screen.md) | Event detail screen | 3 Player | S0.2, S0.3, S1.3, S1.4, S1.5, S2.1, S2.6, S2.9 | L | Not started |
+| 19 | [S3.3](stories/S3.3-event-detail-screen.md) | Event detail screen | 3 Player | S0.2, S0.3, S1.3, S1.4, S1.5, S2.1, S2.6, S2.9 | L | **Done** |
 | 20 | [S2.4](stories/S2.4-join-by-link.md) | Join by link | 2 Auth and install | S0.3, S1.3, S1.4, S1.5, S2.1, S2.2, S2.6, S2.9, S3.3, S6.2 | M | Not started |
 | 21 | [S2.5](stories/S2.5-deep-link-return-path.md) | Deep link return path | 2 Auth and install | S0.3, S0.5, S0.7, S2.1, S2.2, S2.4, S2.6, S2.9, S3.3 | M | Not started |
 | 22 | [S6.4](stories/S6.4-member-administration.md) | Member administration | 6 Admin | S1.3, S1.4, S1.5, S2.1, S2.4, S2.9, S6.1, S6.2 | L | Not started |

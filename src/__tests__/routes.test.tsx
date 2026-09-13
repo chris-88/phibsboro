@@ -27,7 +27,7 @@ vi.mock('@/features/auth/use-current-user', () => {
 
 import { RootLayout } from '@/components/root-layout'
 import { RouteError } from '@/components/route-error'
-import EventScreen from '@/features/events/event-screen'
+import EventScreen from '@/features/events/routes/EventDetailScreen'
 import { TITLE_SUFFIX } from '@/lib/document-title'
 import { routeTable, routes } from '@/routes'
 
@@ -101,7 +101,8 @@ describe('resolving routes (AC1, AC15)', () => {
     ['/', 'S3.1'],
     ['/join/abc123', 'S2.4'],
     ['/reset/abc123', 'S2.3'],
-    [`/event/${UUID}`, 'S3.3'],
+    // /event/:id is a real screen from S3.3 — no longer a placeholder; EventDetailScreen and
+    // routes coverage below assert it directly.
     ['/history', 'S3.5'],
     ['/manage', 'S4.1'],
     ['/manage/event/new', 'S4.1'],
@@ -156,9 +157,10 @@ describe('chrome per route (AC3, AC4)', () => {
 
   it('hides the bottom nav on /event/:id and shows a back affordance', async () => {
     mount(`/event/${UUID}`)
-    await placeholder()
+    // No session in this harness, so the real screen sits on its loading skeleton; the shell
+    // chrome is what this asserts.
+    expect(await screen.findByRole('button', { name: 'Back' })).toBeInTheDocument()
     expect(nav()).not.toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Back' })).toBeInTheDocument()
   })
 
   it('renders the 404 screen for an unknown route with one 44px action home and no nav (AC3)', () => {

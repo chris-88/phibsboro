@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { availabilityResponseSchema } from '@/features/availability/schema'
 import type { Enums, FnRow, Tables } from '@/lib/db'
 import type { Equal, Expect } from '@/lib/type-assert'
 import { timestampSchema, uuidSchema } from '@/lib/zod'
@@ -38,6 +39,29 @@ export const eventRowSchema = z.object({
   updated_at: timestampSchema,
 })
 export type EventRow = z.infer<typeof eventRowSchema>
+
+/**
+ * The member read for the event detail screen (S3.3): the event columns, the team name from an
+ * inner join, and the caller's own response embedded. The embed is filtered to `auth.uid()` in
+ * the query, so `.max(1)` is not decoration — it fails loudly in a test if that filter is ever
+ * dropped and a manager's read returns the whole squad (D32, AC15).
+ */
+export const eventWithResponseSchema = eventRowSchema
+  .pick({
+    id: true,
+    team_id: true,
+    type: true,
+    title: true,
+    location: true,
+    notes: true,
+    starts_at: true,
+    status: true,
+  })
+  .extend({
+    teams: z.object({ name: z.string() }),
+    event_responses: z.array(z.object({ response: availabilityResponseSchema })).max(1),
+  })
+export type EventWithResponseRow = z.infer<typeof eventWithResponseSchema>
 
 /** What `get_event_preview` returns to anyone, signed in or not (D7). Never `notes`. */
 export const eventPreviewSchema = eventRowSchema

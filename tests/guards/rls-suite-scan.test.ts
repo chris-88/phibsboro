@@ -85,6 +85,7 @@ describe('the service-role client stays out of assertions (S1.4 AC8)', () => {
     expect(files).toEqual([
       'api-event-preview.test.ts', // S1.5 AC16 — the worked hook through the app client
       'attendance.test.ts',
+      'event-detail-embed.test.ts', // S3.3 AC15 — the member-read embed filter regression guard
       'event-responses.test.ts',
       'events.test.ts',
       'profiles.test.ts',
