@@ -4,9 +4,9 @@ import { execFileSync } from 'node:child_process'
  * The local Supabase stack's URL and keys.
  *
  * Resolved from `supabase status -o env` when a stack is running, so a CLI upgrade that changes
- * the key format cannot silently break the seed or the tests. CLI 2.108 issues
- * `sb_publishable_…` / `sb_secret_…` keys; the legacy `eyJ…supabase-demo` JWTs that earlier
- * versions printed are rejected by its gateway. That is exactly how the first CI `db` run failed.
+ * the keys cannot silently break the seed or the tests. CLI 2.108's stack signs its JWTs with a
+ * different secret from the old `supabase-demo` constants that earlier versions printed, so a
+ * hardcoded legacy key is rejected — exactly how the first CI `db` run failed.
  *
  * Falls back to the constants compiled into CLI 2.108 — the version CI pins — when `status` is
  * unavailable, for example when a hosted-target run has no local stack up. Those constants are
@@ -62,8 +62,11 @@ export function localStack(): LocalStack {
   if (text) {
     const v = parseEnvOutput(text)
     const url = v.API_URL
-    const anonKey = v.PUBLISHABLE_KEY ?? v.ANON_KEY
-    const serviceRoleKey = v.SECRET_KEY ?? v.SERVICE_ROLE_KEY
+    // Legacy JWT keys first. The 2.108 local gateway answers 403 to a service-role request made
+    // with the new sb_secret_ key — the hosted gateway does not — while the JWT carries its role
+    // claim to PostgREST directly and works on both. `status` prints both formats.
+    const anonKey = v.ANON_KEY ?? v.PUBLISHABLE_KEY
+    const serviceRoleKey = v.SERVICE_ROLE_KEY ?? v.SECRET_KEY
     if (url && anonKey && serviceRoleKey) {
       cached = {
         url,
