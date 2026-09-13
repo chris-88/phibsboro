@@ -22,11 +22,18 @@ export default mergeConfig(
       css: true,
       // A clean clone has no .env. Without these, anything reading import.meta.env
       // sees undefined and `npm run test` fails on a fresh checkout (AC1).
+      // Every VITE_ key in .env.example, so the unit suite is hermetic: it must pass on a
+      // runner with no .env.local. S0.6 shipped a test that read VITE_SENTRY_RELEASE, passed
+      // locally off .env.local, and failed CI — this block is why that cannot recur.
       env: {
         TZ: 'UTC',
-        VITE_APP_BASE_URL: 'http://localhost:5173',
         VITE_SUPABASE_URL: 'http://127.0.0.1:54321',
+        VITE_SUPABASE_ANON_KEY: 'test-anon-key',
+        VITE_APP_BASE_URL: 'http://localhost:5173',
+        VITE_BASE_PATH: '/',
         VITE_SENTRY_DSN: '',
+        VITE_SENTRY_RELEASE: 'test',
+        VITE_SENTRY_ENVIRONMENT: 'test',
       },
     },
   }),
