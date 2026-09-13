@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import { Link } from 'react-router'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -6,6 +7,7 @@ import { useRenameTeam, useSetTeamActive } from '@/api/teams'
 import { DeactivateTeamDialog } from '@/features/teams/deactivate-team-dialog'
 import { teamNameSchema, type Team } from '@/features/teams/schema'
 import { isUniqueViolation } from '@/lib/errors'
+import { paths } from '@/lib/paths'
 import { cn } from '@/lib/utils'
 
 export interface TeamRowProps {
@@ -143,6 +145,13 @@ export function TeamRow({ team }: TeamRowProps): React.JSX.Element {
           >
             <span className="truncate">{team.name}</span>
             {!team.active && <Badge variant="secondary">Inactive</Badge>}
+          </Button>
+        )}
+
+        {/* AC15: reach the join-link screen without typing a URL. S6.3 adds the manage-view link. */}
+        {!editing && (
+          <Button asChild variant="outline" size="sm" disabled={busy}>
+            <Link to={paths.teamMembers(team.id)}>Members</Link>
           </Button>
         )}
 

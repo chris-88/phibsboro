@@ -1,5 +1,6 @@
-import { queryOptions, useQuery } from '@tanstack/react-query'
-import { userKeys } from '@/api/queryKeys'
+import { queryOptions, useQuery, type UseQueryResult } from '@tanstack/react-query'
+import { teamKeys, userKeys } from '@/api/queryKeys'
+import { callRpc } from '@/api/rpc'
 import { supabase } from '@/lib/supabase'
 
 /**
@@ -32,4 +33,19 @@ export function isAdminOptions() {
 
 export function useIsAdmin() {
   return useQuery(isAdminOptions())
+}
+
+/**
+ * True when the caller manages the team or is an admin — the `is_team_manager` helper is itself
+ * `is_admin() or ...`, so an admin who is not a member still passes (S6.2 gotcha). This is the
+ * convenience gate for the members screen: a player resolves to `false` and is redirected. It is
+ * convenience only. RLS is the enforcement layer — the invite RPCs refuse a player regardless of
+ * what the UI renders (S1.4). Superseded by `useCurrentUser()` once S2.9 lands, with no change in
+ * behaviour.
+ */
+export function useIsTeamManager(teamId: string): UseQueryResult<boolean> {
+  return useQuery({
+    queryKey: teamKeys.managerGate(teamId),
+    queryFn: (): Promise<boolean> => callRpc('is_team_manager', { p_team_id: teamId }),
+  })
 }

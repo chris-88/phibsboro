@@ -69,6 +69,21 @@ export const teamInviteSchema = z.object({
 })
 export type TeamInvite = z.infer<typeof teamInviteSchema>
 
+/**
+ * The four columns `get_team_invite` returns, and all a screen ever sees of an invite (S6.2):
+ * the token to copy, its role, its expiry and when it was minted. The full-row `teamInviteSchema`
+ * above stays the table-parity guard; this parses the RPC's projection. `expires_at` is kept
+ * nullable so a null renders as "No expiry" rather than "Invalid Date" (S6.2 gotcha), even though
+ * the player link always carries one.
+ */
+export const teamInviteViewSchema = z.object({
+  token: z.string(),
+  role: memberRoleSchema,
+  expires_at: timestampSchema.nullable(),
+  created_at: timestampSchema,
+})
+export type TeamInviteView = z.infer<typeof teamInviteViewSchema>
+
 export type Parity = [
   Expect<Equal<MemberRole, Enums<'member_role'>>>,
   Expect<Equal<TeamRow, Tables<'teams'>>>,

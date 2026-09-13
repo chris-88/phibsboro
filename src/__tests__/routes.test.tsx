@@ -85,8 +85,8 @@ describe('resolving routes (AC1, AC15)', () => {
     ['/manage', 'S4.1'],
     ['/manage/event/new', 'S4.1'],
     [`/manage/event/${UUID}`, 'S4.3'],
-    [`/manage/team/${UUID}/members`, 'S6.4'],
-    // /admin is a real screen from S6.1, no longer a placeholder; admin-screen.test.tsx covers it.
+    // /admin is a real screen from S6.1, and /manage/team/:teamId/members from S6.2, both no
+    // longer placeholders; admin-screen.test.tsx and team-members-screen.test.tsx cover them.
   ]
 
   it.each(cases)('%s renders a placeholder naming its owning story %s', async (path, story) => {
@@ -97,8 +97,8 @@ describe('resolving routes (AC1, AC15)', () => {
   })
 
   it('shows the segment value on parameterised routes', async () => {
-    mount(`/manage/team/${UUID}/members`)
-    expect(await placeholder()).toHaveTextContent(`teamId: ${UUID}`)
+    mount(`/manage/event/${UUID}`)
+    expect(await placeholder()).toHaveTextContent(`id: ${UUID}`)
   })
 
   it('renders the new-event screen for /manage/event/new, not the edit screen with id "new" (AC2)', async () => {

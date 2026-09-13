@@ -26,6 +26,8 @@ export const teamKeys = {
   members: (teamId: string) => ['teams', teamId, 'members'] as const,
   invite: (teamId: string, role: Enums<'member_role'>) =>
     ['teams', teamId, 'invite', role] as const,
+  // The convenience manager gate for the members screen (S6.2), replaced by useCurrentUser at S2.9.
+  managerGate: (teamId: string) => ['teams', teamId, 'managerGate'] as const,
   lookup: (token: string) => ['teams', 'inviteLookup', token] as const,
 } as const
 
