@@ -342,7 +342,116 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      create_team_invite: {
+        Args: {
+          p_role: Database['public']['Enums']['member_role']
+          p_team_id: string
+        }
+        Returns: string
+      }
+      event_team_id: { Args: { p_event_id: string }; Returns: string }
+      generate_training_series: {
+        Args: {
+          p_first_starts_at: string
+          p_location: string
+          p_team_id: string
+          p_title: string
+          p_weeks: number
+        }
+        Returns: string[]
+      }
+      get_event_preview: {
+        Args: { p_event_id: string }
+        Returns: {
+          location: string
+          starts_at: string
+          status: Database['public']['Enums']['event_status']
+          team_id: string
+          team_name: string
+          title: string
+          type: Database['public']['Enums']['event_type']
+        }[]
+      }
+      get_team_invite: {
+        Args: {
+          p_role: Database['public']['Enums']['member_role']
+          p_team_id: string
+        }
+        Returns: {
+          created_at: string
+          expires_at: string
+          role: Database['public']['Enums']['member_role']
+          token: string
+        }[]
+      }
+      has_event_row: { Args: { p_event_id: string }; Returns: boolean }
+      is_admin: { Args: never; Returns: boolean }
+      is_team_manager: { Args: { p_team_id: string }; Returns: boolean }
+      is_team_member: { Args: { p_team_id: string }; Returns: boolean }
+      issue_reset_token: {
+        Args: { p_team_id: string; p_user_id: string }
+        Returns: string
+      }
+      join_team_by_event: {
+        Args: { p_event_id: string }
+        Returns: {
+          team_id: string
+          team_name: string
+        }[]
+      }
+      join_team_by_token: {
+        Args: { p_token: string }
+        Returns: {
+          team_id: string
+          team_name: string
+        }[]
+      }
+      lookup_team_invite: {
+        Args: { p_token: string }
+        Returns: {
+          role: Database['public']['Enums']['member_role']
+          team_id: string
+          team_name: string
+        }[]
+      }
+      new_token: { Args: never; Returns: string }
+      redeem_reset_token: {
+        Args: { p_new_password: string; p_token: string }
+        Returns: string
+      }
+      remove_member: {
+        Args: { p_team_id: string; p_user_id: string }
+        Returns: undefined
+      }
+      revoke_team_invite: {
+        Args: {
+          p_role: Database['public']['Enums']['member_role']
+          p_team_id: string
+        }
+        Returns: undefined
+      }
+      set_member_phone: {
+        Args: { p_phone: string; p_user_id: string }
+        Returns: undefined
+      }
+      set_member_role: {
+        Args: {
+          p_role: Database['public']['Enums']['member_role']
+          p_team_id: string
+          p_user_id: string
+        }
+        Returns: undefined
+      }
+      team_member_directory: {
+        Args: { p_team_id: string }
+        Returns: {
+          joined_at: string
+          name: string
+          phone: string
+          role: Database['public']['Enums']['member_role']
+          user_id: string
+        }[]
+      }
     }
     Enums: {
       availability_response: 'available' | 'unavailable'

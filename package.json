@@ -21,7 +21,8 @@
     "db:seed": "node --env-file-if-exists=.env.local supabase/seed/seed.ts",
     "db:types": "supabase gen types typescript --linked --schema public > src/lib/database.types.ts && prettier --write src/lib/database.types.ts",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "test:rls": "vitest run --config vitest.rls.config.ts"
   },
   "dependencies": {
     "@sentry/react": "^10.74.0",

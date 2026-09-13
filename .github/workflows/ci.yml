@@ -1,7 +1,9 @@
 name: CI
 
-# Every pull request and every push to main. No job here reads a secret, so a fork pull request
-# runs the whole pipeline and the privileged fork trigger is never needed (D14, D38).
+# Every pull request and every push to main. One step reads secrets — the S1.4 RLS suite, which
+# runs against the hosted project (D63) — and that step alone is skipped on a pull request from a
+# fork, where GitHub withholds them. Everything else runs on a fork, and the privileged fork
+# trigger is never needed (D14, D38).
 on:
   pull_request:
   push:
@@ -79,7 +81,7 @@ jobs:
 
   # S1.1, S1.2 — the database gate. Brings up the CLI's local stack, resets it from the migration
   # files, seeds it, and runs tests/db against it. No secret: the local anon and service-role keys
-  # are published constants (D14, D38). S1.4 extends this job with the RLS suite.
+  # are published constants (D14, D38). S1.4 appends the RLS suite, which does read secrets.
   db:
     name: db
     runs-on: ubuntu-latest
@@ -104,6 +106,20 @@ jobs:
       - run: npm run db:reset
       # tests/db: schema (S1.1), profile trigger and seed (S1.2). seed.test.ts reseeds itself.
       - run: npm run test:db
+      # S1.4 — the RLS suite, as every role with real JWTs, against the hosted project: there is
+      # one project and no real data until go-live, so the suite wipes and reseeds it (D63; the
+      # go-live checklist in docs/database.md retires this). Needs the repository secrets, so it
+      # is skipped on a pull request from a fork. tests/helpers/target.ts refuses any URL that is
+      # not SUPABASE_PROJECT_REF's.
+      - name: RLS suite (hosted project)
+        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
+        run: npm run test:rls
       - name: Enums generate as unions # AC17
         run: |
           supabase gen types typescript --local --schema public > /tmp/types.ts

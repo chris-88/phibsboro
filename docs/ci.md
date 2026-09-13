@@ -6,10 +6,14 @@ runs no tests: the pipeline gates the merge, the merge gates the deploy (D14).
 
 ## Rules every job inherits
 
-- **No secret.** No job reads `secrets.*`, and no workflow uses GitHub's privileged fork trigger — the
-  `_target` variant of `pull_request`, which hands fork code the repository's secrets. A pull request from a
-  fork therefore runs the whole pipeline. The Supabase CLI's local anon and service-role keys are published
-  constants, committed in `.env.example` (D38). Hosted credentials belong to the deploy workflow alone.
+- **One step reads secrets, and it is skipped on a fork.** The `db` job's final step, S1.4's `npm run
+test:rls`, runs against the hosted project (D63) with `SUPABASE_PROJECT_REF`, `SUPABASE_ACCESS_TOKEN`
+  and `SUPABASE_SERVICE_ROLE_KEY`, guarded by
+  `if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository`.
+  No other step reads `secrets.*`, and no workflow uses GitHub's privileged fork trigger — the `_target`
+  variant of `pull_request`, which hands fork code the repository's secrets. A pull request from a fork
+  therefore runs everything but that one step. The Supabase CLI's local anon and service-role keys are
+  published constants, committed in `.env.example` (D38).
 - **`TZ: UTC`** at workflow level and on each job (D53). A Dublin date assertion that passes locally in July
   fails on a UTC runner in January.
 - **Node from `.nvmrc`.** `actions/setup-node@v5` with `node-version-file: .nvmrc` and `cache: npm`, so the
@@ -29,7 +33,7 @@ runs no tests: the pipeline gates the merge, the merge gates the deploy (D14).
 | ---------- | ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
 | `check`    | S0.7                   | `npm ci`, typecheck, lint, format check, unit tests, production build, env parity — each its own step so a failure names itself                                                                                      | Read a secret, or start a database                                    |
 | `pr-title` | S0.7                   | Fails a pull request whose title is not a conventional commit, naming the allowed types                                                                                                                              | Run on `push`; interpolate the title into a shell line                |
-| `db`       | S1.1, extended by S1.4 | Local Supabase stack, `supabase db reset`, structural tests, then the seed and the RLS project                                                                                                                       | Pin its own CLI version; skip `fetch-depth: 0`, which S1.1 AC20 needs |
+| `db`       | S1.1, extended by S1.4 | Local Supabase stack, `supabase db reset`, structural tests, the seed, then `npm run test:rls` against the hosted project (secrets; skipped on a fork pull request)                                                  | Pin its own CLI version; skip `fetch-depth: 0`, which S1.1 AC20 needs |
 | `pwa`      | S0.4                   | Build, then the Playwright `pwa` project against `vite preview`: two-build staleness, offline shell, cold deep link, and Chromium's installability verdict (Lighthouse dropped its PWA audits; see S0.4 build notes) | Need a stack or a secret; drive the live site                         |
 | `e2e`      | S2.5, extended by S7.3 | Local stack plus seed, `vite preview` on 127.0.0.1:4173, Playwright                                                                                                                                                  | Touch the live site (D17)                                             |
 
@@ -40,6 +44,12 @@ job to the required status checks below, in the same pull request.
 resets the local database from `supabase/migrations/` twice (S1.1 AC1), runs `npm run test:db`, then
 asserts the generated enums are unions (AC17), that `supabase db diff` is empty after a reset (AC18), and
 that no migration already on `main` was modified or deleted (AC20, `origin/main...HEAD`).
+
+`npm run test:rls` is S1.4's suite: `vitest.rls.config.ts`, hosted-only, wiping and reseeding the project in
+`globalSetup` before 258 assertions as anon, player, manager, admin, stranger and leaver. It prints the
+project ref and row counts before it wipes (D63). On `push` to `main` it runs concurrently with the deploy
+workflow's `migrate` job against the same project; a pending migration in the same push is applied while
+the suite runs, which is a known cost of one project and is retired by the go-live checklist.
 
 `npm test` is S0.1's `vitest run`. S7.2 changes that one step to `vitest run --coverage` and adds the
 coverage floor; it changes nothing else in the job.

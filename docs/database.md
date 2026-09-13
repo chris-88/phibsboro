@@ -62,7 +62,16 @@ destroy before it does ([D63](../spec/00-decisions.md)).
 PFC_SEED_ALLOW_REMOTE=1 npm run db:seed              # seed the hosted project (refuses if not empty)
 PFC_SEED_ALLOW_REMOTE=1 npm run db:seed -- --reset   # wipe every table and auth user, then seed
 npm run test:db:hosted                               # tests/db against the hosted project; reseeds
+npm run test:rls                                     # S1.4 RLS suite; hosted only; wipes, reseeds, asserts
 ```
+
+`npm run test:rls` reads `SUPABASE_PROJECT_REF`, `SUPABASE_ACCESS_TOKEN`, `SUPABASE_SERVICE_ROLE_KEY`,
+`VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` from the environment first, then `.env.local`
+(`tests/helpers/target.ts`), and refuses to start if the URL's host is not `<ref>.supabase.co`. It runs
+the seed with `--reset` in `globalSetup`, signs in every fixture once, and leaves the seeded counts behind
+(25 profiles, 2 teams, 24 memberships, 8 events, 44 responses, 17 attendance, 0 invites, 0 reset tokens).
+About 65 seconds from here; the CI `db` job runs it on every push to `main` and every same-repository pull
+request.
 
 Without `PFC_SEED_ALLOW_REMOTE=1` the seed refuses any URL that is not localhost, so nobody seeds a
 hosted project by muscle memory (S1.2 AC25). Fixture numbers are `+3538999…`, the password is in

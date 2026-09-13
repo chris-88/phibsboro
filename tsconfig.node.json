@@ -19,6 +19,7 @@
     "vite.config.ts",
     "vitest.config.ts",
     "vitest.db.config.ts",
+    "vitest.rls.config.ts",
     "playwright.config.ts",
     "scripts/**/*.mjs",
     "supabase/seed/**/*.ts",

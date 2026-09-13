@@ -12,6 +12,21 @@ const LOCAL_SERVICE_ROLE_KEY =
 const serviceRoleKey = () =>
   TARGET.kind === 'hosted' ? hostedValue('SUPABASE_SERVICE_ROLE_KEY') : LOCAL_SERVICE_ROLE_KEY
 
+/**
+ * The environment a child process needs to run supabase/seed/seed.ts against the current target:
+ * URL, the service-role key, and the remote opt-in for the hosted project. The key never leaves
+ * this file by name (D38); callers spread this into execFile's env.
+ */
+export function seedChildEnv(): Record<string, string> {
+  return TARGET.kind === 'hosted'
+    ? {
+        SUPABASE_URL: TARGET.url,
+        SUPABASE_SERVICE_ROLE_KEY: serviceRoleKey(),
+        PFC_SEED_ALLOW_REMOTE: '1',
+      }
+    : { SUPABASE_URL: TARGET.url }
+}
+
 /** Bypasses RLS. Setup and teardown only. */
 export function adminClient() {
   return createClient<Database>(TARGET.url, serviceRoleKey(), {
