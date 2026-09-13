@@ -24,7 +24,9 @@ function pwaColours() {
 const OUTPUTS = [
   { file: 'public/icons/icon-192.png', size: 192 },
   { file: 'public/icons/icon-512.png', size: 512 },
-  { file: 'public/icons/icon-512-maskable.png', size: 512 },
+  // Maskable icons are cropped to a circle or squircle by the launcher, so the artwork sits
+  // inside the 80% safe zone and the background colour fills the rest (W3C maskable spec).
+  { file: 'public/icons/icon-512-maskable.png', size: 512, maskable: true },
   { file: 'public/apple-touch-icon.png', size: 180 },
 ]
 
@@ -33,12 +35,21 @@ const svg = readFileSync(join(ROOT, 'design', 'icon-source.svg'), 'utf8')
   .replaceAll('{{theme}}', theme)
   .replaceAll('{{background}}', background)
 
-for (const { file, size } of OUTPUTS) {
+for (const { file, size, maskable = false } of OUTPUTS) {
   const out = join(ROOT, file)
   mkdirSync(dirname(out), { recursive: true })
+  const artwork = maskable ? Math.round(size * 0.8) : size
+  const pad = Math.round((size - artwork) / 2)
   const png = await sharp(Buffer.from(svg), { density: 72 })
-    .resize(size, size)
+    .resize(artwork, artwork)
     .flatten({ background })
+    .extend({
+      top: pad,
+      bottom: size - artwork - pad,
+      left: pad,
+      right: size - artwork - pad,
+      background,
+    })
     .png({ compressionLevel: 9, palette: true })
     .toBuffer()
   writeFileSync(out, png)
