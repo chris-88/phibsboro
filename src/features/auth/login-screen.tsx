@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, Navigate, useLocation } from 'react-router'
 import { Skeleton } from '@/components/ui/skeleton'
 import { nextRouteAfterAuth } from '@/features/auth/after-auth'
+import { consumeExpiryNotice } from '@/features/auth/expiry-notice'
 import { readLastPhone } from '@/features/auth/last-phone'
 import { readPendingJoin } from '@/features/auth/pending-join'
 import { useSession } from '@/features/auth/session-context'
@@ -32,6 +33,9 @@ export default function LoginScreen(): React.JSX.Element {
   // A "Create account" link only makes sense when there is a team to join: without a pending
   // join, S2.1 rejects the visit, so an always-present link would be a route to a dead end.
   const [hasPendingJoin] = useState(() => readPendingJoin() !== null)
+  // The one-time "you've been signed out" line, set by the S2.6 expiry teardown and read once here.
+  // Cleared the moment the player edits the number, so it never lingers over a fresh attempt (AC10).
+  const [showExpiry, setShowExpiry] = useState(() => consumeExpiryNotice())
 
   if (session.status === 'loading') {
     return (
@@ -51,7 +55,18 @@ export default function LoginScreen(): React.JSX.Element {
   return (
     <div className="mx-auto flex max-w-sm flex-col gap-5 py-6">
       <h1 className="text-lg font-semibold text-foreground">Sign in</h1>
-      <SignInForm initialPhone={prefill} focusPassword={prefill !== ''} />
+      {showExpiry && (
+        <p role="status" className="text-sm text-muted-foreground">
+          You&rsquo;ve been signed out. Sign in again.
+        </p>
+      )}
+      <SignInForm
+        initialPhone={prefill}
+        focusPassword={prefill !== ''}
+        onNumberTouched={() => {
+          setShowExpiry(false)
+        }}
+      />
       {hasPendingJoin && (
         <p className="text-sm text-muted-foreground">
           New to the squad?{' '}

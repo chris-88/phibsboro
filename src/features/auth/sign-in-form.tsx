@@ -18,6 +18,10 @@ export interface SignInFormProps {
   initialPhone: string
   /** When a number was prefilled, focus lands on the password field rather than the number. */
   focusPassword: boolean
+  /** Called the first time the number field is edited, so the login screen can clear the "you've
+   *  been signed out" line once the player starts typing (S2.6 AC10). Optional: sign-in has no
+   *  notice of its own. */
+  onNumberTouched?: () => void
 }
 
 /** Which failure line to show under the form. Kept apart from the field-level lockout so a
@@ -32,7 +36,11 @@ type FormError = 'invalid_credentials' | 'rate_limit' | 'network' | 'unknown' | 
  * shows its own line and never counts towards the lockout. Only a wrong-credentials failure trips
  * the five-strike, 30-second UX lockout, which is a courtesy, not a boundary (D36, A15).
  */
-export function SignInForm({ initialPhone, focusPassword }: SignInFormProps): React.JSX.Element {
+export function SignInForm({
+  initialPhone,
+  focusPassword,
+  onNumberTouched,
+}: SignInFormProps): React.JSX.Element {
   const navigate = useNavigate()
   const signIn = useSignIn()
   const [formError, setFormError] = useState<FormError>(null)
@@ -137,6 +145,10 @@ export function SignInForm({ initialPhone, focusPassword }: SignInFormProps): Re
           disabled={busy}
           aria-invalid={errors.phone ? true : undefined}
           {...field('phone')}
+          onChange={(e) => {
+            void field('phone').onChange(e)
+            onNumberTouched?.()
+          }}
         />
         <FieldError errors={errors.phone ? [errors.phone] : undefined} />
       </Field>

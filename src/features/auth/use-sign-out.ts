@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router'
 import { toast } from 'sonner'
 import { tearDownSession } from '@/features/auth/session-context'
+import { markSignOutRequested } from '@/features/auth/sign-out-intent'
 import { clearIntendedRoute } from '@/lib/intended-route'
 import { paths } from '@/lib/paths'
 import { supabase } from '@/lib/supabase'
@@ -19,6 +20,9 @@ export function useSignOut(): { signOut: () => Promise<void>; isPending: boolean
 
   const signOut = async (): Promise<void> => {
     setIsPending(true)
+    // Set before signOut(), so the SIGNED_OUT the client fires is read as deliberate — no expiry
+    // copy, no intended route kept (S2.6 AC10). The provider consumes the flag once.
+    markSignOutRequested()
     try {
       const { error } = await supabase.auth.signOut()
       if (error) throw error

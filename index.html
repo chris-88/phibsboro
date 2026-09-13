@@ -14,7 +14,32 @@
     <title>Phibsboro FC</title>
   </head>
   <body>
-    <div id="root"></div>
+    <!-- The boot splash (S2.6, AC9): the crest centred on the theme background, shown before a
+         line of JS runs so a returning player sees the crest, never a flash of the login screen.
+         React's first paint replaces #root's children with the identical <AppSplash />, so the
+         handover produces no visible change. The background reads --background from the token layer
+         (the linked stylesheet is in <head>), with a white fallback for the instant before it
+         applies; --background is white, so the two agree. No hardcoded hex lives in a component. -->
+    <div id="root">
+      <div
+        style="
+          position: fixed;
+          inset: 0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: var(--background, #fff);
+        "
+      >
+        <img
+          src="/icons/icon-192.png"
+          alt="Phibsboro FC"
+          width="88"
+          height="88"
+          style="width: 88px; height: 88px"
+        />
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

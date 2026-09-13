@@ -274,12 +274,16 @@ max_frequency = "5s"
 # [auth.sms.test_otp]
 # 4152127777 = "123456"
 
-# Configure logged in session timeouts.
-# [auth.sessions]
-# Force log out after the specified duration.
-# timebox = "24h"
-# Force log out if the user has been inactive longer than the specified duration.
-# inactivity_timeout = "8h"
+# Configure logged in session timeouts (S2.6, D59). Sessions are deliberately long: password
+# recovery costs a manager a manual step (S2.3, D10), so every forced re-login is a WhatsApp
+# support ticket. No absolute cap, and a 365-day inactivity window — a player should not be
+# logged out mid-season. The hosted project's own values are recorded in docs/supabase-config.md,
+# because `supabase config push` is never run against it (see [auth.sms.twilio] above).
+[auth.sessions]
+# Force log out after the specified duration. "0h" = no absolute cap.
+timebox = "0h"
+# Force log out if the user has been inactive longer than the specified duration. 8760h = 365 days.
+inactivity_timeout = "8760h"
 
 # This hook runs before a new user is created and allows developers to reject the request based on the incoming user object.
 # [auth.hook.before_user_created]

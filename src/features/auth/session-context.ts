@@ -1,6 +1,7 @@
 import { createContext, useContext } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { queryClient } from '@/api/queryClient'
+import { clearPendingJoin } from '@/features/auth/pending-join'
 import { setSentryUser } from '@/lib/sentry'
 
 /**
@@ -24,11 +25,14 @@ export function useSession(): SessionState {
 }
 
 /**
- * Empties the client's view of the signed-out user: the query cache and the Sentry identity.
- * Both the deliberate sign-out (S2.9 `useSignOut`) and an involuntary `SIGNED_OUT` from a refresh
- * failure call it, so the teardown lives in one place (AC11). S2.6 extends it.
+ * Empties the client's view of the signed-out user: the query cache, the Sentry identity, and the
+ * pending join (S2.1's key). Both the deliberate sign-out (S2.9 `useSignOut`) and an involuntary
+ * `SIGNED_OUT` from a refresh failure call it, so no signed-in user's data survives into the next
+ * sign-in on the same device (AC11). The intended route is handled by each caller, because its fate
+ * differs: a deliberate sign-out clears it, an expiry keeps it (AC10).
  */
 export function tearDownSession(): void {
   queryClient.clear()
   setSentryUser(null)
+  clearPendingJoin()
 }

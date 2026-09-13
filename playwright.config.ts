@@ -49,5 +49,12 @@ export default defineConfig({
       dependencies: ['setup'],
       use: { baseURL: PREVIEW_URL, timezoneId: 'Europe/Dublin' },
     },
+    // S2.6: the boot gate. A stored session must restore with no flash of the sign-in screen.
+    {
+      name: 'session',
+      testMatch: /session\.spec\.ts/,
+      dependencies: ['setup'],
+      use: { baseURL: PREVIEW_URL, timezoneId: 'Europe/Dublin' },
+    },
   ],
 })
