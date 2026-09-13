@@ -1,4 +1,5 @@
 import { Loader2 } from 'lucide-react'
+import { useIntendedRoute } from '@/features/auth/use-intended-route'
 import { usePendingJoinResume } from '@/features/teams/usePendingJoinResume'
 
 /** The full-screen "Joining {team}…" state, over the whole app — no nav, no back — while a
@@ -26,9 +27,15 @@ function Joining({ teamName }: { teamName: string | null }): React.JSX.Element {
  * the routed content; otherwise it is transparent, rendering the app unchanged. The ordering — the
  * join finishes before the route settles — is why a deep-linked event renders as a member rather
  * than a preview (S2.5 AC7).
+ *
+ * It also mounts S2.5's cold-start restore here, where the resume status already lives, so the
+ * intended route is consumed only once the join is `done`. `status === 'done'` implies the session
+ * is signed in and settled (the resume reaches `done` only when active), which is exactly S2.5's
+ * `enabled` gate; a signed-out visitor sits at `idle`, so the hook leaves their destination stored.
  */
 export function PendingJoinGate({ children }: { children: React.ReactNode }): React.JSX.Element {
   const { status, teamName } = usePendingJoinResume()
+  useIntendedRoute(status === 'done')
   if (status === 'joining') return <Joining teamName={teamName} />
   return <>{children}</>
 }

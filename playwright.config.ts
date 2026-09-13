@@ -56,5 +56,20 @@ export default defineConfig({
       dependencies: ['setup'],
       use: { baseURL: PREVIEW_URL, timezoneId: 'Europe/Dublin' },
     },
+    // S2.5: the deep-link return path. A brand-new user registers through an event link and lands
+    // back on that event. Registers fresh accounts against the seeded stack, so it needs no stored
+    // session and no `setup` dependency — a clean context per test is the point (D58).
+    {
+      name: 'e2e',
+      testMatch: /deep-link\.spec\.ts/,
+      use: { baseURL: PREVIEW_URL, timezoneId: 'Europe/Dublin', browserName: 'chromium' }, // D53
+    },
+    // AC19: the WhatsApp iOS webview is WebKit, and no CI browser is a real webview, so WebKit is
+    // the closest automatable proxy. Same specs, second engine.
+    {
+      name: 'e2e-webkit',
+      testMatch: /deep-link\.spec\.ts/,
+      use: { baseURL: PREVIEW_URL, timezoneId: 'Europe/Dublin', browserName: 'webkit' },
+    },
   ],
 })

@@ -163,6 +163,51 @@ jobs:
       - if: always()
         run: supabase stop --no-backup
 
+  # S2.5 — the deep-link return path. Brings up the CLI's local stack, resets and seeds it, builds
+  # the bundle from .env.test (local stack), and runs the Playwright `e2e` project against
+  # `vite preview`. No repository secret — the local keys are published constants — so it runs on a
+  # fork pull request too (D14, D38). S7.3 extends this later.
+  e2e:
+    name: e2e
+    runs-on: ubuntu-latest
+    env:
+      TZ: UTC
+      # Pin the build and the seed to the local stack this job starts, so neither the workflow-level
+      # hosted VITE_ vars (for the pwa build) nor a stray env reaches production.
+      VITE_SUPABASE_URL: http://127.0.0.1:54321
+      VITE_SUPABASE_ANON_KEY: sb_publishable_ACJWlzQHlZjBrEguHvfOxg_3BJgxAaH
+      VITE_APP_BASE_URL: http://127.0.0.1:4173
+      SUPABASE_URL: http://127.0.0.1:54321
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - uses: supabase/setup-cli@v1
+        with:
+          version: ${{ env.SUPABASE_CLI_VERSION }}
+      - run: npm ci
+      # The two engines AC19 automates: Chromium and WebKit (the closest proxy for the iOS webview).
+      - run: npx playwright install --with-deps chromium webkit
+      - run: supabase start
+      # Migrations from empty, then S1.2's seed: the seed's imminent event is the deep-link target.
+      - run: supabase db reset
+      - run: npm run db:reset
+      # --mode e2e so .env.e2e's local-stack values win; the job env above pins them regardless. The
+      # mode is `e2e`, not `test`, so it never collides with Vitest's test-mode env (see .env.e2e).
+      - run: npx vite build --mode e2e
+      - run: npx playwright test --project=e2e --project=e2e-webkit
+      - name: Upload the Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-e2e
+          path: playwright-report
+          retention-days: 7
+      - if: always()
+        run: supabase stop --no-backup
+
   pr-title:
     name: pr-title
     if: github.event_name == 'pull_request'
