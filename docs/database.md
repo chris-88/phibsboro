@@ -58,6 +58,11 @@ That is fine for now. The project holds no real data, so the S1.4 RLS suite trun
 `npm run db:seed` puts it back. The suite prints the project ref and the row counts it is about to
 destroy before it does ([D63](../spec/00-decisions.md)).
 
+**One shared project means one runner at a time.** `npm run test:rls` wipes and reseeds, so two
+concurrent runs stomp each other's fixtures and both go red on off-by-one counts — the failures are
+isolation artefacts, not policy regressions. CI runs it once, serially. Never fan it out across parallel
+agents against this project. Run serially, it is deterministic (266/266).
+
 ```bash
 PFC_SEED_ALLOW_REMOTE=1 npm run db:seed              # seed the hosted project (refuses if not empty)
 PFC_SEED_ALLOW_REMOTE=1 npm run db:seed -- --reset   # wipe every table and auth user, then seed

@@ -131,7 +131,9 @@ async function wipe() {
   await clear('team_members', 'team_id')
   for (const user of users) {
     const { error } = await admin.auth.admin.deleteUser(user.id)
-    if (error) fail(`deleteUser ${user.id}: ${error.message}`)
+    // A concurrent run may already have removed this user. That is the desired end state, so a
+    // "not found" is success, not a failure. Anything else is real (D63: one shared project).
+    if (error && !/not.?found/i.test(error.message)) fail(`deleteUser ${user.id}: ${error.message}`)
   }
   await clear('teams', 'id')
 }
