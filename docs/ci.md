@@ -33,8 +33,13 @@ runs no tests: the pipeline gates the merge, the merge gates the deploy (D14).
 | `pwa`      | S0.4                   | Build, then the Playwright `pwa` project against `vite preview`: two-build staleness, offline shell, cold deep link, and Chromium's installability verdict (Lighthouse dropped its PWA audits; see S0.4 build notes) | Need a stack or a secret; drive the live site                         |
 | `e2e`      | S2.5, extended by S7.3 | Local stack plus seed, `vite preview` on 127.0.0.1:4173, Playwright                                                                                                                                                  | Touch the live site (D17)                                             |
 
-`check` and `pwa` are the jobs in the file until S1.1 adds `db`. A story that adds a job adds its row above and
-adds the job to the required status checks below, in the same pull request.
+`check`, `pwa` and `db` are the jobs in the file. A story that adds a job adds its row above and adds the
+job to the required status checks below, in the same pull request.
+
+`db` is the only job that runs `supabase start`, and the only one that needs Docker on the runner. It
+resets the local database from `supabase/migrations/` twice (S1.1 AC1), runs `npm run test:db`, then
+asserts the generated enums are unions (AC17), that `supabase db diff` is empty after a reset (AC18), and
+that no migration already on `main` was modified or deleted (AC20, `origin/main...HEAD`).
 
 `npm test` is S0.1's `vitest run`. S7.2 changes that one step to `vitest run --coverage` and adds the
 coverage floor; it changes nothing else in the job.

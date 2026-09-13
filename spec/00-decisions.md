@@ -1175,6 +1175,17 @@ renders only the escape prompt. S7.3 AC1 and AC11 had expected the written insta
 journey spec dispatches a synthetic event and asserts the Install button; the no-event leg asserts the
 escape prompt, and the written steps only behind S2.8's menu item. **Amends** S7.3.
 
+### A20 — Every foreign key carries a covering index
+
+D39 said the four reverse-lookup indexes were all that was warranted. Supabase's performance advisor,
+run after the S1.1 schema was applied, flagged the five foreign keys without one: `team_invites.created_by`,
+`reset_tokens.team_id`, `reset_tokens.created_by`, `events.created_by` and `attendance.recorded_by`. They
+serve the `on delete set null` and `restrict` scans when a profile or team is deleted, cost nothing at
+this size, and keep the advisor clean so a real finding is not lost in noise. Shipped as a second S1.1
+migration because the first had already been applied to the hosted project when the advisor ran, and an
+applied migration is never edited. No read query filters on any of these columns; D39's rule for
+query-serving indexes stands. **Amends** D39, `data-model.md`, S1.1.
+
 ---
 
 ## Rejected

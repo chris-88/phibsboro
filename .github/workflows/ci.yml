@@ -77,6 +77,45 @@ jobs:
           path: playwright-report
           retention-days: 7
 
+  # S1.1 — the schema gate. Brings up the CLI's local stack, resets it from the migration files,
+  # and runs the structural assertions in tests/db against it. No secret: the local anon and
+  # service-role keys are published constants (D14, D38). S1.4 extends this job with the seed and
+  # the RLS suite.
+  db:
+    name: db
+    runs-on: ubuntu-latest
+    env:
+      TZ: UTC
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0 # AC20 diffs against origin/main
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - uses: supabase/setup-cli@v1
+        with:
+          version: ${{ env.SUPABASE_CLI_VERSION }}
+      - run: npm ci
+      - run: supabase start
+      # AC1 — clean from empty, twice in a row.
+      - run: supabase db reset
+      - run: supabase db reset
+      - run: npm run test:db
+      - name: Enums generate as unions # AC17
+        run: |
+          supabase gen types typescript --local --schema public > /tmp/types.ts
+          grep -qF 'event_type: "training" | "match"' /tmp/types.ts
+      - name: Migrations are the whole schema # AC18
+        run: |
+          test -z "$(supabase db diff --schema public --local)"
+      - name: Merged migrations are immutable # AC20
+        run: |
+          test -z "$(git diff --diff-filter=MD --name-only origin/main...HEAD -- supabase/migrations)"
+      - if: always()
+        run: supabase stop --no-backup
+
   pr-title:
     name: pr-title
     if: github.event_name == 'pull_request'

@@ -3,7 +3,7 @@
 //
 // | Check                                                    | Owner | Rule                                      |
 // |----------------------------------------------------------|-------|-------------------------------------------|
-// | SERVICE_ROLE outside .env.example and supabase/           | S0.1  | belt and braces alongside the lint rule (D38) |
+// | SERVICE_ROLE outside .env.example, supabase/, tests/helpers/admin.ts | S0.1, S1.1 | belt and braces alongside the lint rule (D38, D15) |
 // | A hex colour literal under src/ outside the token sheet   | S0.2  | no hardcoded hex in components, AC3       |
 // | The literal '/#/' outside src/lib/paths.ts                | S0.3  | one URL builder, AC8, D13                 |
 // | useParams() outside src/lib/use-route-param.ts            | S0.3  | typed params, no `!` on a segment, AC10   |
@@ -27,9 +27,11 @@ const CHECKS = [
     exts: ['.ts', '.tsx', '.js', '.mjs', '.json', '.html'],
     pattern: /SERVICE_ROLE/,
     // This file names the pattern it searches for, so it has to exempt itself.
+    // tests/helpers/admin.ts is the one place tests hold the key, for setup only (D15).
     allow: (p) =>
       p === '.env.example' ||
       p === join('scripts', 'check-conventions.mjs') ||
+      p === join('tests', 'helpers', 'admin.ts') ||
       p.startsWith(`supabase${sep}`),
     message:
       'The service-role key never appears in the browser bundle or the client tree. Decision D38.',

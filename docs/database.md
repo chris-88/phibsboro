@@ -36,13 +36,17 @@ The project is linked, so these work with no further setup:
 ```bash
 supabase migration list --linked        # what is applied where
 supabase db push                        # apply pending migrations
-supabase gen types typescript --project-id hhhlbermhelfgxgkgitz --schema public \
-  > src/lib/database.types.ts           # regenerate types after a schema change
+npm run db:types                        # regenerate types after a schema change
 ```
 
-CI does the same in `deploy.yml`'s `migrate` job, which gates the publish (D18). That job currently
-skips itself when the Supabase secrets are absent — they are now set, so it will run for real as soon as
-`supabase/migrations/` exists.
+CI does the same in `deploy.yml`'s `migrate` job, which gates the publish (D18). The secrets are set
+and `supabase/migrations/` exists, so every push to `main` applies pending migrations to production.
+The rule for that directory is in [`supabase/migrations/README.md`](../supabase/migrations/README.md):
+forward-only, never edit an applied file.
+
+`npm run test:db` runs the S1.1 structural assertions (`tests/db/`) against the CLI's **local** stack
+(`supabase start`, needs Docker). It reads no environment, so it cannot be pointed at the hosted project;
+the CI `db` job runs it on every pull request.
 
 ## Test data
 

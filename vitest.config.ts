@@ -13,8 +13,9 @@ export default mergeConfig(
       environment: 'jsdom',
       // tests/e2e belongs to Playwright. Vitest's default include glob matches
       // **/*.spec.ts anywhere, so without this it loads the Playwright specs and dies
-      // on "Playwright Test did not expect test() to be called here".
-      exclude: [...configDefaults.exclude, 'tests/e2e/**'],
+      // on "Playwright Test did not expect test() to be called here". tests/db needs the
+      // local Supabase stack and runs under vitest.db.config.ts (`npm run test:db`).
+      exclude: [...configDefaults.exclude, 'tests/e2e/**', 'tests/db/**'],
       setupFiles: ['src/test/setup.ts'],
       // Vitest stubs .css imports to an empty string by default, which also empties
       // `import css from '@/index.css?raw'`. The token contrast test reads the

@@ -93,6 +93,7 @@ Join links. Not selectable by any client.
 - **Primary key** `(id)`
 - **Unique** `(token)`; and `create unique index team_invites_one_live_idx on public.team_invites
   (team_id, role) where active` — at most one live link per team per role (D28)
+- **Indexes** `team_invites_created_by_idx (created_by)` — FK cover only (A20)
 - A manager link is single-use: the join RPC sets `active = false` on first successful join.
 - RLS enabled, **zero policies**. Reachable only through the RPCs below.
 
@@ -115,7 +116,8 @@ One-time password reset links issued by a manager or admin.
 - **Primary key** `(id)`
 - **Unique** `(token)`
 - **Indexes** `create index reset_tokens_live_idx on public.reset_tokens (user_id)
-  where used_at is null and revoked_at is null`
+  where used_at is null and revoked_at is null`; `reset_tokens_team_id_idx (team_id)` and
+  `reset_tokens_created_by_idx (created_by)` — FK cover only (A20)
 - Redeemable only when `used_at is null and revoked_at is null and expires_at > now()`.
 - RLS enabled, **zero policies**. Reachable only through the RPCs below.
 
@@ -139,7 +141,8 @@ One-time password reset links issued by a manager or admin.
 - **Primary key** `(id)`
 - **Indexes** `create index events_team_starts_idx on public.events (team_id, starts_at)`;
   `create unique index events_series_slot_idx on public.events (team_id, starts_at)
-  where series_id is not null` — makes the S4.6 generator idempotent (D30)
+  where series_id is not null` — makes the S4.6 generator idempotent (D30);
+  `events_created_by_idx (created_by)` — FK cover only (A20)
 - DELETE requires `is_admin()`. A manager cancels; only an admin destroys (D31).
 
 ## event_responses
@@ -171,7 +174,8 @@ Who actually turned up. Absence of a row means not recorded.
 | `updated_at` | `timestamptz` | no | `now()` | Maintained by a `before update` trigger |
 
 - **Primary key** `(event_id, user_id)` (D5)
-- **Indexes** `create index attendance_user_idx on public.attendance (user_id)` (D39)
+- **Indexes** `create index attendance_user_idx on public.attendance (user_id)` (D39);
+  `attendance_recorded_by_idx (recorded_by)` — FK cover only (A20)
 - Players have no write of any kind. Managers and admins insert, update and delete.
 
 ---
