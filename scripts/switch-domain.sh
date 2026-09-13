@@ -14,8 +14,16 @@ DOMAIN=app.phibsboro.ie
 TARGET=chris-88.github.io
 REPO=chris-88/phibsboro
 
-echo "Checking DNS for $DOMAIN ..."
-if ! getent ahostsv4 "$DOMAIN" >/dev/null 2>&1; then
+# Ask a public resolver, not the local one: the machine that ran the watcher may have the
+# old NXDOMAIN negatively cached, and GitHub verifies against public DNS anyway.
+resolve_cname() {
+  curl -s -H 'accept: application/dns-json' "https://dns.google/resolve?name=$1&type=CNAME" \
+    | python3 -c 'import sys,json;print(" ".join(a["data"] for a in json.load(sys.stdin).get("Answer",[])))'
+}
+
+echo "Checking DNS for $DOMAIN (via dns.google) ..."
+cname=$(resolve_cname "$DOMAIN")
+if [ -z "$cname" ]; then
   cat >&2 <<MSG
 $DOMAIN does not resolve yet.
 
@@ -31,7 +39,7 @@ in minutes; .ie can take up to an hour. Re-run this script once it resolves.
 MSG
   exit 1
 fi
-echo "  resolves → $(getent ahostsv4 "$DOMAIN" | awk '{print $1}' | sort -u | tr '\n' ' ')"
+echo "  $DOMAIN → $cname"
 
 echo "Writing public/CNAME ..."
 mkdir -p public
