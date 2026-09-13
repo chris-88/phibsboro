@@ -5,6 +5,76 @@ import reactRefresh from 'eslint-plugin-react-refresh'
 import globals from 'globals'
 import tseslint from 'typescript-eslint'
 
+// The conventions ESLint holds up, as named groups, so that a file exempt from one group keeps
+// every other. An `off` for a whole rule would lift them all; composing lists does not. Each
+// group's exemptions are the `files` blocks at the bottom and nowhere else (S1.5).
+
+/** S0.1 AC6, D35 — one formatter, src/lib/time.ts. A13 keeps the Intl ban to DateTimeFormat. */
+const DATE_RULES = [
+  {
+    selector: 'MemberExpression[property.name=/^toLocale(String|DateString|TimeString)$/]',
+    message: 'Use formatEventTime() from @/lib/time. CLAUDE.md section 3, decision D35.',
+  },
+  {
+    selector: "NewExpression[callee.object.name='Intl'][callee.property.name='DateTimeFormat']",
+    message: 'Use formatEventTime() from @/lib/time. CLAUDE.md section 3, decision D35.',
+  },
+]
+
+/** S1.5 AC7, D38 — scripts/check-conventions.mjs repeats this check across the whole tree. */
+const SECRET_RULES = [
+  {
+    selector: 'Identifier[name=/SERVICE_ROLE/]',
+    message: 'The service-role key never appears in the browser bundle. Decision D38.',
+  },
+]
+
+/** S1.5 AC6 — src/lib/env.ts parses the environment once; src/lib/sentry.ts reads it before
+ *  env.ts can load. Tests may read it to assert what the modules under test were given. */
+const ENV_RULES = [
+  {
+    selector:
+      "MemberExpression[object.type='MetaProperty'][object.meta.name='import'][object.property.name='meta'][property.name='env']",
+    message: 'Read env from @/lib/env, which validates it once at startup. S1.5 AC6.',
+  },
+]
+
+/** S1.5 AC15, A6 — three key factories in src/api/queryKeys.ts; no literal key, no fourth factory. */
+const KEY_RULES = [
+  {
+    selector: "Property[key.name='queryKey'][value.type='ArrayExpression']",
+    message: 'Query keys come from eventKeys, teamKeys or userKeys in @/api/queryKeys. S1.5 AC15.',
+  },
+  {
+    selector: "Property[key.name='queryKey'] > TSAsExpression > ArrayExpression",
+    message: 'Query keys come from eventKeys, teamKeys or userKeys in @/api/queryKeys. S1.5 AC15.',
+  },
+  {
+    selector: 'ExportNamedDeclaration > VariableDeclaration > VariableDeclarator[id.name=/Keys$/]',
+    message:
+      'No fourth key factory. Add a member to eventKeys, teamKeys or userKeys in src/api/queryKeys.ts. A6.',
+  },
+]
+
+/** S1.5 AC4 — one client, src/lib/supabase.ts. */
+const CLIENT_IMPORT = {
+  name: '@supabase/supabase-js',
+  importNames: ['createClient'],
+  message: 'Import the single client from @/lib/supabase. S1.5 AC4.',
+}
+
+/** S1.5 AC1 — the generated file is reached through the aliases in src/lib/db.ts. */
+const GENERATED_TYPES_IMPORT = {
+  group: ['**/database.types', '**/database.types.ts'],
+  message: 'Import Database, Tables, Enums and Fn from @/lib/db, not the generated file. S1.5 AC1.',
+}
+
+const restrictedSyntax = (...groups) => ['error', ...groups.flat()]
+const restrictedImports = ({
+  paths = [CLIENT_IMPORT],
+  patterns = [GENERATED_TYPES_IMPORT],
+} = {}) => ['error', { paths, patterns }]
+
 export default tseslint.config(
   {
     ignores: [
@@ -37,22 +107,8 @@ export default tseslint.config(
     rules: {
       '@typescript-eslint/no-explicit-any': 'error',
       '@typescript-eslint/consistent-type-imports': 'error',
-      'no-restricted-syntax': [
-        'error',
-        {
-          selector: 'MemberExpression[property.name=/^toLocale(String|DateString|TimeString)$/]',
-          message: 'Use formatEventTime() from @/lib/time. CLAUDE.md section 3, decision D35.',
-        },
-        {
-          selector:
-            "NewExpression[callee.object.name='Intl'][callee.property.name='DateTimeFormat']",
-          message: 'Use formatEventTime() from @/lib/time. CLAUDE.md section 3, decision D35.',
-        },
-        {
-          selector: 'Identifier[name=/SERVICE_ROLE/]',
-          message: 'The service-role key never appears in the browser bundle. Decision D38.',
-        },
-      ],
+      'no-restricted-syntax': restrictedSyntax(DATE_RULES, SECRET_RULES, ENV_RULES, KEY_RULES),
+      'no-restricted-imports': restrictedImports(),
     },
   },
 
@@ -64,14 +120,36 @@ export default tseslint.config(
     rules: { 'react-refresh/only-export-components': 'off' },
   },
 
-  // The one formatter in the codebase is allowed to format. Scoped to the date rules only,
-  // so no-explicit-any and everything else still apply here. Must be its own block: an
-  // `ignores` entry on the project block would lift no-explicit-any too. Turning off
-  // no-restricted-syntax also lifts the SERVICE_ROLE selector for this file, which is why
-  // scripts/check-conventions.mjs repeats that check across the whole tree.
+  // --- Exemptions, each one file or one kind of file, each keeping every other group. ---
+
+  // The one formatter in the codebase is allowed to format.
   {
     files: ['src/lib/time.ts'],
-    rules: { 'no-restricted-syntax': 'off' },
+    rules: { 'no-restricted-syntax': restrictedSyntax(SECRET_RULES, ENV_RULES, KEY_RULES) },
+  },
+  // The one parser of the environment, and the module that must initialise before it.
+  {
+    files: ['src/lib/env.ts', 'src/lib/sentry.ts'],
+    rules: { 'no-restricted-syntax': restrictedSyntax(DATE_RULES, SECRET_RULES, KEY_RULES) },
+  },
+  // Tests assert what the environment handed the module under test.
+  {
+    files: ['src/**/__tests__/**/*.{ts,tsx}', 'src/**/*.test.{ts,tsx}'],
+    rules: { 'no-restricted-syntax': restrictedSyntax(DATE_RULES, SECRET_RULES, KEY_RULES) },
+  },
+  // The one module that constructs a query key.
+  {
+    files: ['src/api/queryKeys.ts'],
+    rules: { 'no-restricted-syntax': restrictedSyntax(DATE_RULES, SECRET_RULES, ENV_RULES) },
+  },
+  // The one client, and the one module that aliases the generated types.
+  {
+    files: ['src/lib/supabase.ts'],
+    rules: { 'no-restricted-imports': restrictedImports({ paths: [] }) },
+  },
+  {
+    files: ['src/lib/db.ts'],
+    rules: { 'no-restricted-imports': restrictedImports({ patterns: [] }) },
   },
 
   // Plain JS tooling — eslint.config.js, scripts/*.mjs — is outside both tsconfigs, so the

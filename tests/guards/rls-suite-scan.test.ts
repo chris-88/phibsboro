@@ -83,6 +83,7 @@ describe('the service-role client stays out of assertions (S1.4 AC8)', () => {
       .filter((f) => f.endsWith('.test.ts'))
       .sort()
     expect(files).toEqual([
+      'api-event-preview.test.ts', // S1.5 AC16 — the worked hook through the app client
       'attendance.test.ts',
       'event-responses.test.ts',
       'events.test.ts',

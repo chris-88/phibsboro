@@ -42,8 +42,11 @@ job to the required status checks below, in the same pull request.
 
 `db` is the only job that runs `supabase start`, and the only one that needs Docker on the runner. It
 resets the local database from `supabase/migrations/` twice (S1.1 AC1), runs `npm run test:db`, then
-asserts the generated enums are unions (AC17), that `supabase db diff` is empty after a reset (AC18), and
-that no migration already on `main` was modified or deleted (AC20, `origin/main...HEAD`).
+asserts the generated enums are unions (AC17), that the committed `src/lib/database.types.ts` matches what
+the migrations generate (S1.5 AC1 — regenerate with `npm run db:types`; the PostgREST version stamp is the
+one line excluded, because the hosted project's and the local stack's differ), that `supabase db diff` is
+empty after a reset (AC18), and that no migration already on `main` was modified or deleted (AC20,
+`origin/main...HEAD`).
 
 `npm run test:rls` is S1.4's suite: `vitest.rls.config.ts`, hosted-only, wiping and reseeding the project in
 `globalSetup` before 258 assertions as anon, player, manager, admin, stranger and leaver. It prints the

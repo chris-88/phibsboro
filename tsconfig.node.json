@@ -13,7 +13,9 @@
     "skipLibCheck": true,
     "noEmit": true,
     "allowImportingTsExtensions": true,
-    "types": ["node"]
+    "types": ["node"],
+    // tests/rls imports the app's data layer (S1.5 AC16), which imports through the alias.
+    "paths": { "@/*": ["./src/*"] }
   },
   "include": [
     "vite.config.ts",
@@ -23,7 +25,9 @@
     "playwright.config.ts",
     "scripts/**/*.mjs",
     "supabase/seed/**/*.ts",
-    "tests/**/*.ts"
+    "tests/**/*.ts",
+    // Types import.meta.env for src/lib/env.ts when tests pull it into this project.
+    "src/vite-env.d.ts"
   ],
   "allowJs": true
 }

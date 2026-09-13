@@ -1,3 +1,5 @@
+import { env } from '@/lib/env'
+
 /**
  * Every in-app route path, and the only builder of absolute links. This is the one file in
  * `src/` allowed to contain the literal `'/#/'` — `scripts/check-conventions.mjs` enforces
@@ -20,7 +22,8 @@ export const paths = {
 } as const
 
 /** Thrown rather than returning a relative `"/#/event/x"` that would look right in a test
- *  and go nowhere from a WhatsApp message. */
+ *  and go nowhere from a WhatsApp message. `env.ts` already refuses a base that is not a URL
+ *  at startup (S1.5 AC6); this guards the one shape a URL parser accepts and a link cannot use. */
 export class BaseUrlMissingError extends Error {
   constructor() {
     super('VITE_APP_BASE_URL is not set; absolute links cannot be built')
@@ -32,7 +35,7 @@ export class BaseUrlMissingError extends Error {
  *  trailing slash — `https://app.phibsboro.ie` or `https://chris-88.github.io/phibsboro/` —
  *  and the result never carries a double slash or a trailing one. */
 export function absoluteUrl(path: string): string {
-  const base = import.meta.env.VITE_APP_BASE_URL.trim().replace(/\/+$/, '')
+  const base = env.VITE_APP_BASE_URL.trim().replace(/\/+$/, '')
   if (base === '') throw new BaseUrlMissingError()
   return `${base}/#/${path.replace(/^\/+/, '')}`
 }

@@ -36,7 +36,7 @@ The project is linked, so these work with no further setup:
 ```bash
 supabase migration list --linked        # what is applied where
 supabase db push                        # apply pending migrations
-npm run db:types                        # regenerate types after a schema change
+npm run db:types                        # regenerate types after a schema change; CI's db job fails if you forget
 ```
 
 CI does the same in `deploy.yml`'s `migrate` job, which gates the publish (D18). The secrets are set

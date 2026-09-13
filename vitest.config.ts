@@ -30,7 +30,7 @@ export default mergeConfig(
       env: {
         TZ: 'UTC',
         VITE_SUPABASE_URL: 'http://127.0.0.1:54321',
-        VITE_SUPABASE_ANON_KEY: 'test-anon-key',
+        VITE_SUPABASE_ANON_KEY: 'test-anon-key-long-enough-to-parse',
         VITE_APP_BASE_URL: 'http://localhost:5173',
         VITE_BASE_PATH: '/',
         VITE_SENTRY_DSN: '',

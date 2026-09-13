@@ -124,6 +124,14 @@ jobs:
         run: |
           supabase gen types typescript --local --schema public > /tmp/types.ts
           grep -qF 'event_type: "training" | "match"' /tmp/types.ts
+      # S1.5 AC1 — the committed src/lib/database.types.ts is what the migrations produce. Same
+      # generator, same Prettier pass as `npm run db:types`. The one line excluded is the
+      # PostgREST version stamp, which names the hosted project's version (db:types runs
+      # --linked) and differs from the local stack's; it types nothing.
+      - name: Generated types are current # S1.5 AC1
+        run: |
+          npx prettier --stdin-filepath src/lib/database.types.ts < /tmp/types.ts > /tmp/types.formatted.ts
+          diff <(grep -v PostgrestVersion /tmp/types.formatted.ts) <(grep -v PostgrestVersion src/lib/database.types.ts)
       - name: Migrations are the whole schema # AC18
         run: |
           test -z "$(supabase db diff --schema public --local)"
