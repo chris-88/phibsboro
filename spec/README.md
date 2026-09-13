@@ -31,7 +31,7 @@ shell, routing and PWA are exempt because they touch no data.
 | 10 | [S1.3](stories/S1.3-rls-policies-and-rpcs.md) | RLS policies and RPCs | 1 Database and security | S1.1, S1.2 | L | **Done** |
 | 11 | [S1.4](stories/S1.4-rls-test-suite.md) | RLS test suite — **blocking gate** | 1 Database and security | S0.7, S1.1, S1.2, S1.3 | L | **Done** |
 | 12 | [S1.5](stories/S1.5-typed-data-layer-and-shared-helpers.md) | Typed data layer and shared helpers | 1 Database and security | S0.1, S0.7, S1.1, S1.3, S1.4 | M | **Done** |
-| 13 | [S6.1](stories/S6.1-teams.md) | Teams | 6 Admin | S0.2, S0.3, S1.1, S1.3, S1.4, S1.5 | M | Not started |
+| 13 | [S6.1](stories/S6.1-teams.md) | Teams | 6 Admin | S0.2, S0.3, S1.1, S1.3, S1.4, S1.5 | M | **Done** |
 | 14 | [S6.2](stories/S6.2-team-join-links.md) | Team join links | 6 Admin | S0.2, S0.3, S1.3, S1.4, S1.5, S6.1 | M | Not started |
 | 15 | [S2.9](stories/S2.9-auth-guard-and-role-context.md) | Auth guard and role context | 2 Auth and install | S0.2, S0.3, S0.6, S1.4, S1.5 | M | Not started |
 | 16 | [S2.1](stories/S2.1-registration.md) | Registration | 2 Auth and install | S0.2, S0.3, S1.2, S1.3, S1.4, S1.5, S2.9, S6.2 | M | Not started |

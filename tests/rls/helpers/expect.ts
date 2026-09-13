@@ -92,6 +92,17 @@ export async function expectRowAbsent<T extends Table>(table: T, match: Partial<
   expect(await readRows(table, match)).toEqual([])
 }
 
+/**
+ * A delete the `on delete restrict` FK must refuse even for the service-role key, which bypasses
+ * RLS. Proves a team that still owns rows cannot be dropped: deactivation is the only retirement
+ * path (D31, S6.1). Kept here so no test file names the service-role client (S1.4 AC8).
+ */
+export async function expectDeleteRestricted<T extends Table>(table: T, match: Partial<Row<T>>) {
+  const { error } = await adminClient().from(table).delete().match(match)
+  expect(error).not.toBeNull()
+  expect(error?.code).toBe('23503')
+}
+
 /** Exactly `n` matching rows exist. */
 export async function expectRowCount<T extends Table>(table: T, match: Partial<Row<T>>, n: number) {
   expect(await readRows(table, match)).toHaveLength(n)

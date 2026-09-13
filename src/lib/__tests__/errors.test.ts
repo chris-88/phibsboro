@@ -1,6 +1,6 @@
 import type { PostgrestError } from '@supabase/supabase-js'
 import { describe, expect, it } from 'vitest'
-import { APP_ERROR_CODES, AppError, mapRpcError, toAppError } from '@/lib/errors'
+import { APP_ERROR_CODES, AppError, isUniqueViolation, mapRpcError, toAppError } from '@/lib/errors'
 
 const pg = (message: string, code = 'P0001'): PostgrestError =>
   ({ message, code, details: '', hint: '', name: 'PostgrestError' }) as PostgrestError
@@ -66,5 +66,25 @@ describe('mapRpcError (AC10)', () => {
     expect(mapRpcError('series_too_long')).toBe("That's too many sessions. Pick a shorter run.")
     expect(mapRpcError('starts_in_past')).toBe('Pick a date in the future.')
     expect(mapRpcError('unknown')).toBe('Something went wrong. Try again.')
+  })
+})
+
+describe('isUniqueViolation (S6.1 AC4)', () => {
+  it('matches a 23505 naming the constraint', () => {
+    const err = pg('duplicate key value violates unique constraint "teams_name_key"', '23505')
+    expect(isUniqueViolation(err, 'teams_name_key')).toBe(true)
+  })
+
+  it('does not match a different constraint or a different code', () => {
+    const other = pg('duplicate key value violates unique constraint "profiles_phone_key"', '23505')
+    expect(isUniqueViolation(other, 'teams_name_key')).toBe(false)
+    const fk = pg('insert or update violates foreign key constraint', '23503')
+    expect(isUniqueViolation(fk, 'teams_name_key')).toBe(false)
+  })
+
+  it('is false for non-Postgrest values', () => {
+    expect(isUniqueViolation(new Error('boom'), 'teams_name_key')).toBe(false)
+    expect(isUniqueViolation(null, 'teams_name_key')).toBe(false)
+    expect(isUniqueViolation(undefined, 'teams_name_key')).toBe(false)
   })
 })

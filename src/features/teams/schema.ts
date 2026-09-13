@@ -15,6 +15,36 @@ export const teamRowSchema = z.object({
 })
 export type TeamRow = z.infer<typeof teamRowSchema>
 
+/** The generated row type is the source of truth; `teamRowSchema` proves parity below (D24). */
+export type Team = Tables<'teams'>
+
+/**
+ * The one team-name rule, shared by the create form and every rename (S6.1). Trims first, so
+ * whitespace-only is rejected and a padded name is stored trimmed — the client half of the
+ * `char_length(btrim(name)) between 1 and 60` column check.
+ */
+export const teamNameSchema = z
+  .string()
+  .transform((s) => s.trim())
+  .pipe(z.string().min(1, 'Give the team a name.').max(60, 'Keep it under 60 characters.'))
+
+export const createTeamInput = z.object({ name: teamNameSchema })
+export type CreateTeamInput = z.infer<typeof createTeamInput>
+
+const nameCollator = new Intl.Collator('en-IE', { sensitivity: 'base' })
+
+/**
+ * Active teams first, then by name case-insensitively (S6.1 AC8). `useTeams` sorts in its
+ * `select` so every consumer gets the same order and no component re-sorts.
+ */
+export function byActiveThenName(
+  a: Pick<Team, 'active' | 'name'>,
+  b: Pick<Team, 'active' | 'name'>,
+): number {
+  if (a.active !== b.active) return a.active ? -1 : 1
+  return nameCollator.compare(a.name, b.name)
+}
+
 export const teamMemberRowSchema = z.object({
   team_id: uuidSchema,
   user_id: uuidSchema,

@@ -5,7 +5,13 @@ import { afterAll, describe, expect, it } from 'vitest'
 import { deleteTeam, setTeamActive } from './helpers/arrange.ts'
 import { anonClient, signInAs } from './helpers/clients.ts'
 import { FIRSTS, SECONDS, TEAM_FIRSTS, TEAM_SECONDS } from './helpers/fixtures.ts'
-import { expectEmpty, expectRlsDenied, expectRowUnchanged, expectRows } from './helpers/expect.ts'
+import {
+  expectDeleteRestricted,
+  expectEmpty,
+  expectRlsDenied,
+  expectRowUnchanged,
+  expectRows,
+} from './helpers/expect.ts'
 
 const created: string[] = []
 
@@ -122,6 +128,14 @@ describe('row 7 — teams write', () => {
       await expectRowUnchanged('teams', { id: SECONDS }, { name: TEAM_SECONDS.name })
     },
   )
+
+  // The other half of "deactivation is the only retirement path" (D31): even the service-role
+  // key, which bypasses RLS, cannot drop a team that owns an event — the on delete restrict FK
+  // stops it with 23503. Paired with the no-delete-policy cases above, that leaves no delete path.
+  it('a service-role delete of a team that owns an event fails on the restrict FK (23503)', async () => {
+    await expectDeleteRestricted('teams', { id: SECONDS })
+    await expectRowUnchanged('teams', { id: SECONDS }, { name: TEAM_SECONDS.name })
+  })
 
   it('anon cannot insert, update or delete teams', async () => {
     const anon = anonClient()

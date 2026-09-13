@@ -55,3 +55,17 @@ const COPY: Record<AppErrorCode, string> = {
 export function mapRpcError(code: AppErrorCode): string {
   return COPY[code]
 }
+
+function isPostgrestError(e: unknown): e is PostgrestError {
+  return typeof e === 'object' && e !== null && 'code' in e && 'message' in e
+}
+
+/**
+ * A table write (not an RPC) surfaces its `PostgrestError` raw, so S6.1 can tell a
+ * case-insensitive duplicate name apart from any other failure and map it to field copy
+ * rather than to `unknown`. The constraint is the unique index on `lower(btrim(name))`,
+ * `teams_name_key`, so Postgres returns `23505` naming it.
+ */
+export function isUniqueViolation(e: unknown, constraint: string): boolean {
+  return isPostgrestError(e) && e.code === '23505' && e.message.includes(constraint)
+}

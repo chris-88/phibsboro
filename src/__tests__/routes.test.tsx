@@ -86,7 +86,7 @@ describe('resolving routes (AC1, AC15)', () => {
     ['/manage/event/new', 'S4.1'],
     [`/manage/event/${UUID}`, 'S4.3'],
     [`/manage/team/${UUID}/members`, 'S6.4'],
-    ['/admin', 'S6.1'],
+    // /admin is a real screen from S6.1, no longer a placeholder; admin-screen.test.tsx covers it.
   ]
 
   it.each(cases)('%s renders a placeholder naming its owning story %s', async (path, story) => {
