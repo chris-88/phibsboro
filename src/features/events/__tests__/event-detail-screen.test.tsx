@@ -6,6 +6,7 @@ import type { Session } from '@supabase/supabase-js'
 import { SessionContext, type SessionState } from '@/features/auth/session-context'
 import type { EventDetail } from '@/api/events'
 import type { EventPreview } from '@/features/events/schema'
+import { AppError } from '@/lib/errors'
 
 interface QueryLike<T> {
   isError: boolean
@@ -21,10 +22,16 @@ const hoisted = vi.hoisted(() => {
     data,
     refetch: vi.fn(),
   })
+  const joinMock = (): {
+    mutate: ReturnType<typeof vi.fn>
+    isPending: boolean
+    isError: boolean
+    error: unknown
+  } => ({ mutate: vi.fn(), isPending: false, isError: false, error: null })
   return {
     detail: { value: settled<EventDetail>(null) },
     preview: { value: settled<EventPreview>(null) },
-    join: { mutate: vi.fn(), isPending: false, isError: false, error: null },
+    join: joinMock(),
     setResponse: { mutate: vi.fn(), isError: false },
     setPendingJoin: vi.fn(),
     setIntendedRoute: vi.fn(),
@@ -36,7 +43,7 @@ vi.mock('@/api/events', () => ({
   useEventDetail: () => hoisted.detail.value,
   useEventPreview: () => hoisted.preview.value,
 }))
-vi.mock('@/api/teams', () => ({ useJoinTeamByEvent: () => hoisted.join }))
+vi.mock('@/api/joins', () => ({ useJoinTeamByEvent: () => hoisted.join }))
 vi.mock('@/api/availability', () => ({ useSetResponse: () => hoisted.setResponse }))
 vi.mock('@/features/auth/pending-join', () => ({
   setPendingJoin: hoisted.setPendingJoin,
@@ -106,6 +113,7 @@ beforeEach(() => {
   hoisted.join.mutate = vi.fn()
   hoisted.join.isPending = false
   hoisted.join.isError = false
+  hoisted.join.error = null
   hoisted.setResponse.mutate = vi.fn()
   hoisted.setResponse.isError = false
   hoisted.setPendingJoin.mockReset()
@@ -183,6 +191,26 @@ describe('EventDetailScreen — preview and 404', () => {
     expect(hoisted.setPendingJoin).toHaveBeenCalledWith({ kind: 'event', eventId: ID })
     expect(hoisted.setIntendedRoute).toHaveBeenCalledWith(`/event/${ID}`)
     expect(await screen.findByText('login screen')).toBeInTheDocument()
+  })
+
+  it('replaces the join panel with the dead-link screen inline on invalid_invite (S2.4 AC12)', () => {
+    hoisted.preview.value = hoisted.settled(previewRow)
+    hoisted.join.isError = true
+    hoisted.join.error = new AppError('invalid_invite')
+    renderAt(ID, signedIn)
+    // Event details stay above the inline dead-link screen.
+    expect(screen.getByRole('heading', { name: 'Firsts v Shelbourne' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: "That link's no good." })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Join Firsts' })).not.toBeInTheDocument()
+  })
+
+  it('keeps the enabled Join button and shows a retry line on a network failure (S2.4 AC12)', () => {
+    hoisted.preview.value = hoisted.settled(previewRow)
+    hoisted.join.isError = true
+    hoisted.join.error = new AppError('unknown')
+    renderAt(ID, signedIn)
+    expect(screen.getByRole('button', { name: 'Join Firsts' })).toBeEnabled()
+    expect(screen.getByText('Couldn’t join. Try again.')).toBeInTheDocument()
   })
 
   it('renders the not-found screen when both reads come back empty (AC13)', () => {

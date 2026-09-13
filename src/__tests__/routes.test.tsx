@@ -7,6 +7,12 @@ import { describe, expect, it, vi } from 'vitest'
 // useCurrentUser(). This suite is about the route table and chrome, not the guards (those have
 // their own suite), so it signs in a ready admin: every guard admits, and every route resolves
 // to its screen the way it did before the guards existed.
+// RootLayout mounts PendingJoinGate (S2.4), whose resume hook needs a query client this route-table
+// suite does not provide. The resume is not what these tests probe, so pass its children through.
+vi.mock('@/features/teams/PendingJoinGate', () => ({
+  PendingJoinGate: ({ children }: { children: React.ReactNode }) => children,
+}))
+
 vi.mock('@/features/auth/use-current-user', () => {
   const user = {
     id: 'admin',
@@ -99,10 +105,9 @@ describe('route table (D34)', () => {
 describe('resolving routes (AC1, AC15)', () => {
   const cases: [string, string][] = [
     ['/', 'S3.1'],
-    ['/join/abc123', 'S2.4'],
     ['/reset/abc123', 'S2.3'],
-    // /event/:id is a real screen from S3.3 — no longer a placeholder; EventDetailScreen and
-    // routes coverage below assert it directly.
+    // /event/:id is a real screen from S3.3 and /join/:token from S2.4 — no longer placeholders;
+    // EventDetailScreen, JoinByTokenScreen and the routes coverage below assert them directly.
     ['/history', 'S3.5'],
     ['/manage', 'S4.1'],
     ['/manage/event/new', 'S4.1'],

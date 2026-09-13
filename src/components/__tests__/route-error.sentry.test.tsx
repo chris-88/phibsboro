@@ -12,6 +12,12 @@ import { FAKE_DSN, fakeSentryTransport } from '@/test/sentry-transport'
 // RootLayout reads useCurrentUser() (S2.9). This suite probes the route error/404 paths, not the
 // guards, and mounts a bare custom router with no providers, so stub a ready user rather than
 // stand up a session and a query client.
+// RootLayout mounts PendingJoinGate (S2.4), whose resume hook uses a query client this
+// provider-less suite does not stand up. It is not under test here, so pass its children through.
+vi.mock('@/features/teams/PendingJoinGate', () => ({
+  PendingJoinGate: ({ children }: { children: React.ReactNode }) => children,
+}))
+
 vi.mock('@/features/auth/use-current-user', () => {
   const user = {
     id: 'admin',

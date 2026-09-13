@@ -1,6 +1,6 @@
 import { useNavigate, type NavigateFunction } from 'react-router'
 import { useEventDetail, useEventPreview, type EventDetail } from '@/api/events'
-import { useJoinTeamByEvent } from '@/api/teams'
+import { useJoinTeamByEvent } from '@/api/joins'
 import { NotFound } from '@/components/not-found'
 import { ErrorState } from '@/components/states'
 import { Button } from '@/components/ui/button'
@@ -14,7 +14,8 @@ import { EventMeta } from '@/features/events/components/EventMeta'
 import { EventPreviewCard } from '@/features/events/components/EventPreviewCard'
 import { EventTypeBadge } from '@/features/events/components/EventTypeBadge'
 import type { EventPreview } from '@/features/events/schema'
-import { mapRpcError } from '@/lib/errors'
+import { JoinTeamPanel } from '@/features/teams/components/JoinTeamPanel'
+import { classifyJoinError } from '@/features/teams/joinErrors'
 import { setIntendedRoute } from '@/lib/intended-route'
 import { paths } from '@/lib/paths'
 import { useRouteParam } from '@/lib/use-route-param'
@@ -92,7 +93,8 @@ function goToAuth(path: string, eventId: string, navigate: NavigateFunction): vo
 /** The preview for a signed-in non-member: one primary button that joins the team on the spot.
  *  The join takes the event id, not the team id — the preview never carries an id, so the screen
  *  passes it down. On success the member query refetches and the screen re-renders as the member
- *  view without a reload (AC10). */
+ *  view without a reload (AC10). A dead-link refusal replaces the panel with `InviteInvalid`
+ *  inline, keeping the event details above it; a network failure keeps the button (S2.4 AC12). */
 function NonMemberPreview({
   preview,
   eventId,
@@ -103,20 +105,14 @@ function NonMemberPreview({
   const join = useJoinTeamByEvent()
   return (
     <EventPreviewCard preview={preview}>
-      <div className="flex flex-col gap-2">
-        <Button
-          type="button"
-          size="lg"
-          className="min-h-14 w-full"
-          disabled={join.isPending}
-          onClick={() => {
-            join.mutate(eventId)
-          }}
-        >
-          Join {preview.team_name}
-        </Button>
-        {join.isError && <p className="text-sm text-destructive">{mapRpcError(join.error.code)}</p>}
-      </div>
+      <JoinTeamPanel
+        teamName={preview.team_name}
+        pending={join.isPending}
+        failure={join.isError ? classifyJoinError(join.error) : null}
+        onJoin={() => {
+          join.mutate(eventId)
+        }}
+      />
     </EventPreviewCard>
   )
 }

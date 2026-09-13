@@ -5,7 +5,7 @@ import { NotFound } from '@/components/not-found'
 import { RouteError } from '@/components/route-error'
 import { RequireAdmin, RequireAuth, RequireManager } from '@/features/auth/guards'
 import HistoryScreen from '@/features/attendance/history-screen'
-import JoinScreen from '@/features/auth/join-screen'
+import JoinByTokenScreen from '@/features/teams/JoinByTokenScreen'
 import LoginScreen from '@/features/auth/login-screen'
 import RegisterScreen from '@/features/auth/register-screen'
 import ResetScreen from '@/features/auth/reset-screen'
@@ -79,7 +79,7 @@ export const routeTable: readonly AppRoute[] = [
     chrome: 'bare',
     guard: 'public',
     title: 'Join team',
-    screen: { element: <JoinScreen /> },
+    screen: { element: <JoinByTokenScreen /> },
   },
   {
     path: '/reset/:token',

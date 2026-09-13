@@ -2,6 +2,7 @@ import { Outlet, ScrollRestoration, useLocation, useMatches, useNavigate } from 
 import { AppShell, AppShellSkeleton } from '@/components/app-shell'
 import { LoadingState } from '@/components/states'
 import { useCurrentUser } from '@/features/auth/use-current-user'
+import { PendingJoinGate } from '@/features/teams/PendingJoinGate'
 import { NOT_FOUND_TITLE, useDocumentTitle } from '@/lib/document-title'
 import type { AppRole } from '@/lib/nav'
 import { paths } from '@/lib/paths'
@@ -21,6 +22,16 @@ function useRouteMeta(): AppRouteMeta | undefined {
  *  title from the same row (AC13), and scroll reset on navigation (AC14). The nav's role comes
  *  from the signed-in user (S2.9). Convenience only; RLS is the boundary. */
 export function RootLayout(): React.JSX.Element {
+  // The resume overlay sits outside the shell (no nav, no back) and above the routed content, so a
+  // pending join finishes before any screen renders — the S2.6 order S2.5 builds on (S2.4).
+  return (
+    <PendingJoinGate>
+      <RoutedShell />
+    </PendingJoinGate>
+  )
+}
+
+function RoutedShell(): React.JSX.Element {
   const meta = useRouteMeta()
   const { pathname } = useLocation()
   const navigate = useNavigate()
