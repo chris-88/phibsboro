@@ -27,7 +27,7 @@ shell, routing and PWA are exempt because they touch no data.
 | 6 | [S0.4](stories/S0.4-pwa.md) | PWA | 0 Foundation | S0.1, S0.2, S0.3, S0.5, S0.7 | M | **Done** |
 | 7 | [S0.6](stories/S0.6-observability.md) | Observability | 0 Foundation | S0.1, S0.2, S0.3, S0.5 | S | **Done** |
 | 8 | [S1.1](stories/S1.1-schema.md) | Schema | 1 Database and security | S0.1, S0.5, S0.7 | M | **Done** |
-| 9 | [S1.2](stories/S1.2-profile-provisioning-and-seed.md) | Profile provisioning and seed — **gate: phone auth (D19)** | 1 Database and security | S1.1, S0.7 | L | Not started |
+| 9 | [S1.2](stories/S1.2-profile-provisioning-and-seed.md) | Profile provisioning and seed — **gate: phone auth (D19)** | 1 Database and security | S1.1, S0.7 | L | **Done** |
 | 10 | [S1.3](stories/S1.3-rls-policies-and-rpcs.md) | RLS policies and RPCs | 1 Database and security | S1.1, S1.2 | L | Not started |
 | 11 | [S1.4](stories/S1.4-rls-test-suite.md) | RLS test suite — **blocking gate** | 1 Database and security | S0.7, S1.1, S1.2, S1.3 | L | Not started |
 | 12 | [S1.5](stories/S1.5-typed-data-layer-and-shared-helpers.md) | Typed data layer and shared helpers | 1 Database and security | S0.1, S0.7, S1.1, S1.3, S1.4 | M | Not started |

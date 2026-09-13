@@ -178,7 +178,8 @@ enable_anonymous_sign_ins = false
 # Allow/disallow testing manual linking of accounts
 enable_manual_linking = false
 # Passwords shorter than this value will be rejected as weak. Minimum 6, recommended 8 or more.
-minimum_password_length = 6
+# 8 matches the hosted project (S1.2, set through the Management API on 2026-09-13) and S2.1's rule.
+minimum_password_length = 8
 # Passwords that do not meet the following requirements will be rejected as weak. Supported values
 # are: `letters_digits`, `lower_upper_letters_digits`, `lower_upper_letters_digits_symbols`
 password_requirements = ""
@@ -254,8 +255,10 @@ otp_expiry = 3600
 # content_path = "./templates/password_changed_notification.html"
 
 [auth.sms]
-# Mirrors the hosted project (D19 path A): phone + password, confirmations off, so nothing is ever
-# sent. The hosted project runs with no SMS provider at all. The CLI will not: with every provider
+# Mirrors the hosted project (D19 path A, amendment of 2026-09-13 in spec/00-decisions.md: signUp
+# with phone + password returns a session with no SMS provider configured). Confirmations off, so
+# nothing is ever sent and a number is never proof of identity (S1.2 AC3). The hosted project runs
+# with no SMS provider at all. The CLI will not: with every provider
 # below disabled, config validation forces enable_signup back to false ("WARN: no SMS provider is
 # enabled. Disabling phone login") and starts GoTrue with GOTRUE_EXTERNAL_PHONE_ENABLED=false, which
 # makes signInWithPassword({ phone }) a 422. Hence the stub Twilio block further down.

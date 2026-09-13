@@ -44,9 +44,10 @@ and `supabase/migrations/` exists, so every push to `main` applies pending migra
 The rule for that directory is in [`supabase/migrations/README.md`](../supabase/migrations/README.md):
 forward-only, never edit an applied file.
 
-`npm run test:db` runs the S1.1 structural assertions (`tests/db/`) against the CLI's **local** stack
-(`supabase start`, needs Docker). It reads no environment, so it cannot be pointed at the hosted project;
-the CI `db` job runs it on every pull request.
+`npm run test:db` runs `tests/db/` (S1.1 schema, S1.2 trigger and seed) against the CLI's **local**
+stack (`supabase start`, needs Docker). It reads no environment, so it cannot be pointed at the hosted
+project by accident; the CI `db` job runs it on every pull request. `npm run test:db:hosted` is the
+explicit opt-in that reads `.env.local` and runs the S1.2 files against the hosted project.
 
 ## Test data
 
@@ -56,6 +57,16 @@ returns 403 and a dedicated test project cannot be created from here.
 That is fine for now. The project holds no real data, so the S1.4 RLS suite truncates freely and
 `npm run db:seed` puts it back. The suite prints the project ref and the row counts it is about to
 destroy before it does ([D63](../spec/00-decisions.md)).
+
+```bash
+PFC_SEED_ALLOW_REMOTE=1 npm run db:seed              # seed the hosted project (refuses if not empty)
+PFC_SEED_ALLOW_REMOTE=1 npm run db:seed -- --reset   # wipe every table and auth user, then seed
+npm run test:db:hosted                               # tests/db against the hosted project; reseeds
+```
+
+Without `PFC_SEED_ALLOW_REMOTE=1` the seed refuses any URL that is not localhost, so nobody seeds a
+hosted project by muscle memory (S1.2 AC25). Fixture numbers are `+3538999…`, the password is in
+`supabase/seed/fixtures.ts`; both are fixtures, not secrets. `+3538990…` is reserved for E2E (D58).
 
 ## Go-live checklist
 

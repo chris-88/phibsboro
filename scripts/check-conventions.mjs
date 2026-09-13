@@ -32,6 +32,8 @@ const CHECKS = [
       p === '.env.example' ||
       p === join('scripts', 'check-conventions.mjs') ||
       p === join('tests', 'helpers', 'admin.ts') ||
+      // S1.2's AC27 scan searches for the string, so it has to hold it.
+      p === join('tests', 'guards', 'source-scan.test.ts') ||
       p.startsWith(`supabase${sep}`),
     message:
       'The service-role key never appears in the browser bundle or the client tree. Decision D38.',

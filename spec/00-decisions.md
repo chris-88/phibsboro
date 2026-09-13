@@ -403,6 +403,27 @@ Either way, no SMS is ever sent, no OTP step exists, and a number is never proof
 
 **Affects** — S1.1, S1.2, S2.1, S2.2, S2.3.
 
+**Amendment, 2026-09-13 — path A. Phone auth works natively; the fallback is not taken.** Proved on
+the hosted project (`hhhlbermhelfgxgkgitz`) with the phone provider enabled, `sms_autoconfirm` on and
+every SMS provider credential null (`sms_provider` reads `twilio` but `sms_twilio_account_sid`,
+`sms_twilio_auth_token` and `sms_twilio_message_service_sid` are all null; no send hook). With the
+public anon key and supabase-js 2.116:
+
+| Call | Result |
+|---|---|
+| `signUp({ phone: '+353899998801', password, options: { data: { name } } })` | `error: null`, `session` present, `user.phone` = `353899998801` (no `+`), `phone_confirmed_at` set, one `profiles` row with the same id, `phone` `+353899998801`, `is_admin` false |
+| `signInWithPassword({ phone, password })` | `error: null`, session |
+| `signInWithPassword({ phone, password: wrong })` | HTTP 400, `code: 'invalid_credentials'`, "Invalid login credentials" |
+| `signUp` again with the same number | HTTP 422, `code: 'user_already_exists'`, "User already registered", no second auth user. **Not** `phone_exists` as S1.2 predicted; S2.1 matches on `user_already_exists` |
+| `signUp` with no `name`, or a whitespace `name` | HTTP 500, `code: undefined`, `AuthRetryableFetchError`, "Database error saving new user"; `auth.users` count unchanged, no orphan. The trigger's raised name does **not** reach the client |
+| `signUp` with a password of 6 characters (after `password_min_length` was set to 8) | HTTP 422, `code: 'weak_password'`, "Password should be at least 8 characters." |
+
+No SMS was sent, no OTP step exists, and nothing above the database reads `phone_confirmed_at`.
+Set through the Management API the same day: `password_min_length` 8 (was 6) and `site_url`
+`https://app.phibsboro.ie` (was `http://localhost:3000`). Session and refresh settings untouched (S2.6).
+The synthetic-email path in AC2 stays unbuilt; the trigger's metadata fallback remains only so the
+same migration would serve if the platform behaviour ever changed. Epic 2 may start.
+
 ### D20 — Build order of record, and S6.2 splits in two
 
 **Issue** — "Build in order... Do not start a story until the ones it depends on pass," but the epic order

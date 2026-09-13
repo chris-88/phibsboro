@@ -21,6 +21,7 @@
     "vitest.db.config.ts",
     "playwright.config.ts",
     "scripts/**/*.mjs",
+    "supabase/seed/**/*.ts",
     "tests/**/*.ts"
   ],
   "allowJs": true

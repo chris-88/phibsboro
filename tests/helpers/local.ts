@@ -1,21 +1,16 @@
-// The CLI's local stack, as tests reach it. Every value is a published constant that
-// `supabase start` prints on every machine (D38), repeated in .env.example. Deliberately not
-// read from the environment: Vitest copies VITE_-prefixed keys from .env.local into process.env,
-// which would silently point a test at the hosted project.
+// Anon-key clients for tests/db: what an unauthenticated browser has, and one signed in as a
+// seeded or throwaway user. Which stack they reach is decided in target.ts — the CLI's local
+// stack unless PFC_DB_TARGET=hosted is set explicitly.
 import { createClient } from '@supabase/supabase-js'
 
 import type { Database } from '../../src/lib/database.types.ts'
+import { TARGET } from './target.ts'
 
-export const LOCAL = {
-  url: 'http://127.0.0.1:54321',
-  anonKey:
-    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0',
-  databaseUrl: 'postgresql://postgres:postgres@127.0.0.1:54322/postgres',
-} as const
+export { LOCAL } from './target.ts'
 
 /** A client holding nothing but the anon key: what an unauthenticated browser has. */
 export function anonClient() {
-  return createClient<Database>(LOCAL.url, LOCAL.anonKey, {
+  return createClient<Database>(TARGET.url, TARGET.anonKey, {
     auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
   })
 }
