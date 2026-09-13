@@ -3,6 +3,7 @@ import { BottomNav } from '@/components/bottom-nav'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Toaster } from '@/components/ui/sonner'
+import { VersionTag } from '@/components/version-tag'
 import { cn } from '@/lib/utils'
 import type { AppRole } from '@/lib/nav'
 
@@ -55,18 +56,21 @@ export function AppShell({
         )}
       </header>
 
-      <main
+      <main className="flex-1 px-4 pb-6">{children}</main>
+
+      {/* In flow below the content, so it overlaps nothing (S0.4 AC15). Its bottom padding
+          clears the fixed nav, the home indicator below it, and a line of breathing room,
+          so the last row of a long page and any bottom action stay readable (S0.2 AC6). */}
+      <footer
         className={cn(
-          'flex-1 px-4',
-          // Clears the fixed nav, the home indicator below it, and a line of breathing
-          // room, so the last row of a long page and any bottom action stay readable.
+          'px-4 pt-2',
           chrome === 'nav'
             ? 'pb-[calc(var(--spacing-tap)+env(safe-area-inset-bottom)+1rem)]'
-            : 'pb-8',
+            : 'pb-[calc(env(safe-area-inset-bottom)+1rem)]',
         )}
       >
-        {children}
-      </main>
+        <VersionTag />
+      </footer>
 
       {/* Inside the shell and above the nav in z-order, or a toast renders behind it. */}
       <Toaster position="top-center" className="z-50" />

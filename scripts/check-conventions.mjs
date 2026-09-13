@@ -7,11 +7,15 @@
 // | A hex colour literal under src/ outside the token sheet   | S0.2  | no hardcoded hex in components, AC3       |
 // | The literal '/#/' outside src/lib/paths.ts                | S0.3  | one URL builder, AC8, D13                 |
 // | useParams() outside src/lib/use-route-param.ts            | S0.3  | typed params, no `!` on a segment, AC10   |
+// | display-mode: standalone / navigator.standalone elsewhere | S0.4  | one isStandalone() helper, AC9, D44       |
+// | The pfc-release meta read outside src/lib/version.ts      | S0.4  | one reader of the release tag, AC14       |
 
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join, relative, sep } from 'node:path'
 
 const ROOT = process.cwd()
+/** Spawns this script against throwaway trees, so it carries the strings it tests for. */
+const FIXTURE_TEST = join('src', '__tests__', 'check-conventions.test.ts')
 const SKIP_DIRS = new Set(['node_modules', 'dist', 'coverage', '.git', 'spec', 'test-results'])
 
 /** @type {{name: string, roots: string[], exts: string[], pattern: RegExp, allow: (p: string) => boolean, message: string}[]} */
@@ -62,6 +66,34 @@ const CHECKS = [
     allow: (p) => p === join('src', 'lib', 'use-route-param.ts'),
     message:
       'Read route segments with useRouteParam() from @/lib/use-route-param, which returns a string or throws. S0.3 AC10.',
+  },
+  {
+    name: 'standalone-check',
+    roots: ['src'],
+    exts: ['.ts', '.tsx', '.js', '.jsx', '.css'],
+    pattern: /display-mode:\s*standalone|navigator\s*\.\s*standalone/,
+    // The helper, the test that exercises both halves of it, and the fixture test that
+    // holds the forbidden strings as data to prove this rule fires. Nothing else.
+    allow: (p) =>
+      p === join('src', 'lib', 'standalone.ts') ||
+      p === join('src', 'lib', '__tests__', 'standalone.test.ts') ||
+      p === FIXTURE_TEST,
+    message:
+      'The media query is wrong on iOS. Call isStandalone() from @/lib/standalone, the one helper. S0.4 AC9, D44.',
+  },
+  {
+    name: 'release-tag-reader',
+    roots: ['src'],
+    exts: ['.ts', '.tsx', '.js', '.jsx'],
+    pattern: /pfc-release/,
+    // The reader, the tests that plant the tag to exercise it, and the fixture test.
+    allow: (p) =>
+      p === join('src', 'lib', 'version.ts') ||
+      p === join('src', 'lib', '__tests__', 'version.test.ts') ||
+      p === join('src', 'components', '__tests__', 'version-tag.test.tsx') ||
+      p === FIXTURE_TEST,
+    message:
+      'Read the running build with getAppVersion() from @/lib/version, the only reader of the pfc-release tag. S0.4 AC14.',
   },
 ]
 

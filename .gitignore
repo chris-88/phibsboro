@@ -25,3 +25,4 @@ playwright-report/
 
 # supabase link writes a credentialed pooler URL in here
 supabase/.temp/
+.playwright/

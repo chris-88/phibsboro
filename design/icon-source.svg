@@ -1,0 +1,22 @@
+<!--
+  The one icon source. scripts/generate-icons.mjs renders it to every PNG the manifest names
+  and to public/apple-touch-icon.png. A plain lettermark until the club supplies a crest
+  (S0.4 open question 1): replace this file, rerun the script, and nothing else changes.
+  The two colours are filled in by the script from the pwa-theme-color and pwa-background-color tokens in src/index.css.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <rect width="1024" height="1024" fill="{{background}}" />
+  <!-- Everything below sits inside the central 80% (the maskable safe zone), so one drawing
+       serves both the `any` and `maskable` purposes. -->
+  <circle cx="512" cy="512" r="384" fill="{{theme}}" />
+  <text
+    x="512"
+    y="512"
+    dominant-baseline="central"
+    text-anchor="middle"
+    font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
+    font-size="440"
+    font-weight="700"
+    fill="{{background}}"
+  >P</text>
+</svg>

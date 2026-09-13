@@ -57,16 +57,20 @@ describe('AppShell (AC8)', () => {
     expect(screen.getByRole('heading', { name: 'Phibsboro FC' })).toBeInTheDocument()
   })
 
+  // The clearance sits on the footer, the last in-flow element, since S0.4 put the
+  // version tag below the content; everything above it clears the nav by construction.
   it('bottom-pads the content past the nav and the home indicator (AC6)', () => {
     const { container } = render(
       <AppShell chrome="nav" role="player" currentPath="/">
         <p>content</p>
       </AppShell>,
     )
-    const main = container.querySelector('main')
-    expect(main?.className).toContain(
+    const footer = container.querySelector('footer')
+    expect(footer?.className).toContain(
       'pb-[calc(var(--spacing-tap)+env(safe-area-inset-bottom)+1rem)]',
     )
+    const nav = container.querySelector('nav')
+    expect(nav && footer?.compareDocumentPosition(nav)).toBe(Node.DOCUMENT_POSITION_FOLLOWING)
   })
 
   // jsdom computes no layout, so this cannot measure a rendered width. What it can prove

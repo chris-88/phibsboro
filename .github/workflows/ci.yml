@@ -47,6 +47,36 @@ jobs:
             echo 'scripts/check-env-parity.mjs not present yet — added by S0.5 (deployment).'
           fi
 
+  # S0.4 — the service-worker and installability gate. Builds, then runs the Playwright `pwa`
+  # project against `vite preview`: the two-build staleness test (AC5), the offline shell (AC6),
+  # the controlled cold deep link (AC8), and Chromium's own installability verdict (AC4). No
+  # stack, no secret, so it runs on a fork pull request (D14). D43 named an `e2e` job; there is
+  # none until S7.3, so this is its own job.
+  pwa:
+    name: pwa
+    runs-on: ubuntu-latest
+    env:
+      TZ: UTC
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      # The full Chromium build, not only the headless shell: the AC4 installability verdict
+      # comes from the browser layer the shell does not have.
+      - run: npx playwright install --with-deps chromium
+      - run: npm run build
+      - run: npx playwright test --project=pwa
+      - name: Upload the Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-pwa
+          path: playwright-report
+          retention-days: 7
+
   pr-title:
     name: pr-title
     if: github.event_name == 'pull_request'

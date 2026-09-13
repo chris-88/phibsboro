@@ -4,6 +4,13 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="pfc-release" content="%VITE_SENTRY_RELEASE%" />
+    <!-- theme-color equals the manifest's theme_color; src/pwa/icons.test.ts holds them together.
+         The three apple-* tags are the whole of iOS install support (D44): Safari reads no manifest
+         icon. Vite prefixes the href with the base at build time. -->
+    <meta name="theme-color" content="#1351a6" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Phibsboro" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
     <title>Phibsboro FC</title>
   </head>
   <body>

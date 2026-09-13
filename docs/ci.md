@@ -25,15 +25,15 @@ runs no tests: the pipeline gates the merge, the merge gates the deploy (D14).
 
 ## Jobs
 
-| Job        | Owner                  | Does                                                                                                                            | Must never                                                            |
-| ---------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
-| `check`    | S0.7                   | `npm ci`, typecheck, lint, format check, unit tests, production build, env parity — each its own step so a failure names itself | Read a secret, or start a database                                    |
-| `pr-title` | S0.7                   | Fails a pull request whose title is not a conventional commit, naming the allowed types                                         | Run on `push`; interpolate the title into a shell line                |
-| `db`       | S1.1, extended by S1.4 | Local Supabase stack, `supabase db reset`, structural tests, then the seed and the RLS project                                  | Pin its own CLI version; skip `fetch-depth: 0`, which S1.1 AC20 needs |
-| `pwa`      | S0.4                   | Build, the Playwright `pwa` project, Lighthouse installability checks                                                           | Need a stack or a secret                                              |
-| `e2e`      | S2.5, extended by S7.3 | Local stack plus seed, `vite preview` on 127.0.0.1:4173, Playwright                                                             | Touch the live site (D17)                                             |
+| Job        | Owner                  | Does                                                                                                                                                                                                                 | Must never                                                            |
+| ---------- | ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| `check`    | S0.7                   | `npm ci`, typecheck, lint, format check, unit tests, production build, env parity — each its own step so a failure names itself                                                                                      | Read a secret, or start a database                                    |
+| `pr-title` | S0.7                   | Fails a pull request whose title is not a conventional commit, naming the allowed types                                                                                                                              | Run on `push`; interpolate the title into a shell line                |
+| `db`       | S1.1, extended by S1.4 | Local Supabase stack, `supabase db reset`, structural tests, then the seed and the RLS project                                                                                                                       | Pin its own CLI version; skip `fetch-depth: 0`, which S1.1 AC20 needs |
+| `pwa`      | S0.4                   | Build, then the Playwright `pwa` project against `vite preview`: two-build staleness, offline shell, cold deep link, and Chromium's installability verdict (Lighthouse dropped its PWA audits; see S0.4 build notes) | Need a stack or a secret; drive the live site                         |
+| `e2e`      | S2.5, extended by S7.3 | Local stack plus seed, `vite preview` on 127.0.0.1:4173, Playwright                                                                                                                                                  | Touch the live site (D17)                                             |
 
-`check` is the only job in the file until S1.1 adds `db`. A story that adds a job adds its row above and
+`check` and `pwa` are the jobs in the file until S1.1 adds `db`. A story that adds a job adds its row above and
 adds the job to the required status checks below, in the same pull request.
 
 `npm test` is S0.1's `vitest run`. S7.2 changes that one step to `vitest run --coverage` and adds the

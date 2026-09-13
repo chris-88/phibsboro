@@ -9,7 +9,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b --noEmit && vite build",
-    "preview": "vite preview --port 4173 --strictPort",
+    "preview": "vite preview --host 127.0.0.1 --port 4173 --strictPort",
     "typecheck": "tsc -b --noEmit",
     "lint": "eslint . && node scripts/check-conventions.mjs",
     "lint:fix": "eslint . --fix",
