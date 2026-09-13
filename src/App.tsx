@@ -2,6 +2,7 @@ import { QueryClientProvider } from '@tanstack/react-query'
 import { RouterProvider, createHashRouter } from 'react-router'
 import { queryClient } from '@/api/queryClient'
 import { AppErrorBoundary } from '@/components/app-error-boundary'
+import { SessionProvider } from '@/features/auth/session-provider'
 import { routes } from '@/routes'
 
 // HashRouter, never BrowserRouter: GitHub Pages serves static files, and everything after
@@ -16,7 +17,12 @@ export default function App(): React.JSX.Element {
   return (
     <QueryClientProvider client={queryClient}>
       <AppErrorBoundary>
-        <RouterProvider router={router} />
+        {/* The one auth subscription, above the router so every guard reads it, and inside the
+            query provider so the current-user query has its client (S2.9, AC16). S2.6 wraps this
+            in AppBoot without adding a second provider. */}
+        <SessionProvider>
+          <RouterProvider router={router} />
+        </SessionProvider>
       </AppErrorBoundary>
     </QueryClientProvider>
   )

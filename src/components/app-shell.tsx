@@ -1,4 +1,5 @@
 import { ChevronLeft } from 'lucide-react'
+import { AppShellMenu } from '@/components/app-shell-menu'
 import { BottomNav } from '@/components/bottom-nav'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -53,6 +54,13 @@ export function AppShell({
           <h1 className={cn('truncate text-base font-semibold', chrome === 'nav' && 'px-1')}>
             {title}
           </h1>
+        )}
+        {/* The account menu lives on nav routes only; a bare deep-link target has the back
+            affordance instead (AC17, D41). */}
+        {chrome === 'nav' && (
+          <div className="ml-auto">
+            <AppShellMenu />
+          </div>
         )}
       </header>
 

@@ -3,6 +3,7 @@ import type { RouteObject } from 'react-router'
 import { RootHydrateFallback, RootLayout } from '@/components/root-layout'
 import { NotFound } from '@/components/not-found'
 import { RouteError } from '@/components/route-error'
+import { RequireAdmin, RequireAuth, RequireManager } from '@/features/auth/guards'
 import HistoryScreen from '@/features/attendance/history-screen'
 import JoinScreen from '@/features/auth/join-screen'
 import LoginScreen from '@/features/auth/login-screen'
@@ -15,6 +16,28 @@ import { paths } from '@/lib/paths'
 import type { AppRouteMeta } from '@/lib/route-meta'
 
 export type { AppRouteMeta, GuardLevel } from '@/lib/route-meta'
+
+import type { GuardLevel } from '@/lib/route-meta'
+
+/**
+ * Guard level to the wrapper that enforces it. Declared once, applied where the route objects
+ * are built, so a route cannot be guarded by accident or left unguarded by omission (S2.9). The
+ * wrappers are convenience; RLS is the enforcement layer (S1.3, proved by S1.4).
+ */
+const GUARDS: Record<GuardLevel, (el: React.ReactNode) => React.ReactNode> = {
+  public: (el) => el,
+  authed: (el) => <RequireAuth>{el}</RequireAuth>,
+  manager: (el) => (
+    <RequireAuth>
+      <RequireManager>{el}</RequireManager>
+    </RequireAuth>
+  ),
+  admin: (el) => (
+    <RequireAuth>
+      <RequireAdmin>{el}</RequireAdmin>
+    </RequireAuth>
+  ),
+}
 
 type Screen =
   /** In the entry chunk. The player journey is measured in seconds on a car-park connection. */
@@ -127,10 +150,19 @@ export const routeTable: readonly AppRoute[] = [
 function toRouteObject(route: AppRoute): RouteObject {
   const { screen, ...handle } = route
   const shared = { handle } satisfies Pick<RouteObject, 'handle'>
+  const guard = GUARDS[route.guard]
   const target =
     'element' in screen
-      ? { element: screen.element }
-      : { lazy: async () => ({ Component: (await screen.lazy()).default }) }
+      ? { element: guard(screen.element) }
+      : {
+          // Wrap inside the lazy callback, so a lazily loaded manager or admin chunk is still
+          // guarded (S2.9). The guard wrappers are eager, so the chunk downloads only after the
+          // guard admits the viewer.
+          lazy: async () => {
+            const Screen = (await screen.lazy()).default
+            return { Component: () => <>{guard(<Screen />)}</> }
+          },
+        }
   // The root is `/`, so its index route is the home screen rather than a child at `/`.
   return route.path === '/'
     ? { index: true, ...shared, ...target }

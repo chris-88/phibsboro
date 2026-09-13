@@ -1,7 +1,7 @@
 import { Navigate } from 'react-router'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { EmptyState, ErrorState, LoadingState } from '@/components/states'
-import { useIsAdmin } from '@/api/session'
+import { useCurrentUser } from '@/features/auth/use-current-user'
 import { useTeams } from '@/api/teams'
 import { CreateTeamForm } from '@/features/teams/create-team-form'
 import { TeamRow } from '@/features/teams/team-row'
@@ -10,15 +10,15 @@ import { paths } from '@/lib/paths'
 
 /**
  * The `/admin` teams screen (S6.1). Admins create, rename, deactivate and reactivate teams;
- * a team is never deleted, only retired. The gate below is the temporary inline check the
- * story's Open question 3 describes — convenience only, replaced by S2.9's RequireAdmin. RLS
- * is the enforcement layer.
+ * a team is never deleted, only retired. The route is wrapped by S2.9's RequireAdmin; this
+ * inline gate reads the same `useCurrentUser()` and is defence in depth. Convenience only. RLS
+ * is the enforcement layer (S1.3, proved by S1.4).
  */
 export default function AdminScreen(): React.JSX.Element {
-  const admin = useIsAdmin()
+  const account = useCurrentUser()
 
   // No flash of a redirect while the session and profile resolve (AC1).
-  if (admin.isPending) {
+  if (account.status === 'loading') {
     return (
       <div className="py-4">
         <LoadingState label="Checking access" />
@@ -26,7 +26,9 @@ export default function AdminScreen(): React.JSX.Element {
     )
   }
   // A signed-in non-admin (or an unauthenticated visitor) goes home, not to a broken screen.
-  if (!admin.data) return <Navigate to={paths.home()} replace />
+  if (account.status !== 'ready' || !account.user.isAdmin) {
+    return <Navigate to={paths.home()} replace />
+  }
 
   return <AdminTeams />
 }

@@ -2,6 +2,7 @@ import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
+import type { CurrentUserState } from '@/features/auth/use-current-user'
 import type { Team } from '@/features/teams/schema'
 
 interface QueryState {
@@ -12,15 +13,34 @@ interface QueryState {
   refetch: () => void
 }
 
+/** A ready account with the given admin flag. The screen reads only `.status` and
+ *  `.user.isAdmin`; the rest satisfies the type. */
+const ready = (isAdmin: boolean): CurrentUserState => ({
+  status: 'ready',
+  user: {
+    id: 'u1',
+    name: 'Admin',
+    phone: '+353870000000',
+    isAdmin,
+    memberships: [],
+    managedTeams: [],
+    isManagerOfAny: false,
+    roleForTeam: () => null,
+    isManagerOf: () => isAdmin,
+  },
+})
+
 const hoisted = vi.hoisted(() => ({
-  isAdmin: { value: { isPending: false, data: true } },
+  account: { value: null as unknown as CurrentUserState },
   teams: { value: null as unknown as QueryState },
   create: vi.fn(),
   rename: vi.fn(),
   setActive: vi.fn(),
 }))
 
-vi.mock('@/api/session', () => ({ useIsAdmin: () => hoisted.isAdmin.value }))
+vi.mock('@/features/auth/use-current-user', () => ({
+  useCurrentUser: () => hoisted.account.value,
+}))
 vi.mock('@/api/teams', () => ({
   useTeams: () => hoisted.teams.value,
   useCreateTeam: () => ({ mutate: hoisted.create, isPending: false }),
@@ -60,7 +80,7 @@ beforeAll(() => {
 })
 
 beforeEach(() => {
-  hoisted.isAdmin.value = { isPending: false, data: true }
+  hoisted.account.value = ready(true)
   hoisted.create.mockReset()
   hoisted.rename.mockReset()
   hoisted.setActive.mockReset()
@@ -68,14 +88,14 @@ beforeEach(() => {
 
 describe('admin gate (AC1)', () => {
   it('shows a loading placeholder while access resolves, no flash', () => {
-    hoisted.isAdmin.value = { isPending: true, data: false }
+    hoisted.account.value = { status: 'loading' }
     renderScreen()
     expect(screen.getByRole('status', { name: /checking access/i })).toBeInTheDocument()
     expect(screen.queryByText('home screen')).not.toBeInTheDocument()
   })
 
   it('redirects a non-admin home', () => {
-    hoisted.isAdmin.value = { isPending: false, data: false }
+    hoisted.account.value = ready(false)
     renderScreen()
     expect(screen.getByText('home screen')).toBeInTheDocument()
   })

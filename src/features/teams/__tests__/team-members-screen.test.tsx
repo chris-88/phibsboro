@@ -1,17 +1,35 @@
 import { render, screen } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import type { CurrentUserState } from '@/features/auth/use-current-user'
 import type { Team } from '@/features/teams/schema'
 
+const TEAM = '00000000-0000-4000-8000-000000000001'
+
+/** A ready account: manager of TEAM iff `manages`, admin iff `admin`. The screen reads
+ *  `.status`, `.user.isManagerOf(teamId)` and `.user.isAdmin`. */
+const ready = (manages: boolean, admin: boolean): CurrentUserState => ({
+  status: 'ready',
+  user: {
+    id: 'u1',
+    name: 'Someone',
+    phone: '+353870000000',
+    isAdmin: admin,
+    memberships: [],
+    managedTeams: [],
+    isManagerOfAny: manages,
+    roleForTeam: () => (manages ? 'manager' : null),
+    isManagerOf: (id: string) => (id === TEAM && manages) || admin,
+  },
+})
+
 const hoisted = vi.hoisted(() => ({
-  gate: { value: { isPending: false, data: true } },
-  admin: { value: { isPending: false, data: false } },
+  account: { value: null as unknown as CurrentUserState },
   teams: { value: { data: undefined as Team[] | undefined } },
 }))
 
-vi.mock('@/api/session', () => ({
-  useIsTeamManager: () => hoisted.gate.value,
-  useIsAdmin: () => hoisted.admin.value,
+vi.mock('@/features/auth/use-current-user', () => ({
+  useCurrentUser: () => hoisted.account.value,
 }))
 vi.mock('@/api/teams', () => ({ useTeams: () => hoisted.teams.value }))
 vi.mock('@/features/teams/join-link-panel', () => ({
@@ -21,8 +39,6 @@ vi.mock('@/features/teams/join-link-panel', () => ({
 }))
 
 const TeamMembersScreen = (await import('@/features/teams/team-members-screen')).default
-
-const TEAM = '00000000-0000-4000-8000-000000000001'
 
 function renderScreen() {
   return render(
@@ -36,21 +52,20 @@ function renderScreen() {
 }
 
 beforeEach(() => {
-  hoisted.gate.value = { isPending: false, data: true }
-  hoisted.admin.value = { isPending: false, data: false }
+  hoisted.account.value = ready(true, false)
   hoisted.teams.value = { data: [{ id: TEAM, name: 'Firsts', active: true, created_at: '' }] }
 })
 
 describe('gate (AC1)', () => {
   it('checks access without flashing before the gate resolves', () => {
-    hoisted.gate.value = { isPending: true, data: false }
+    hoisted.account.value = { status: 'loading' }
     renderScreen()
     expect(screen.getByRole('status', { name: /checking access/i })).toBeInTheDocument()
     expect(screen.queryByText('home screen')).not.toBeInTheDocument()
   })
 
   it('redirects a player home', () => {
-    hoisted.gate.value = { isPending: false, data: false }
+    hoisted.account.value = ready(false, false)
     renderScreen()
     expect(screen.getByText('home screen')).toBeInTheDocument()
   })
@@ -62,7 +77,7 @@ describe('gate (AC1)', () => {
   })
 
   it('an admin sees both panels', () => {
-    hoisted.admin.value = { isPending: false, data: true }
+    hoisted.account.value = ready(false, true)
     renderScreen()
     expect(screen.getByTestId('panel-player')).toBeInTheDocument()
     expect(screen.getByTestId('panel-manager')).toBeInTheDocument()

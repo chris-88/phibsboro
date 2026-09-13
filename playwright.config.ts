@@ -36,5 +36,18 @@ export default defineConfig({
       testMatch: /pwa-.*\.spec\.ts/,
       use: { baseURL: PREVIEW_URL, timezoneId: 'Europe/Dublin' }, // D53
     },
+    // S2.9: sign in the seeded player and manager once, then run the guard journeys with those
+    // stored sessions. Needs a seeded database (the preview build's Supabase), not Docker.
+    {
+      name: 'setup',
+      testMatch: /auth\.setup\.ts/,
+      use: { baseURL: PREVIEW_URL },
+    },
+    {
+      name: 'auth-guard',
+      testMatch: /auth-guard\.spec\.ts/,
+      dependencies: ['setup'],
+      use: { baseURL: PREVIEW_URL, timezoneId: 'Europe/Dublin' },
+    },
   ],
 })

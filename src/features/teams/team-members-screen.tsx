@@ -1,6 +1,6 @@
 import { Navigate } from 'react-router'
 import { LoadingState } from '@/components/states'
-import { useIsAdmin, useIsTeamManager } from '@/api/session'
+import { useCurrentUser } from '@/features/auth/use-current-user'
 import { useTeams } from '@/api/teams'
 import { JoinLinkPanel } from '@/features/teams/join-link-panel'
 import { paths } from '@/lib/paths'
@@ -11,27 +11,30 @@ import { useRouteParam } from '@/lib/use-route-param'
  * squad link for a manager or admin, and the admin-only manager link. S6.4 adds the member list
  * to the same screen.
  *
- * The gate is convenience only — `is_team_manager` is true for a manager of the team or any
+ * The gate is convenience only — `isManagerOf(teamId)` is true for a manager of that team or any
  * admin, so a player resolves to false and is sent home rather than shown a broken screen (AC1).
  * RLS is the enforcement layer: the invite RPCs refuse a player regardless of what renders.
  */
 export default function TeamMembersScreen(): React.JSX.Element {
   const teamId = useRouteParam('teamId')
-  const gate = useIsTeamManager(teamId)
-  const admin = useIsAdmin()
+  const account = useCurrentUser()
   const teams = useTeams()
 
   // No flash of a redirect or a disabled panel while access and the team resolve.
-  if (gate.isPending || admin.isPending) {
+  if (account.status === 'loading') {
     return (
       <div className="py-4">
         <LoadingState label="Checking access" />
       </div>
     )
   }
-  if (!gate.data) return <Navigate to={paths.home()} replace />
+  // The team id is in the URL, so a per-team check is possible and belongs here (S2.9). RLS
+  // refuses a mistaken caller regardless; `team_member_directory` returns zero rows too (D8).
+  if (account.status !== 'ready' || !account.user.isManagerOf(teamId)) {
+    return <Navigate to={paths.home()} replace />
+  }
 
-  const isAdmin = admin.data ?? false
+  const isAdmin = account.user.isAdmin
   const team = teams.data?.find((t) => t.id === teamId)
   // The active flag comes from the teams cache; default active until it resolves so the
   // disabled state never flickers on, and RLS refuses a mistaken create either way.

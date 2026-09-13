@@ -9,6 +9,27 @@ import { initSentry } from '@/lib/sentry'
 import { useRouteParam } from '@/lib/use-route-param'
 import { FAKE_DSN, fakeSentryTransport } from '@/test/sentry-transport'
 
+// RootLayout reads useCurrentUser() (S2.9). This suite probes the route error/404 paths, not the
+// guards, and mounts a bare custom router with no providers, so stub a ready user rather than
+// stand up a session and a query client.
+vi.mock('@/features/auth/use-current-user', () => {
+  const user = {
+    id: 'admin',
+    name: 'Admin',
+    phone: '+353870000000',
+    isAdmin: true,
+    memberships: [],
+    managedTeams: [],
+    isManagerOfAny: true,
+    roleForTeam: () => null,
+    isManagerOf: () => true,
+  }
+  return {
+    useCurrentUser: () => ({ status: 'ready', user }),
+    useSignedInUser: () => user,
+  }
+})
+
 const fake = fakeSentryTransport()
 
 beforeAll(() => {

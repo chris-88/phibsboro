@@ -2,6 +2,29 @@ import { act, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { RouterProvider, createMemoryRouter } from 'react-router'
 import { describe, expect, it, vi } from 'vitest'
+
+// S2.9 wraps the guarded routes in RequireAuth/RequireManager/RequireAdmin, which read
+// useCurrentUser(). This suite is about the route table and chrome, not the guards (those have
+// their own suite), so it signs in a ready admin: every guard admits, and every route resolves
+// to its screen the way it did before the guards existed.
+vi.mock('@/features/auth/use-current-user', () => {
+  const user = {
+    id: 'admin',
+    name: 'Admin',
+    phone: '+353870000000',
+    isAdmin: true,
+    memberships: [],
+    managedTeams: [],
+    isManagerOfAny: true,
+    roleForTeam: () => null,
+    isManagerOf: () => true,
+  }
+  return {
+    useCurrentUser: () => ({ status: 'ready', user }),
+    useSignedInUser: () => user,
+  }
+})
+
 import { RootLayout } from '@/components/root-layout'
 import { RouteError } from '@/components/route-error'
 import EventScreen from '@/features/events/event-screen'

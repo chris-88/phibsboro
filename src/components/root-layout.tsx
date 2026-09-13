@@ -1,6 +1,7 @@
 import { Outlet, ScrollRestoration, useLocation, useMatches } from 'react-router'
-import { AppShell } from '@/components/app-shell'
+import { AppShell, AppShellSkeleton } from '@/components/app-shell'
 import { LoadingState } from '@/components/states'
+import { useCurrentUser } from '@/features/auth/use-current-user'
 import { NOT_FOUND_TITLE, useDocumentTitle } from '@/lib/document-title'
 import type { AppRole } from '@/lib/nav'
 import { type AppRouteMeta, type GuardLevel, isAppRouteMeta } from '@/lib/route-meta'
@@ -15,22 +16,34 @@ function useRouteMeta(): AppRouteMeta | undefined {
   return undefined
 }
 
-// Until S2.9 supplies the real role from useCurrentUser(), the nav shows the items the
-// route's guard level implies, so a manager placeholder has a Manage tab to be active on.
-// Presentation only; RLS is the boundary.
-function roleForGuard(guard: GuardLevel): AppRole {
-  if (guard === 'admin') return 'admin'
-  if (guard === 'manager') return 'manager'
-  return 'player'
-}
-
 /** The single shell around every route: chrome from the route table (D41), the document
- *  title from the same row (AC13), and scroll reset on navigation (AC14). */
+ *  title from the same row (AC13), and scroll reset on navigation (AC14). The nav's role comes
+ *  from the signed-in user (S2.9). Convenience only; RLS is the boundary. */
 export function RootLayout(): React.JSX.Element {
   const meta = useRouteMeta()
   const { pathname } = useLocation()
+  const user = useCurrentUser()
   const chrome = meta?.chrome ?? 'bare'
+  const guard: GuardLevel = meta?.guard ?? 'public'
   useDocumentTitle(meta?.title ?? NOT_FOUND_TITLE)
+
+  // A guarded route waits for the account before rendering chrome that depends on role: the
+  // skeleton keeps the nav's height, so there is no flash of the login screen (AC8). Public
+  // routes render regardless of session — a cold WhatsApp arrival is never gated (AC7).
+  if (guard !== 'public' && user.status === 'loading') {
+    return <AppShellSkeleton />
+  }
+
+  // Convenience only. RLS is the enforcement layer (S1.3, proved by S1.4). 'player' is the safe
+  // floor before the account resolves and on the error path.
+  const role: AppRole =
+    user.status === 'ready'
+      ? user.user.isAdmin
+        ? 'admin'
+        : user.user.isManagerOfAny
+          ? 'manager'
+          : 'player'
+      : 'player'
 
   return (
     <>
@@ -39,7 +52,7 @@ export function RootLayout(): React.JSX.Element {
           the header there is the back affordance alone. */}
       <AppShell
         chrome={chrome}
-        role={roleForGuard(meta?.guard ?? 'public')}
+        role={role}
         title={chrome === 'nav' ? meta?.title : undefined}
         currentPath={pathname}
       >
