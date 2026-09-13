@@ -1,10 +1,12 @@
 import { useMutation, useQueryClient, type UseMutationResult } from '@tanstack/react-query'
 import { callRpc } from '@/api/rpc'
 import { userKeys } from '@/api/queryKeys'
+import { writeLastPhone } from '@/features/auth/last-phone'
 import { clearPendingJoin, readPendingJoin } from '@/features/auth/pending-join'
-import type { RegisterValues } from '@/features/auth/schema'
+import { recordSuccess } from '@/features/auth/sign-in-lockout'
+import type { RegisterValues, SignInValues } from '@/features/auth/schema'
 import { AppError } from '@/lib/errors'
-import { AuthFailure, mapAuthError, signUpWithIdentifier } from '@/lib/auth'
+import { AuthFailure, mapAuthError, signInWithIdentifier, signUpWithIdentifier } from '@/lib/auth'
 
 /**
  * Registration as one user-visible action: sign up, then join, then the caller navigates
@@ -64,6 +66,31 @@ export function useRegister(): UseMutationResult<
       clearPendingJoin()
       // The current-user query is refetched so the new membership and profile are live before
       // the caller navigates home (S2.9's userKeys.current()).
+      void qc.invalidateQueries({ queryKey: userKeys.current() })
+    },
+  })
+}
+
+/**
+ * Sign in as one action (S2.2). `signInWithIdentifier` normalises nothing — the phone arrives
+ * already E.164 from `signInSchema`'s `phoneField` (D35) — and throws a mapped `AuthFailure`, so
+ * the screen branches on `.kind` and never sees GoTrue's body. On success the failure counter is
+ * cleared, the number is remembered for next time, and the current-user query is invalidated so
+ * the guard sees a real account before the caller navigates.
+ *
+ * A `pfc.pendingJoin` is left completely untouched here (S2.2 AC15): S2.4 consumes it once the
+ * session exists. This hook never reads, writes or clears it.
+ */
+export function useSignIn(): UseMutationResult<void, AuthFailure, SignInValues> {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (values: SignInValues): Promise<void> => {
+      await signInWithIdentifier(values.phone, values.password)
+      // Only reached on success: a failure throws above and never records or remembers.
+      recordSuccess(values.phone)
+      writeLastPhone(values.phone)
+    },
+    onSuccess: () => {
       void qc.invalidateQueries({ queryKey: userKeys.current() })
     },
   })

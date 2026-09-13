@@ -29,6 +29,8 @@ export function syntheticEmail(phoneE164: string): string {
 export const AUTH_FAILURE_KINDS = [
   'duplicate_phone',
   'invalid_invite',
+  'invalid_credentials',
+  'rate_limit',
   'weak_password',
   'no_session',
   'network',
@@ -51,6 +53,13 @@ export class AuthFailure extends Error {
  *  `user_already_exists`; the email fallback would raise `email_exists`; `phone_exists` is the
  *  older shape). One sentence renders for all three (AC8). */
 const DUPLICATE_CODES = new Set(['user_already_exists', 'phone_exists', 'email_exists'])
+
+/** The GoTrue codes a failed sign-in raises. Both a wrong password and an unknown number arrive
+ *  as `invalid_credentials`, and the older shape is `user_not_found`; both map to the one
+ *  member, which is how S2.2 AC4 (no number-existence oracle) is guaranteed in code, not by
+ *  discipline. `over_request_rate_limit` (429) is kept apart — telling a player to retype a
+ *  correct password would be wrong. */
+const INVALID_CREDENTIAL_CODES = new Set(['invalid_credentials', 'user_not_found'])
 
 function isPostgresUniquePhone(err: unknown): boolean {
   // The S1.2 trigger's own defence: a duplicate that slipped past GoTrue surfaces as a 23505 on
@@ -77,6 +86,10 @@ export function mapAuthError(err: unknown): AuthFailure {
     if (err.code !== undefined && DUPLICATE_CODES.has(err.code)) {
       return new AuthFailure('duplicate_phone', err)
     }
+    if (err.code !== undefined && INVALID_CREDENTIAL_CODES.has(err.code)) {
+      return new AuthFailure('invalid_credentials', err)
+    }
+    if (err.code === 'over_request_rate_limit') return new AuthFailure('rate_limit', err)
     if (err.code === 'weak_password') return new AuthFailure('weak_password', err)
     return new AuthFailure('unknown', err)
   }

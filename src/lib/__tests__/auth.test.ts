@@ -27,6 +27,23 @@ describe('mapAuthError', () => {
     expect(mapAuthError(new AuthApiError('weak', 422, 'weak_password')).kind).toBe('weak_password')
   })
 
+  it('maps a wrong password and an unknown number to the one invalid_credentials member (S2.2 AC4)', () => {
+    // GoTrue 400 on a wrong password, and the older user-not-found shape, are indistinguishable.
+    expect(
+      mapAuthError(new AuthApiError('Invalid login credentials', 400, 'invalid_credentials')).kind,
+    ).toBe('invalid_credentials')
+    expect(mapAuthError(new AuthApiError('User not found', 400, 'user_not_found')).kind).toBe(
+      'invalid_credentials',
+    )
+  })
+
+  it('maps GoTrue 429 to rate_limit, kept apart from invalid_credentials (S2.2)', () => {
+    expect(
+      mapAuthError(new AuthApiError('Request rate limit reached', 429, 'over_request_rate_limit'))
+        .kind,
+    ).toBe('rate_limit')
+  })
+
   it('maps a retryable fetch failure and a bare TypeError to network', () => {
     expect(mapAuthError(new AuthRetryableFetchError('fetch failed', 0)).kind).toBe('network')
     expect(mapAuthError(new TypeError('Failed to fetch')).kind).toBe('network')

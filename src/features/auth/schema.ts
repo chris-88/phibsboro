@@ -34,6 +34,20 @@ export const registerSchema = z.object({
 export type RegisterInput = z.input<typeof registerSchema>
 export type RegisterValues = z.output<typeof registerSchema>
 
+/**
+ * Sign in is the same two fields as the bottom of registration, through the same `phoneField`
+ * (D35), so a number typed `+353 87` at signup signs in typed `087` (S2.2 AC2). There is no
+ * 8-character floor here on purpose: sign-in does not re-validate an old account, and enforcing
+ * a length would be one more way to leak that an account exists (S2.2 schema notes). `min(1)`
+ * only, so the submit button can gate on both fields being non-empty.
+ */
+export const signInSchema = z.object({
+  phone: phoneField,
+  password: z.string().min(1, 'Password'),
+})
+export type SignInInput = z.input<typeof signInSchema>
+export type SignInValues = z.output<typeof signInSchema>
+
 /** `id` is the `auth.users` id (D4). A client reads only its own row (D8). */
 export const profileRowSchema = z.object({
   id: uuidSchema,
