@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import type { Enums, Tables } from '@/lib/db'
+import type { Enums, FnRow, Tables } from '@/lib/db'
 import type { Equal, Expect } from '@/lib/type-assert'
 import { timestampSchema, uuidSchema } from '@/lib/zod'
 
@@ -84,9 +84,23 @@ export const teamInviteViewSchema = z.object({
 })
 export type TeamInviteView = z.infer<typeof teamInviteViewSchema>
 
+/**
+ * The three columns `lookup_team_invite` returns: the team a token joins, its name for the
+ * "You're joining Firsts" line (AC2), and the role it grants. A lookup returns zero rows on any
+ * failure, so a null result is the dead-link case and never distinguishes expiry from revocation
+ * (D28). The team name comes from here, never a `teams` select.
+ */
+export const teamInviteLookupSchema = z.object({
+  team_id: uuidSchema,
+  team_name: z.string(),
+  role: memberRoleSchema,
+})
+export type TeamInviteLookup = z.infer<typeof teamInviteLookupSchema>
+
 export type Parity = [
   Expect<Equal<MemberRole, Enums<'member_role'>>>,
   Expect<Equal<TeamRow, Tables<'teams'>>>,
   Expect<Equal<TeamMemberRow, Tables<'team_members'>>>,
   Expect<Equal<TeamInvite, Tables<'team_invites'>>>,
+  Expect<Equal<TeamInviteLookup, FnRow<'lookup_team_invite'>>>,
 ]

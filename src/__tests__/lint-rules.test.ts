@@ -137,6 +137,22 @@ describe('AC15 — three key factories, no literal keys', () => {
   })
 })
 
+describe('S2.1 DoD — the auth seam is the only caller of signUp / signInWithPassword', () => {
+  const signUp = 'export const go = () => supabase.auth.signUp({ phone, password })\n'
+  const signIn = 'export const go = () => supabase.auth.signInWithPassword({ phone, password })\n'
+
+  it('fails a signUp or signInWithPassword call anywhere else under src/', async () => {
+    expect(await lint(ANY, signUp)).toContainEqual(expect.stringContaining('@/lib/auth'))
+    expect(await lint('src/api/auth.ts', signIn)).toContainEqual(
+      expect.stringContaining('@/lib/auth'),
+    )
+  })
+
+  it('allows both in src/lib/auth.ts only', async () => {
+    expect(await lint('src/lib/auth.ts', signUp + signIn)).toEqual([])
+  })
+})
+
 describe('AC17 — no any', () => {
   it('no-explicit-any is an error', async () => {
     expect(await lint(ANY, 'export const a: any = 1\n')).toContainEqual(

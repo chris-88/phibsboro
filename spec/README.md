@@ -34,7 +34,7 @@ shell, routing and PWA are exempt because they touch no data.
 | 13 | [S6.1](stories/S6.1-teams.md) | Teams | 6 Admin | S0.2, S0.3, S1.1, S1.3, S1.4, S1.5 | M | **Done** |
 | 14 | [S6.2](stories/S6.2-team-join-links.md) | Team join links | 6 Admin | S0.2, S0.3, S1.3, S1.4, S1.5, S6.1 | M | **Done** |
 | 15 | [S2.9](stories/S2.9-auth-guard-and-role-context.md) | Auth guard and role context | 2 Auth and install | S0.2, S0.3, S0.6, S1.4, S1.5 | M | **Done** |
-| 16 | [S2.1](stories/S2.1-registration.md) | Registration | 2 Auth and install | S0.2, S0.3, S1.2, S1.3, S1.4, S1.5, S2.9, S6.2 | M | Not started |
+| 16 | [S2.1](stories/S2.1-registration.md) | Registration | 2 Auth and install | S0.2, S0.3, S1.2, S1.3, S1.4, S1.5, S2.9, S6.2 | M | **Done** |
 | 17 | [S2.2](stories/S2.2-sign-in.md) | Sign in | 2 Auth and install | S0.2, S0.3, S1.2, S1.4, S1.5, S2.1, S2.9 | S | Not started |
 | 18 | [S2.6](stories/S2.6-session-persistence.md) | Session persistence | 2 Auth and install | S0.1, S0.4, S0.7, S1.5, S2.2, S2.9 | M | Not started |
 | 19 | [S3.3](stories/S3.3-event-detail-screen.md) | Event detail screen | 3 Player | S0.2, S0.3, S1.3, S1.4, S1.5, S2.1, S2.6, S2.9 | L | Not started |

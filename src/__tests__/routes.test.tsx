@@ -100,7 +100,6 @@ describe('resolving routes (AC1, AC15)', () => {
   const cases: [string, string][] = [
     ['/', 'S3.1'],
     ['/login', 'S2.2'],
-    ['/register', 'S2.1'],
     ['/join/abc123', 'S2.4'],
     ['/reset/abc123', 'S2.3'],
     [`/event/${UUID}`, 'S3.3'],
@@ -108,8 +107,9 @@ describe('resolving routes (AC1, AC15)', () => {
     ['/manage', 'S4.1'],
     ['/manage/event/new', 'S4.1'],
     [`/manage/event/${UUID}`, 'S4.3'],
-    // /admin is a real screen from S6.1, and /manage/team/:teamId/members from S6.2, both no
-    // longer placeholders; admin-screen.test.tsx and team-members-screen.test.tsx cover them.
+    // /register is a real screen from S2.1, /admin from S6.1 and /manage/team/:teamId/members
+    // from S6.2 — no longer placeholders; register-screen.test.tsx, admin-screen.test.tsx and
+    // team-members-screen.test.tsx cover them.
   ]
 
   it.each(cases)('%s renders a placeholder naming its owning story %s', async (path, story) => {

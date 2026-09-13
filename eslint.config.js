@@ -39,6 +39,20 @@ const ENV_RULES = [
   },
 ]
 
+/** S2.1 DoD, D19 — the auth seam. Every supabase.auth.signUp and signInWithPassword goes
+ *  through src/lib/auth.ts, so the phone-vs-synthetic-email choice stays a one-file change and
+ *  cannot leak. */
+const AUTH_SEAM_RULES = [
+  {
+    selector: "CallExpression[callee.property.name='signUp']",
+    message: 'Call signUpWithIdentifier from @/lib/auth, the one auth seam. S2.1 DoD, D19.',
+  },
+  {
+    selector: "CallExpression[callee.property.name='signInWithPassword']",
+    message: 'Call signInWithIdentifier from @/lib/auth, the one auth seam. S2.1 DoD, D19.',
+  },
+]
+
 /** S1.5 AC15, A6 — three key factories in src/api/queryKeys.ts; no literal key, no fourth factory. */
 const KEY_RULES = [
   {
@@ -107,7 +121,13 @@ export default tseslint.config(
     rules: {
       '@typescript-eslint/no-explicit-any': 'error',
       '@typescript-eslint/consistent-type-imports': 'error',
-      'no-restricted-syntax': restrictedSyntax(DATE_RULES, SECRET_RULES, ENV_RULES, KEY_RULES),
+      'no-restricted-syntax': restrictedSyntax(
+        DATE_RULES,
+        SECRET_RULES,
+        ENV_RULES,
+        KEY_RULES,
+        AUTH_SEAM_RULES,
+      ),
       'no-restricted-imports': restrictedImports(),
     },
   },
@@ -125,22 +145,52 @@ export default tseslint.config(
   // The one formatter in the codebase is allowed to format.
   {
     files: ['src/lib/time.ts'],
-    rules: { 'no-restricted-syntax': restrictedSyntax(SECRET_RULES, ENV_RULES, KEY_RULES) },
+    rules: {
+      'no-restricted-syntax': restrictedSyntax(SECRET_RULES, ENV_RULES, KEY_RULES, AUTH_SEAM_RULES),
+    },
   },
   // The one parser of the environment, and the module that must initialise before it.
   {
     files: ['src/lib/env.ts', 'src/lib/sentry.ts'],
-    rules: { 'no-restricted-syntax': restrictedSyntax(DATE_RULES, SECRET_RULES, KEY_RULES) },
+    rules: {
+      'no-restricted-syntax': restrictedSyntax(
+        DATE_RULES,
+        SECRET_RULES,
+        KEY_RULES,
+        AUTH_SEAM_RULES,
+      ),
+    },
   },
   // Tests assert what the environment handed the module under test.
   {
     files: ['src/**/__tests__/**/*.{ts,tsx}', 'src/**/*.test.{ts,tsx}'],
-    rules: { 'no-restricted-syntax': restrictedSyntax(DATE_RULES, SECRET_RULES, KEY_RULES) },
+    rules: {
+      'no-restricted-syntax': restrictedSyntax(
+        DATE_RULES,
+        SECRET_RULES,
+        KEY_RULES,
+        AUTH_SEAM_RULES,
+      ),
+    },
   },
   // The one module that constructs a query key.
   {
     files: ['src/api/queryKeys.ts'],
-    rules: { 'no-restricted-syntax': restrictedSyntax(DATE_RULES, SECRET_RULES, ENV_RULES) },
+    rules: {
+      'no-restricted-syntax': restrictedSyntax(
+        DATE_RULES,
+        SECRET_RULES,
+        ENV_RULES,
+        AUTH_SEAM_RULES,
+      ),
+    },
+  },
+  // The one auth seam: the only file allowed to call supabase.auth.signUp / signInWithPassword.
+  {
+    files: ['src/lib/auth.ts'],
+    rules: {
+      'no-restricted-syntax': restrictedSyntax(DATE_RULES, SECRET_RULES, ENV_RULES, KEY_RULES),
+    },
   },
   // The one client, and the one module that aliases the generated types.
   {

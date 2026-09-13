@@ -5,9 +5,16 @@ import {
   type UseMutationResult,
   type UseQueryResult,
 } from '@tanstack/react-query'
+import { queryOptions } from '@tanstack/react-query'
 import { teamKeys } from '@/api/queryKeys'
 import { callRpc } from '@/api/rpc'
-import { teamInviteViewSchema, type MemberRole, type TeamInviteView } from '@/features/teams/schema'
+import {
+  teamInviteLookupSchema,
+  teamInviteViewSchema,
+  type MemberRole,
+  type TeamInviteLookup,
+  type TeamInviteView,
+} from '@/features/teams/schema'
 import type { AppError } from '@/lib/errors'
 
 /**
@@ -19,6 +26,32 @@ import type { AppError } from '@/lib/errors'
  * Tokens live only in this in-memory query cache. No persister is installed and nothing here
  * writes a token to storage or a log (AC11, AC12); the token is a bearer credential (D62).
  */
+/**
+ * The team behind a join token, read before auth so the register screen can name it (S2.1 AC2).
+ * Granted to `anon`, so it resolves for a stranger arriving cold. `null` means the token is
+ * unknown, expired, revoked or on an inactive team — one indistinguishable dead-link state, by
+ * design (D28), which S2.1 renders as `LinkProblem`. Split into options so it can be prefetched.
+ */
+export function inviteLookupOptions(token: string | undefined) {
+  return queryOptions({
+    queryKey: teamKeys.lookup(token ?? ''),
+    enabled: Boolean(token),
+    staleTime: 60_000,
+    queryFn: async (): Promise<TeamInviteLookup | null> => {
+      if (!token) return null
+      const rows = await callRpc('lookup_team_invite', { p_token: token })
+      const first = rows[0]
+      return first ? teamInviteLookupSchema.parse(first) : null
+    },
+  })
+}
+
+export function useInviteLookup(
+  token: string | undefined,
+): UseQueryResult<TeamInviteLookup | null> {
+  return useQuery(inviteLookupOptions(token))
+}
+
 export function useTeamInvite(
   teamId: string,
   role: MemberRole,
