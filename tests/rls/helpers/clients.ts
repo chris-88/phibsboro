@@ -9,7 +9,7 @@ import { inject } from 'vitest'
 import type { Database } from '../../../src/lib/database.types.ts'
 import { retryingFetch } from '../../helpers/retrying-fetch.ts'
 import { TARGET } from '../../helpers/target.ts'
-import { FIXTURES, type Fixture } from './fixtures.ts'
+import { FIXTURES, SEED_PASSWORD, type Fixture } from './fixtures.ts'
 
 export type Client = SupabaseClient<Database>
 export type ProvidedSession = Pick<Session, 'access_token' | 'refresh_token'>
@@ -39,9 +39,23 @@ export function signInAs(fixture: Fixture): Promise<Client> {
   if (!pending) {
     pending = (async () => {
       const client = anonClient()
-      const { error } = await client.auth.setSession(inject('rlsSessions')[fixture])
-      if (error) throw new Error(`setSession for ${fixture} failed: ${error.message}`)
-      return client
+      try {
+        const { error } = await client.auth.setSession(inject('rlsSessions')[fixture])
+        if (!error) return client
+      } catch {
+        // fall through to a fresh sign-in
+      }
+      // The session captured once in globalSetup can die mid-run: a transient gateway error
+      // during setSession's internal validation, or the free-tier project under load. Rather
+      // than fail every test that uses this fixture, re-authenticate it fresh — the retrying
+      // fetch covers the sign-in — and memoise that instead.
+      const fresh = anonClient()
+      const { error: signInError } = await fresh.auth.signInWithPassword({
+        phone: FIXTURES[fixture].phone,
+        password: SEED_PASSWORD,
+      })
+      if (signInError) throw new Error(`signInAs ${fixture} failed: ${signInError.message}`)
+      return fresh
     })()
     memo.set(fixture, pending)
   }
