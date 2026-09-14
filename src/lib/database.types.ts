@@ -97,6 +97,7 @@ export type Database = {
           home_away: Database['public']['Enums']['home_away'] | null
           id: string
           location: string
+          meet_at: string | null
           notes: string | null
           opponent: string | null
           series_id: string | null
@@ -113,6 +114,7 @@ export type Database = {
           home_away?: Database['public']['Enums']['home_away'] | null
           id?: string
           location: string
+          meet_at?: string | null
           notes?: string | null
           opponent?: string | null
           series_id?: string | null
@@ -129,6 +131,7 @@ export type Database = {
           home_away?: Database['public']['Enums']['home_away'] | null
           id?: string
           location?: string
+          meet_at?: string | null
           notes?: string | null
           opponent?: string | null
           series_id?: string | null

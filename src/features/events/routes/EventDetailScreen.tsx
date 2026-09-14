@@ -76,7 +76,12 @@ function MemberView({ detail }: { detail: EventDetail }): React.JSX.Element {
             </div>
             <h2 className="text-lg leading-snug font-semibold text-foreground">{detail.title}</h2>
           </div>
-          <EventMeta startsAt={detail.startsAt} location={detail.location} notes={detail.notes} />
+          <EventMeta
+            startsAt={detail.startsAt}
+            location={detail.location}
+            meetAt={detail.meetAt}
+            notes={detail.notes}
+          />
         </CardContent>
       </Card>
       <AvailabilityButtons

@@ -39,6 +39,10 @@ export const eventRowSchema = z.object({
   // here is generous — the form caps what it writes, the stored `title` carries the real 80 limit.
   opponent: z.string().max(80).nullable(),
   home_away: homeAwaySchema.nullable(),
+  // Match only (V4, S8.3): the arrival time, earlier than `starts_at` (kick-off). Null for
+  // training and social, and for a match with no separate meet time. The DB check enforces the
+  // ordering; `starts_at` stays kick-off and keeps driving the S3.4 respond-until rule.
+  meet_at: timestampSchema.nullable(),
   starts_at: timestampSchema,
   status: eventStatusSchema,
   series_id: uuidSchema.nullable(),
@@ -65,6 +69,7 @@ export type EventActionData = Pick<
   | 'notes'
   | 'opponent'
   | 'home_away'
+  | 'meet_at'
   | 'starts_at'
   | 'status'
 >
@@ -85,6 +90,7 @@ export const eventWithResponseSchema = eventRowSchema
     notes: true,
     opponent: true,
     home_away: true,
+    meet_at: true,
     starts_at: true,
     status: true,
   })
@@ -177,6 +183,10 @@ export function eventFormSchema(opts: { requireFuture: boolean; now: Date }) {
       // title is derived from these, not typed, so it is not a user field for a match (V3, AC2).
       opponent: z.string().trim().max(80, 'Keep the opponent name short.'),
       homeAway: homeAwaySchema,
+      // Match only (V4, S8.3): the arrival time, on the same date as kick-off, earlier than it.
+      // Always present in the form values — hidden for training and social — and optional even on
+      // a match; empty means no separate meet time and stores meet_at null.
+      meetTime: z.string(),
     })
     .superRefine((v, ctx) => {
       // Opponent is required for a match and forbidden otherwise (V3, AC3). The generated title
@@ -215,6 +225,28 @@ export function eventFormSchema(opts: { requireFuture: boolean; now: Date }) {
           message: "That's more than a year away.",
         })
       }
+      // Meet is match-only and optional (V4, S8.3). When a match carries one it must be a valid
+      // time and strictly before kick-off; the DB check is the backstop (AC3). Composed against
+      // the same date as kick-off, in Dublin wall time, so the ordering is compared on real
+      // instants and not two naive strings.
+      if (v.type === 'match' && v.meetTime !== '') {
+        if (!/^\d{2}:\d{2}$/.test(v.meetTime)) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ['meetTime'],
+            message: 'Pick a meet time.',
+          })
+        } else {
+          const meet = new Date(dublinLocalToUtcIso(v.date, v.meetTime)).getTime()
+          if (meet >= instant) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              path: ['meetTime'],
+              message: 'Meet must be before kick-off.',
+            })
+          }
+        }
+      }
     })
 }
 
@@ -236,6 +268,9 @@ export function toEventInsert(v: EventFormValues, createdBy: string): Insert<'ev
     notes: notes === '' ? null : notes,
     opponent: isMatch ? v.opponent.trim() : null,
     home_away: isMatch ? v.homeAway : null,
+    // Composed against the same date as kick-off; null off a match or when no meet time is set,
+    // matching the DB checks (V4, AC3).
+    meet_at: isMatch && v.meetTime !== '' ? dublinLocalToUtcIso(v.date, v.meetTime) : null,
     starts_at: dublinLocalToUtcIso(v.date, v.time),
     created_by: createdBy,
   }
@@ -260,6 +295,7 @@ export function toEventUpdate(v: EventFormValues): Update<'events'> {
     // (AC5).
     opponent: isMatch ? v.opponent.trim() : null,
     home_away: isMatch ? v.homeAway : null,
+    meet_at: isMatch && v.meetTime !== '' ? dublinLocalToUtcIso(v.date, v.meetTime) : null,
     starts_at: dublinLocalToUtcIso(v.date, v.time),
   }
 }

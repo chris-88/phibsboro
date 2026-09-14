@@ -24,6 +24,7 @@ function goodValues(overrides: Partial<EventFormValues> = {}): EventFormValues {
     notes: '',
     opponent: '',
     homeAway: 'home',
+    meetTime: '',
     ...overrides,
   }
 }
@@ -231,6 +232,7 @@ describe('toEventUpdate (S4.2)', () => {
       notes: null,
       opponent: 'Kilbarrack',
       home_away: 'home',
+      meet_at: null,
       starts_at: '2026-03-14T19:30:00.000Z',
     })
     expect(row).not.toHaveProperty('team_id')
@@ -301,5 +303,72 @@ describe('match opponent + home/away (S8.2)', () => {
     const inserted = toEventInsert(match, 'creator-uuid')
     expect(inserted.opponent).toBe('Kilbarrack')
     expect(inserted.home_away).toBe('away')
+  })
+})
+
+describe('match meet + kick-off (S8.3)', () => {
+  const schema = eventFormSchema({ requireFuture: true, now: NOW })
+  const messageFor = (values: EventFormValues, path: string): string | undefined => {
+    const result = schema.safeParse(values)
+    if (result.success) return undefined
+    return result.error.issues.find((i) => i.path.join('.') === path)?.message
+  }
+
+  const match = (overrides: Partial<EventFormValues> = {}): EventFormValues =>
+    goodValues({
+      type: 'match',
+      opponent: 'Kilbarrack',
+      homeAway: 'home',
+      title: 'Firsts v Kilbarrack',
+      date: '2026-07-18',
+      time: '13:30',
+      ...overrides,
+    })
+
+  it('accepts a match whose meet is before kick-off (AC2, AC3)', () => {
+    expect(schema.safeParse(match({ meetTime: '12:30' })).success).toBe(true)
+  })
+
+  it('accepts a match with no meet time — it is optional', () => {
+    expect(schema.safeParse(match({ meetTime: '' })).success).toBe(true)
+  })
+
+  it('rejects a meet equal to kick-off (AC3)', () => {
+    expect(messageFor(match({ meetTime: '13:30' }), 'meetTime')).toBe(
+      'Meet must be before kick-off.',
+    )
+  })
+
+  it('rejects a meet after kick-off (AC3)', () => {
+    expect(messageFor(match({ meetTime: '14:00' }), 'meetTime')).toBe(
+      'Meet must be before kick-off.',
+    )
+  })
+
+  it('composes meet_at as the Dublin wall clock in UTC at a summer (DST) boundary (AC2)', () => {
+    // 18 July is IST (UTC+1): 12:30 Dublin → 11:30Z, 13:30 Dublin → 12:30Z.
+    const inserted = toEventInsert(match({ meetTime: '12:30' }), 'creator-uuid')
+    expect(inserted.meet_at).toBe('2026-07-18T11:30:00.000Z')
+    expect(inserted.starts_at).toBe('2026-07-18T12:30:00.000Z')
+  })
+
+  it('composes meet_at in UTC at a winter (GMT) boundary (AC2)', () => {
+    // 17 January is GMT (UTC+0): the wall clock and UTC agree.
+    const inserted = toEventInsert(
+      match({ date: '2027-01-17', time: '15:00', meetTime: '14:00' }),
+      'creator-uuid',
+    )
+    expect(inserted.meet_at).toBe('2027-01-17T14:00:00.000Z')
+    expect(inserted.starts_at).toBe('2027-01-17T15:00:00.000Z')
+  })
+
+  it('nulls meet_at off a non-match, even if a stray value lingers, on insert and update', () => {
+    const training = goodValues({ type: 'training', meetTime: '12:30' })
+    expect(toEventInsert(training, 'creator-uuid').meet_at).toBeNull()
+    expect(toEventUpdate(training).meet_at).toBeNull()
+  })
+
+  it('stores meet_at on a match update', () => {
+    expect(toEventUpdate(match({ meetTime: '12:30' })).meet_at).toBe('2026-07-18T11:30:00.000Z')
   })
 })

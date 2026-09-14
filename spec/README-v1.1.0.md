@@ -16,7 +16,7 @@ numbers, captain) · the club's real numbered-teamsheet WhatsApp share · team c
 |---|---|---|---|---|---|---|
 | 1 | S8.1 | Social event type | 8 Events | S4.1 | S | ✓ |
 | 2 | S8.2 | Match opponent + home/away + generated title | 8 Events | S8.1 | M | ✓ |
-| 3 | S8.3 | Meet + Kick-off times | 8 Events | S8.2 | S |
+| 3 | S8.3 | Meet + Kick-off times | 8 Events | S8.2 | S | ✓ |
 | 4 | S8.4 | Google-Maps location + Bogies default | 8 Events | S8.2 | S |
 | 5 | S10.3 | Manager Squad tab (matchday + members hub) | 10 Calendar/nav | S6.4, S2.9, S8.2 | M |
 | 6 | S9.1 | Squad data model + RLS (`event_squad`) | 9 Squad | S8.2, S1.4 | M |

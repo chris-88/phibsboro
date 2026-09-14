@@ -78,6 +78,7 @@ const memberDetail = (over: Partial<EventDetail> = {}): EventDetail => ({
   notes: 'Bring both kits.',
   opponent: null,
   homeAway: null,
+  meetAt: null,
   startsAt: '2026-09-15T00:07:26.597+00:00',
   status: 'scheduled',
   myResponse: null,

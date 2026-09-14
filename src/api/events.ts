@@ -76,6 +76,8 @@ export interface EventDetail {
    *  labels the event Home or Away. */
   opponent: string | null
   homeAway: HomeAway | null
+  /** Match only, null otherwise (S8.3). The arrival time, earlier than `startsAt` (kick-off). */
+  meetAt: string | null
   startsAt: string
   status: EventStatus
   /** The caller's own answer, or null while awaiting. Never a teammate's (D32, AC15). */
@@ -91,7 +93,7 @@ export interface EventDetail {
  * out, which is exactly the "not a member" signal S3.3 falls through to the preview on.
  */
 export const EVENT_SELECT =
-  'id, team_id, type, title, location, notes, opponent, home_away, starts_at, status, teams!inner(name), event_responses(response, user_id)'
+  'id, team_id, type, title, location, notes, opponent, home_away, meet_at, starts_at, status, teams!inner(name), event_responses(response, user_id)'
 
 export function eventDetailOptions(eventId: string | undefined, userId: string | undefined) {
   return queryOptions({
@@ -120,6 +122,7 @@ export function eventDetailOptions(eventId: string | undefined, userId: string |
         notes: row.notes,
         opponent: row.opponent,
         homeAway: row.home_away,
+        meetAt: row.meet_at,
         startsAt: row.starts_at,
         status: row.status,
         myResponse: row.event_responses[0]?.response ?? null,

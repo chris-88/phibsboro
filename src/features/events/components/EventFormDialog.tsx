@@ -50,6 +50,8 @@ export function EventFormDialog({
     // the toggle to home. Editing then re-derives and re-stores the title (AC5).
     opponent: event.opponent ?? '',
     homeAway: event.home_away ?? 'home',
+    // Prefilled from the stored meet time, split to the Dublin wall clock; blank when unset (S8.3).
+    meetTime: event.meet_at !== null ? utcIsoToDublinParts(event.meet_at).time : '',
   }
 
   const onSubmit = (values: EventFormValues): void => {

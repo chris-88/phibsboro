@@ -48,7 +48,12 @@ export function EventHeaderCard({
           <h2 className="text-lg leading-snug font-semibold text-foreground">{event.title}</h2>
         </div>
 
-        <EventMeta startsAt={event.starts_at} location={event.location} notes={event.notes} />
+        <EventMeta
+          startsAt={event.starts_at}
+          location={event.location}
+          meetAt={event.meet_at}
+          notes={event.notes}
+        />
 
         {/* Fills data-slot="share"; renders nothing for a player, a cancelled event or a past one.
             The reminder button beneath appears only when counts show at least one awaiting (S5.3). */}

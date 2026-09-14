@@ -360,7 +360,7 @@ export function EventForm({
       </Field>
 
       <Field data-invalid={errors.time ? true : undefined}>
-        <FieldLabel htmlFor="event-time">Start time</FieldLabel>
+        <FieldLabel htmlFor="event-time">{isMatch ? 'Kick-off' : 'Start time'}</FieldLabel>
         <Input
           id="event-time"
           type="time"
@@ -370,6 +370,23 @@ export function EventForm({
         />
         <FieldError errors={errors.time ? [errors.time] : undefined} />
       </Field>
+
+      {/* Meet/arrival time, matches only (S8.3, V4). Optional — blank stores meet_at null — and
+          validated inline to be before kick-off. Kept mounted only for a match so training and
+          social carry a stable empty value the write path nulls. */}
+      {isMatch && (
+        <Field data-invalid={errors.meetTime ? true : undefined}>
+          <FieldLabel htmlFor="event-meet">Meet (optional)</FieldLabel>
+          <Input
+            id="event-meet"
+            type="time"
+            disabled={submitting}
+            aria-invalid={errors.meetTime ? true : undefined}
+            {...register('meetTime')}
+          />
+          <FieldError errors={errors.meetTime ? [errors.meetTime] : undefined} />
+        </Field>
+      )}
 
       <Field data-invalid={errors.location ? true : undefined}>
         <FieldLabel htmlFor="event-location">Location</FieldLabel>

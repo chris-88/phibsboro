@@ -190,6 +190,7 @@ function ManagerEventView({ detail }: { detail: EventDetail }): React.JSX.Elemen
     notes: detail.notes,
     opponent: detail.opponent,
     home_away: detail.homeAway,
+    meet_at: detail.meetAt,
     starts_at: detail.startsAt,
     status: detail.status,
   }

@@ -40,6 +40,7 @@ function eventRow(overrides: Partial<EventRow> = {}): EventRow {
     notes: null,
     opponent: null,
     home_away: null,
+    meet_at: null,
     starts_at: FUTURE,
     status: 'scheduled',
     series_id: null,
