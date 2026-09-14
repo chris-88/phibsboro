@@ -133,6 +133,13 @@ export const routeTable: readonly AppRoute[] = [
     screen: { lazy: () => import('@/features/teams/team-members-screen') },
   },
   {
+    path: paths.squad(),
+    chrome: 'nav',
+    guard: 'manager',
+    title: 'Squad',
+    screen: { lazy: () => import('@/features/teams/squad-screen') },
+  },
+  {
     path: paths.admin(),
     chrome: 'nav',
     guard: 'admin',

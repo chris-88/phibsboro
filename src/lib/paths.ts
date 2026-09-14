@@ -18,6 +18,7 @@ export const paths = {
   newEvent: () => '/manage/event/new',
   manageEvent: (id: string) => `/manage/event/${id}`,
   teamMembers: (teamId: string) => `/manage/team/${teamId}/members`,
+  squad: () => '/squad',
   admin: () => '/admin',
 } as const
 

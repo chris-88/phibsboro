@@ -1,4 +1,4 @@
-import { ClipboardList, History, House, Shield, type LucideIcon } from 'lucide-react'
+import { ClipboardList, History, House, Shield, Users, type LucideIcon } from 'lucide-react'
 import { paths } from '@/lib/paths'
 
 export type AppRole = 'player' | 'manager' | 'admin'
@@ -21,6 +21,11 @@ export function navItemsForRole(role: AppRole): NavItem[] {
   ]
   if (role === 'manager' || role === 'admin') {
     items.push({ label: 'Manage', to: paths.manage(), icon: ClipboardList })
+  }
+  // The Squad hub is a manager tab only (Q4): admins keep the fourth slot for Admin and reach a
+  // team's members through Admin and matchday through the match view. No fifth tab either way.
+  if (role === 'manager') {
+    items.push({ label: 'Squad', to: paths.squad(), icon: Users })
   }
   if (role === 'admin') {
     items.push({ label: 'Admin', to: paths.admin(), icon: Shield })

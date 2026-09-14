@@ -9,7 +9,7 @@ const render = (ui: React.ReactElement) => rtlRender(<MemoryRouter>{ui}</MemoryR
 describe('BottomNav', () => {
   it('renders one item per role entry', () => {
     render(<BottomNav role="manager" currentPath="/" />)
-    expect(screen.getAllByRole('link')).toHaveLength(3)
+    expect(screen.getAllByRole('link')).toHaveLength(4)
   })
 
   it('marks the item matching currentPath as the current page (AC10)', () => {

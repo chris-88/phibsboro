@@ -32,6 +32,7 @@ export const RESTORABLE_PATTERNS: readonly string[] = [
   '/manage/event/new',
   '/manage/event/:id',
   '/manage/team/:teamId/members',
+  '/squad',
   '/admin',
 ]
 

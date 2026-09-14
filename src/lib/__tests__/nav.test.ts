@@ -8,16 +8,18 @@ describe('navItemsForRole (AC7)', () => {
     expect(labels('player')).toEqual(['Home', 'History'])
   })
 
-  it('gives a manager Home, History and Manage', () => {
-    expect(labels('manager')).toEqual(['Home', 'History', 'Manage'])
+  it('gives a manager Home, History, Manage and Squad (S10.3 AC1)', () => {
+    expect(labels('manager')).toEqual(['Home', 'History', 'Manage', 'Squad'])
   })
 
-  it('gives an admin Home, History, Manage and Admin', () => {
+  it('gives an admin Home, History, Manage and Admin — no Squad (Q4, AC1)', () => {
     expect(labels('admin')).toEqual(['Home', 'History', 'Manage', 'Admin'])
+    expect(labels('admin')).not.toContain('Squad')
   })
 
-  it('never offers a player Manage or Admin', () => {
+  it('never offers a player Manage, Squad or Admin', () => {
     expect(labels('player')).not.toContain('Manage')
+    expect(labels('player')).not.toContain('Squad')
     expect(labels('player')).not.toContain('Admin')
   })
 
@@ -27,6 +29,12 @@ describe('navItemsForRole (AC7)', () => {
       '/history',
       '/manage',
       '/admin',
+    ])
+    expect(navItemsForRole('manager').map((i) => i.to)).toEqual([
+      '/',
+      '/history',
+      '/manage',
+      '/squad',
     ])
   })
 })
@@ -44,5 +52,11 @@ describe('isNavItemActive', () => {
 
   it('does not match a sibling route that shares a prefix', () => {
     expect(isNavItemActive('/manage', '/managers')).toBe(false)
+  })
+
+  it('lights Squad on /squad and its deeper routes (S10.3)', () => {
+    expect(isNavItemActive('/squad', '/squad')).toBe(true)
+    expect(isNavItemActive('/squad', '/squad/event/x')).toBe(true)
+    expect(isNavItemActive('/squad', '/manage')).toBe(false)
   })
 })
