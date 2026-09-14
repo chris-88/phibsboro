@@ -41,7 +41,7 @@ shell, routing and PWA are exempt because they touch no data.
 | 20 | [S2.4](stories/S2.4-join-by-link.md) | Join by link | 2 Auth and install | S0.3, S1.3, S1.4, S1.5, S2.1, S2.2, S2.6, S2.9, S3.3, S6.2 | M | **Done** |
 | 21 | [S2.5](stories/S2.5-deep-link-return-path.md) | Deep link return path | 2 Auth and install | S0.3, S0.5, S0.7, S2.1, S2.2, S2.4, S2.6, S2.9, S3.3 | M | **Done** |
 | 22 | [S6.4](stories/S6.4-member-administration.md) | Member administration | 6 Admin | S1.3, S1.4, S1.5, S2.1, S2.4, S2.9, S6.1, S6.2 | L | **Done** |
-| 23 | [S2.3](stories/S2.3-password-reset-by-manager.md) | Password reset by manager | 2 Auth and install | S0.3, S1.3, S1.4, S1.5, S2.1, S2.2, S2.9, S6.4 | M | Not started |
+| 23 | [S2.3](stories/S2.3-password-reset-by-manager.md) | Password reset by manager | 2 Auth and install | S0.3, S1.3, S1.4, S1.5, S2.1, S2.2, S2.9, S6.4 | M | **Done** |
 | 24 | [S3.4](stories/S3.4-changing-a-response.md) | Changing a response | 3 Player | S1.3, S1.4, S1.5, S2.9, S3.3 | S | **Done** |
 | 25 | [S3.1](stories/S3.1-home-screen-with-next-event.md) | Home screen with next event | 3 Player | S0.2, S0.3, S1.4, S1.5, S2.9, S3.3, S3.4 | M | **Done** |
 | 26 | [S3.2](stories/S3.2-upcoming-events-list.md) | Upcoming events list | 3 Player | S0.2, S1.4, S1.5, S2.9, S3.1, S3.3 | S | **Done** |

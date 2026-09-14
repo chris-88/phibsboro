@@ -48,6 +48,16 @@ export const signInSchema = z.object({
 export type SignInInput = z.input<typeof signInSchema>
 export type SignInValues = z.output<typeof signInSchema>
 
+/**
+ * The one field on the manager-issued reset screen (S2.3). Length-only, min 8, the same floor
+ * and message as registration (AC10) — never `.trim()`, because trimming a password silently
+ * changes it and the sign-in that immediately follows would fail for a reason nobody can see.
+ */
+export const setPasswordSchema = z.object({
+  password: z.string().min(8, 'At least 8 characters'),
+})
+export type SetPasswordValues = z.infer<typeof setPasswordSchema>
+
 /** `id` is the `auth.users` id (D4). A client reads only its own row (D8). */
 export const profileRowSchema = z.object({
   id: uuidSchema,

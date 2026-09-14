@@ -1,6 +1,7 @@
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useTeamMembers } from '@/api/members'
+import { IssueResetLinkAction } from '@/features/teams/IssueResetLinkAction'
 import { MemberCard } from '@/features/teams/member-card'
 
 export interface MemberListProps {
@@ -66,6 +67,7 @@ export function MemberList({ teamId, teamName, isAdmin }: MemberListProps): Reac
           member={member}
           isAdmin={isAdmin}
           managerCount={managerCount}
+          resetSlot={<IssueResetLinkAction teamId={teamId} member={member} />}
         />
       ))}
     </div>

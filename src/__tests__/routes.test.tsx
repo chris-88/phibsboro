@@ -118,7 +118,8 @@ describe('resolving routes (AC1, AC15)', () => {
   const cases: [string, string][] = [
     // `/` is a real screen from S3.1 — no longer a placeholder; the home-screen suite and the
     // chrome and title cases below assert it directly.
-    ['/reset/abc123', 'S2.3'],
+    // /reset/:token is a real screen from S2.3 — no longer a placeholder; the real-screen case
+    // below asserts it directly.
     // /event/:id is a real screen from S3.3 and /join/:token from S2.4 — no longer placeholders;
     // EventDetailScreen, JoinByTokenScreen and the routes coverage below assert them directly.
     ['/history', 'S3.5'],
@@ -135,6 +136,14 @@ describe('resolving routes (AC1, AC15)', () => {
     const card = await placeholder()
     expect(card).toHaveAttribute('data-story', story)
     expect(card).toHaveTextContent(`Story ${story} builds this screen`)
+  })
+
+  it('renders the real S2.3 set-password screen for /reset/:token, not a placeholder', async () => {
+    mount('/reset/abc123')
+    // The real S2.3 screen renders its form immediately — the token is never validated before
+    // submit, so there is no lookup and no placeholder.
+    expect(await screen.findByRole('heading', { name: 'Pick a new password' })).toBeInTheDocument()
+    expect(screen.queryByTestId('route-placeholder')).not.toBeInTheDocument()
   })
 
   it('renders the new-event screen for /manage/event/new, not the edit screen with id "new" (AC2)', async () => {

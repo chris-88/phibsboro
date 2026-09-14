@@ -8,6 +8,8 @@ export interface CopyLinkFieldProps {
   url: string
   /** Announced label for the field and its manual-copy fallback. */
   label: string
+  /** The idle button label. Defaults to "Copy"; S2.3's reset dialog passes "Copy link" (AC4). */
+  copyLabel?: string
 }
 
 /**
@@ -18,7 +20,11 @@ export interface CopyLinkFieldProps {
  * box becomes a readonly input with its text selected under a "Copy this link" line, so the
  * manager can copy by hand. Nothing throws either way (AC4).
  */
-export function CopyLinkField({ url, label }: CopyLinkFieldProps): React.JSX.Element {
+export function CopyLinkField({
+  url,
+  label,
+  copyLabel = 'Copy',
+}: CopyLinkFieldProps): React.JSX.Element {
   const [copied, setCopied] = useState(false)
   const [manual, setManual] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -81,7 +87,7 @@ export function CopyLinkField({ url, label }: CopyLinkFieldProps): React.JSX.Ele
           void onCopy()
         }}
       >
-        {copied ? 'Copied' : 'Copy'}
+        {copied ? 'Copied' : copyLabel}
       </Button>
     </div>
   )
