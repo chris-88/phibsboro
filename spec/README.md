@@ -60,7 +60,7 @@ shell, routing and PWA are exempt because they touch no data.
 | 39 | [S6.3](stories/S6.3-all-teams-view.md) | All-teams view | 6 Admin | S1.4, S2.9, S4.1–S4.6, S6.1, S6.2, S6.4 | M | **Done** |
 | 40 | [S7.1](stories/S7.1-state-coverage-audit.md) | State coverage audit | 7 Quality gate | S0.6, S0.7, S1.5, and every story that adds a screen | M | **Done** |
 | 41 | [S7.2](stories/S7.2-unit-tests.md) | Unit tests | 7 Quality gate | S0.6, S0.7, S1.5, S2.6, S4.3, S4.6, S5.1, S5.2, S5.3 | M | **Done** |
-| 42 | [S7.3](stories/S7.3-end-to-end-journey.md) | End-to-end journey | 7 Quality gate | S0.4, S0.7, S1.2, S2.1, S2.2, S2.4–S2.8, S3.3, S4.1, S4.3, S4.4, S4.5, S5.1, S5.2, S7.1 | L | Not started |
+| 42 | [S7.3](stories/S7.3-end-to-end-journey.md) | End-to-end journey | 7 Quality gate | S0.4, S0.7, S1.2, S2.1, S2.2, S2.4–S2.8, S3.3, S4.1, S4.3, S4.4, S4.5, S5.1, S5.2, S7.1 | L | **Done** |
 | 43 | [S7.4](stories/S7.4-device-pass.md) | Device pass | 7 Quality gate | S0.4, S0.5, S2.1, S2.4–S2.8, S3.3, S4.1, S4.3, S4.5, S5.2, S5.3, S6.1, S6.2, S7.1, S7.3 | S | Not started |
 
 Each story file carries the full dependency list in its header. The abbreviated ranges above are a

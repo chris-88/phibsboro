@@ -243,6 +243,27 @@ export default tseslint.config(
     rules: { 'no-restricted-imports': restrictedImports({ patterns: [] }) },
   },
 
+  // S7.3 AC14 — every wait in an e2e spec is a web-first assertion, never a bare sleep, so a
+  // flaky timing hack cannot creep back in. Scoped to the e2e directory.
+  {
+    files: ['tests/e2e/**/*.ts'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: "CallExpression[callee.property.name='waitForTimeout']",
+          message: 'No page.waitForTimeout in e2e specs; use a web-first assertion. S7.3 AC14.',
+        },
+      ],
+    },
+  },
+  // The PWA specs (S0.4) drive real service-worker registration and update timing, which has no
+  // web-first signal to await, so the bare-sleep ban is lifted for those two files only.
+  {
+    files: ['tests/e2e/pwa-*.spec.ts'],
+    rules: { 'no-restricted-syntax': 'off' },
+  },
+
   // Plain JS tooling — eslint.config.js, scripts/*.mjs — is outside both tsconfigs, so the
   // type-aware rules have no program to consult. Lint it without them.
   {

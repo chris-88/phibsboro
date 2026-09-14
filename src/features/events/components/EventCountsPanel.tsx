@@ -35,6 +35,9 @@ export function EventCountsPanel({ counts }: { counts: Counts }): React.JSX.Elem
           )}
         >
           <span
+            // S7.3: the four tiles carry no role and no name tying number to label, so the journey
+            // spec reads each count by test id. Presentation only; changes no behaviour.
+            data-testid={`count-${tile.key}`}
             className={cn(
               'text-3xl font-semibold tabular-nums',
               tile.emphasis ? 'text-primary' : 'text-foreground',

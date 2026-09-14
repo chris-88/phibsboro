@@ -228,7 +228,13 @@ jobs:
       # --mode e2e so .env.e2e's local-stack values win; the job env above pins them regardless. The
       # mode is `e2e`, not `test`, so it never collides with Vitest's test-mode env (see .env.e2e).
       - run: npx vite build --mode e2e
-      - run: npx playwright test --project=e2e --project=e2e-webkit
+      # S2.5's deep-link projects, plus S7.3's full journey and the two conditional-surface legs
+      # (escape prompt, install guide). The leg projects depend on `setup`, which Playwright runs
+      # first automatically.
+      - run: >-
+          npx playwright test
+          --project=e2e --project=e2e-webkit
+          --project=journey --project=escape-prompt --project=install-guide
       - name: Upload the Playwright report
         if: failure()
         uses: actions/upload-artifact@v4

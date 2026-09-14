@@ -107,6 +107,16 @@ export default defineConfig({
       dependencies: ['setup'],
       use: { baseURL: PREVIEW_URL, timezoneId: 'Europe/Dublin', browserName: 'chromium' },
     },
+    // S7.3: the full MVP journey, one linear test, two contexts. It signs the manager in through
+    // the UI and registers a brand-new player, so it takes no stored session and no `setup`
+    // dependency — a clean context per run is the point (D58). Chromium; the Android-Chrome leg for
+    // the install guide is set on the player context inside the spec. Deferred behind
+    // RUN_LOCAL_STACK with the other e2e projects.
+    {
+      name: 'journey',
+      testMatch: /journey\.spec\.ts/,
+      use: { baseURL: PREVIEW_URL, timezoneId: 'Europe/Dublin', browserName: 'chromium' }, // D53
+    },
     // S4.6: the seeded manager generates a twelve-week training series, then cancels one occurrence
     // and leaves the rest. Uses the stored manager session from `setup`; needs the seeded database.
     {
