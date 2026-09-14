@@ -22,6 +22,7 @@ export type ShareEvent = Pick<
 export const EVENT_EMOJI: Record<EventRow['type'], string> = {
   match: '⚽',
   training: '🏃',
+  social: '🎉',
 }
 
 /** Trim, collapse every run of whitespace (including the newlines a textarea allows) to a single

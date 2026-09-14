@@ -5,7 +5,7 @@ import type { Equal, Expect } from '@/lib/type-assert'
 import { dublinLocalToUtcIso } from '@/lib/time'
 import { timestampSchema, uuidSchema } from '@/lib/zod'
 
-export const eventTypeSchema = z.enum(['training', 'match'])
+export const eventTypeSchema = z.enum(['training', 'match', 'social'])
 export const eventStatusSchema = z.enum(['scheduled', 'cancelled'])
 
 export type EventType = z.infer<typeof eventTypeSchema>
@@ -119,18 +119,19 @@ export type Parity = [
 // adds its series schema to this same file.
 
 /** True when switching type should overwrite the title: only when the field is empty or still
- *  holds the other type's default label. A manager who typed "Kilbarrack away" keeps it (AC2). */
+ *  holds another type's default label. A manager who typed "Kilbarrack away" keeps it (AC2). */
 export function shouldRewriteTitle(current: string, nextType: EventType): boolean {
   const trimmed = current.trim()
   if (trimmed === '') return true
-  const otherType: EventType = nextType === 'training' ? 'match' : 'training'
-  return trimmed === DEFAULT_TITLES[otherType]
+  const defaults = Object.values(DEFAULT_TITLES)
+  return defaults.includes(trimmed) && trimmed !== DEFAULT_TITLES[nextType]
 }
 
-/** The default title per type. "Training" for training (AC2). */
+/** The default title per type. "Training" for training, "Social" for social (AC2, S8.1). */
 export const DEFAULT_TITLES: Record<EventType, string> = {
   training: 'Training',
   match: 'Match',
+  social: 'Social',
 } as const
 
 /** One year, the typo guard that catches `2206` for `2026` (AC6). Not a product rule. */

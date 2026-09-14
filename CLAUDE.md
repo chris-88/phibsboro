@@ -402,7 +402,11 @@ Manual check on a real iPhone and a real Android device: install to home screen,
 
 ---
 
-## Out of scope
+## v1.1.0 scope
+
+v1.0.0 (the 43 MVP stories above) is complete and live. v1.1.0 adds three epics only: richer events (Social type, match opponent/home-away with a generated title, Meet + Kick-off times, Maps locations), a matchday squad (`event_squad`: pick from available, numbers, captain, numbered teamsheet share), and a calendar Home (team colours, month calendar, manager Squad tab). See `spec/README-v1.1.0.md`. The out-of-scope list below is the v1.0.0/MVP boundary and still holds — chat, automated WhatsApp sending, push, stats/results, payments and native apps remain out.
+
+## Out of scope (v1.0.0/MVP boundary — still binding)
 
 Do not build, do not scaffold, do not leave TODOs for: chat, automated WhatsApp sending, push notifications, team selection, results, player stats, goals or cards, Veo, payments, match fees, fines, sponsorship, news, fundraising, membership or club registration forms, kit, transfers between squads, native apps.
 

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   DEFAULT_TITLES,
   eventFormSchema,
+  eventTypeSchema,
   shouldRewriteTitle,
   toEventInsert,
   toEventUpdate,
@@ -105,27 +106,45 @@ describe('eventFormSchema — the future and horizon rules (AC6)', () => {
   })
 })
 
+describe('eventTypeSchema (S8.1 AC3)', () => {
+  it('accepts training, match and social', () => {
+    expect(eventTypeSchema.safeParse('training').success).toBe(true)
+    expect(eventTypeSchema.safeParse('match').success).toBe(true)
+    expect(eventTypeSchema.safeParse('social').success).toBe(true)
+  })
+
+  it('rejects an unknown type', () => {
+    expect(eventTypeSchema.safeParse('friendly').success).toBe(false)
+  })
+})
+
 describe('shouldRewriteTitle (AC2)', () => {
   it('rewrites an empty title', () => {
     expect(shouldRewriteTitle('', 'match')).toBe(true)
     expect(shouldRewriteTitle('   ', 'match')).toBe(true)
   })
 
-  it('rewrites the other type default label', () => {
+  it('rewrites another type default label', () => {
     // Switching to match while the title is still "Training".
     expect(shouldRewriteTitle('Training', 'match')).toBe(true)
     expect(shouldRewriteTitle('Match', 'training')).toBe(true)
+    // Social is a third default, rewritten the same way (S8.1).
+    expect(shouldRewriteTitle('Social', 'match')).toBe(true)
+    expect(shouldRewriteTitle('Training', 'social')).toBe(true)
+    expect(shouldRewriteTitle('Match', 'social')).toBe(true)
   })
 
   it('keeps a title the manager typed', () => {
     expect(shouldRewriteTitle('Kilbarrack away', 'match')).toBe(false)
     expect(shouldRewriteTitle('Kilbarrack away', 'training')).toBe(false)
+    expect(shouldRewriteTitle('End of season party', 'social')).toBe(false)
   })
 
   it('keeps the matching default (no needless rewrite when already correct)', () => {
-    // Title "Match" while switching to match is the same-type default, not the other type's.
+    // Title "Match" while switching to match is the same-type default, not another type's.
     expect(shouldRewriteTitle('Match', 'match')).toBe(false)
     expect(shouldRewriteTitle('Training', 'training')).toBe(false)
+    expect(shouldRewriteTitle('Social', 'social')).toBe(false)
   })
 })
 
@@ -161,9 +180,10 @@ describe('toEventInsert (AC3, AC7)', () => {
 })
 
 describe('DEFAULT_TITLES', () => {
-  it('defaults training to Training and match to Match', () => {
+  it('defaults training to Training, match to Match, social to Social', () => {
     expect(DEFAULT_TITLES.training).toBe('Training')
     expect(DEFAULT_TITLES.match).toBe('Match')
+    expect(DEFAULT_TITLES.social).toBe('Social')
   })
 })
 

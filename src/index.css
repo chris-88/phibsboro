@@ -36,6 +36,8 @@
   --color-destructive-foreground: var(--destructive-foreground);
   --color-success: var(--success);
   --color-success-foreground: var(--success-foreground);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
@@ -79,6 +81,11 @@
      make it indistinguishable from a button, so YES gets its own token. */
   --success: oklch(0.52 0.13 152);
   --success-foreground: oklch(0.985 0 0);
+
+  /* The third event type. Match wears --primary (blue) and training --secondary (grey),
+     so social gets its own hue — a violet distinct from both (S8.1 AC4). */
+  --info: oklch(0.5 0.16 300);
+  --info-foreground: oklch(0.985 0 0);
 
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);

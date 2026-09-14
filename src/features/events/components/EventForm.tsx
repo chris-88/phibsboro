@@ -185,8 +185,8 @@ export function EventForm({
                 if (value === '') return
                 const next = value as EventType
                 field.onChange(next)
-                // A series is training-only, so switching to match clears the switch (AC1).
-                if (next === 'match') setRepeatWeekly(false)
+                // A series is training-only, so switching to match or social clears it (AC1).
+                if (next !== 'training') setRepeatWeekly(false)
                 if (shouldRewriteTitle(getValues('title'), next)) {
                   setValue('title', DEFAULT_TITLES[next], { shouldValidate: true })
                 }
@@ -198,6 +198,9 @@ export function EventForm({
               </ToggleGroupItem>
               <ToggleGroupItem value="match" variant="outline" className="flex-1">
                 Match
+              </ToggleGroupItem>
+              <ToggleGroupItem value="social" variant="outline" className="flex-1">
+                Social
               </ToggleGroupItem>
             </ToggleGroup>
           )}

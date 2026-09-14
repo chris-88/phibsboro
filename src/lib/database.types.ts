@@ -456,7 +456,7 @@ export type Database = {
     Enums: {
       availability_response: 'available' | 'unavailable'
       event_status: 'scheduled' | 'cancelled'
-      event_type: 'training' | 'match'
+      event_type: 'training' | 'match' | 'social'
       member_role: 'player' | 'manager'
     }
     CompositeTypes: {
@@ -581,7 +581,7 @@ export const Constants = {
     Enums: {
       availability_response: ['available', 'unavailable'],
       event_status: ['scheduled', 'cancelled'],
-      event_type: ['training', 'match'],
+      event_type: ['training', 'match', 'social'],
       member_role: ['player', 'manager'],
     },
   },
