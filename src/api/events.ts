@@ -26,6 +26,7 @@ import {
   toEventUpdate,
   upcomingEventRowSchema,
   type EventFormValues,
+  type TrainingSeriesInput,
   type EventPreview,
   type EventRow,
   type EventStatus,
@@ -329,6 +330,34 @@ export function useCreateEvent(): UseMutationResult<EventRow, PostgrestError, Ev
       if (error) throw error
       return eventRowSchema.parse(data)
     },
+    onSuccess: () => qc.invalidateQueries({ queryKey: eventKeys.all }),
+  })
+}
+
+/**
+ * The recurring-training generator (S4.6). One `generate_training_series` RPC; the function sets
+ * `series_id`, the weekly `starts_at` values in Dublin wall-clock time, and `created_by`, so the
+ * client sends none of them. `callRpc` turns a raised word into an `AppError` with a typed code —
+ * `not_authorised`, `series_too_long` or `starts_in_past` — which the form maps to copy. The
+ * returned array is the ids created: fewer than `weeks` means some already existed (AC7, AC9).
+ * `onSuccess` invalidates the whole `eventKeys.all` subtree, exactly as create and edit do, so the
+ * team list, the counts and the player screens all pick the new rows up. Nothing else is touched.
+ */
+export function useGenerateTrainingSeries(): UseMutationResult<
+  string[],
+  Error,
+  TrainingSeriesInput
+> {
+  const qc = useQueryClient()
+  return useMutation<string[], Error, TrainingSeriesInput>({
+    mutationFn: ({ teamId, firstStartsAt, weeks, title, location }) =>
+      callRpc('generate_training_series', {
+        p_team_id: teamId,
+        p_first_starts_at: firstStartsAt,
+        p_weeks: weeks,
+        p_title: title,
+        p_location: location,
+      }),
     onSuccess: () => qc.invalidateQueries({ queryKey: eventKeys.all }),
   })
 }

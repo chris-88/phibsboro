@@ -1,6 +1,6 @@
-import { useMemo, useRef } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Controller, useForm, type Resolver } from 'react-hook-form'
+import { Controller, useForm, useWatch, type Resolver } from 'react-hook-form'
 import { Button } from '@/components/ui/button'
 import { Field, FieldError, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
@@ -11,6 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import {
@@ -43,7 +44,19 @@ export interface EventFormProps {
   submitLabel: string
   /** A form-level failure, rendered above the button with the typed values intact (AC9). */
   formError?: string | null
+  /** S4.6: create mode only. Enables the "Repeat weekly" switch and the horizon control, shown
+   *  only while the type is `training` (AC1). The edit dialog never passes it, so the shared form
+   *  is unchanged there. */
+  allowSeries?: boolean
+  /** Called instead of `onSubmit` when the switch is on and the type is `training`. The screen
+   *  composes the first start and opens the confirm dialog (AC8). */
+  onSubmitSeries?: (values: EventFormValues, weeks: number) => void
 }
+
+/** The horizon the manager may pick, in whole weeks. Capped at 16 (D30); the Select offers no
+ *  more, so the UI cannot produce a payload the function would refuse (AC3). */
+const HORIZON_WEEKS = [4, 8, 12, 16] as const
+const DEFAULT_HORIZON = 12
 
 /**
  * The field set shared by create (S4.1) and the edit dialog (S4.2). It owns no mutation: the
@@ -59,7 +72,13 @@ export function EventForm({
   submitting,
   submitLabel,
   formError,
+  allowSeries = false,
+  onSubmitSeries,
 }: EventFormProps): React.JSX.Element {
+  // S4.6 UI state, create mode only. Neither field belongs to the event schema — a series is a
+  // different write — so they are local state, not RHF fields.
+  const [repeatWeekly, setRepeatWeekly] = useState(false)
+  const [weeks, setWeeks] = useState<number>(DEFAULT_HORIZON)
   // Captured once at mount: the resolver's `now` and the date input's `min` share one instant.
   const now = useMemo(() => serverNow(), [])
   // The event's start as opened, captured once, so an edit that leaves date and time untouched is
@@ -90,11 +109,20 @@ export function EventForm({
     formState: { errors },
   } = useForm<EventFormValues>({ resolver, defaultValues, mode: 'onBlur' })
 
+  // The live type, so the series switch appears only for training and clears when set to match.
+  const currentType = useWatch({ control, name: 'type' })
+  const seriesOn = allowSeries && repeatWeekly && currentType === 'training'
+
   const submit = handleSubmit((values) => {
-    onSubmit(values)
+    if (seriesOn && onSubmitSeries) {
+      onSubmitSeries(values, weeks)
+    } else {
+      onSubmit(values)
+    }
   })
 
   const multiTeam = teamOptions.length > 1
+  const effectiveLabel = seriesOn ? 'Create sessions' : submitLabel
 
   return (
     <form
@@ -157,6 +185,8 @@ export function EventForm({
                 if (value === '') return
                 const next = value as EventType
                 field.onChange(next)
+                // A series is training-only, so switching to match clears the switch (AC1).
+                if (next === 'match') setRepeatWeekly(false)
                 if (shouldRewriteTitle(getValues('title'), next)) {
                   setValue('title', DEFAULT_TITLES[next], { shouldValidate: true })
                 }
@@ -174,6 +204,53 @@ export function EventForm({
         />
         <FieldError errors={errors.type ? [errors.type] : undefined} />
       </Field>
+
+      {/* S4.6: repeat-weekly switch and horizon, shown only when creating a training event (AC1). */}
+      {allowSeries && currentType === 'training' && (
+        <div className="flex flex-col gap-4 rounded-lg border border-input p-3">
+          <label
+            htmlFor="event-repeat"
+            className="flex min-h-tap items-center justify-between gap-3"
+          >
+            <span className="flex flex-col">
+              <span className="text-sm font-medium">Repeat weekly</span>
+              <span className="text-xs text-muted-foreground">
+                Create the same session every week.
+              </span>
+            </span>
+            <Switch
+              id="event-repeat"
+              checked={repeatWeekly}
+              onCheckedChange={setRepeatWeekly}
+              disabled={submitting}
+            />
+          </label>
+
+          {repeatWeekly && (
+            <Field>
+              <FieldLabel htmlFor="event-weeks">How many weeks?</FieldLabel>
+              <Select
+                value={String(weeks)}
+                onValueChange={(v) => {
+                  setWeeks(Number(v))
+                }}
+                disabled={submitting}
+              >
+                <SelectTrigger id="event-weeks" className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {HORIZON_WEEKS.map((n) => (
+                    <SelectItem key={n} value={String(n)}>
+                      {n} weeks
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
+          )}
+        </div>
+      )}
 
       <Field data-invalid={errors.title ? true : undefined}>
         <FieldLabel htmlFor="event-title">Title</FieldLabel>
@@ -222,17 +299,21 @@ export function EventForm({
         <FieldError errors={errors.location ? [errors.location] : undefined} />
       </Field>
 
-      <Field data-invalid={errors.notes ? true : undefined}>
-        <FieldLabel htmlFor="event-notes">Notes (optional)</FieldLabel>
-        <Textarea
-          id="event-notes"
-          rows={3}
-          disabled={submitting}
-          aria-invalid={errors.notes ? true : undefined}
-          {...register('notes')}
-        />
-        <FieldError errors={errors.notes ? [errors.notes] : undefined} />
-      </Field>
+      {/* A generated series takes no notes; the manager adds them to one occurrence by editing it
+          (S4.6, out of scope). Kept mounted but hidden so its registered value survives a toggle. */}
+      <div hidden={seriesOn}>
+        <Field data-invalid={errors.notes ? true : undefined}>
+          <FieldLabel htmlFor="event-notes">Notes (optional)</FieldLabel>
+          <Textarea
+            id="event-notes"
+            rows={3}
+            disabled={submitting}
+            aria-invalid={errors.notes ? true : undefined}
+            {...register('notes')}
+          />
+          <FieldError errors={errors.notes ? [errors.notes] : undefined} />
+        </Field>
+      </div>
 
       {formError != null && formError !== '' && (
         <p role="alert" className="text-sm text-destructive">
@@ -241,7 +322,7 @@ export function EventForm({
       )}
 
       <Button type="submit" className="w-full" disabled={submitting}>
-        {submitting ? 'Saving…' : submitLabel}
+        {submitting ? 'Saving…' : effectiveLabel}
       </Button>
     </form>
   )

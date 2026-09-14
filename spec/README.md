@@ -56,7 +56,7 @@ shell, routing and PWA are exempt because they touch no data.
 | 35 | [S5.1](stories/S5.1-message-generator.md) | Message generator | 5 Sharing | S0.1, S0.3, S1.5 | S | **Done** |
 | 36 | [S5.2](stories/S5.2-share-action.md) | Share action | 5 Sharing | S0.2, S2.9, S4.3, S5.1, S6.2 | S | **Done** |
 | 37 | [S5.3](stories/S5.3-reminder-share.md) | Reminder share | 5 Sharing | S4.3, S5.1, S5.2 | S | **Done** |
-| 38 | [S4.6](stories/S4.6-recurring-training.md) | Recurring training | 4 Manager | S1.1, S1.3, S1.4, S1.5, S4.1, S4.2 | M | Not started |
+| 38 | [S4.6](stories/S4.6-recurring-training.md) | Recurring training | 4 Manager | S1.1, S1.3, S1.4, S1.5, S4.1, S4.2 | M | **Done** |
 | 39 | [S6.3](stories/S6.3-all-teams-view.md) | All-teams view | 6 Admin | S1.4, S2.9, S4.1–S4.6, S6.1, S6.2, S6.4 | M | Not started |
 | 40 | [S7.1](stories/S7.1-state-coverage-audit.md) | State coverage audit | 7 Quality gate | S0.6, S0.7, S1.5, and every story that adds a screen | M | Not started |
 | 41 | [S7.2](stories/S7.2-unit-tests.md) | Unit tests | 7 Quality gate | S0.6, S0.7, S1.5, S2.6, S4.3, S4.6, S5.1, S5.2, S5.3 | M | Not started |

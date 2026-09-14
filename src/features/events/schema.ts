@@ -208,3 +208,30 @@ export function toEventUpdate(v: EventFormValues): Update<'events'> {
     starts_at: dublinLocalToUtcIso(v.date, v.time),
   }
 }
+
+// —— The recurring-training generator (S4.6) ————————————————————————————————————
+// A second form off the same file (D34: a mode of /manage/event/new, not a new screen). Like
+// eventFormSchema it is a factory taking `now`, so the clock is injected — serverNow() in the app,
+// a fixed instant in the unit tests — and the schema never reads the device clock. `title` and
+// `location` are picked off eventRowSchema, never re-literalled (S1.5 AC18); `weeks` carries D30's
+// cap of 16, mirrored again in generate_training_series. `firstStartsAt` is the one
+// Dublin-wall-clock-to-UTC value the form composes through dublinLocalToUtcIso before submit.
+
+export function trainingSeriesSchema(opts: { now: Date }) {
+  return eventRowSchema
+    .pick({ title: true, location: true })
+    .extend({
+      teamId: uuidSchema,
+      firstStartsAt: z.string().datetime({ offset: true }),
+      weeks: z
+        .number()
+        .int('Pick a whole number of weeks.')
+        .min(1, 'Pick at least one week.')
+        .max(16, 'Pick 16 weeks or fewer.'),
+    })
+    .refine((v) => Date.parse(v.firstStartsAt) > opts.now.getTime(), {
+      path: ['firstStartsAt'],
+      message: 'Pick a date in the future.',
+    })
+}
+export type TrainingSeriesInput = z.infer<ReturnType<typeof trainingSeriesSchema>>

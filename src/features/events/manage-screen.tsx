@@ -1,5 +1,6 @@
+import { useEffect, useState } from 'react'
 import { Plus } from 'lucide-react'
-import { Link, Navigate } from 'react-router'
+import { Link, Navigate, useLocation } from 'react-router'
 import { EmptyState, ErrorState, LoadingState } from '@/components/states'
 import { Button } from '@/components/ui/button'
 import {
@@ -45,7 +46,53 @@ export default function ManageScreen(): React.JSX.Element {
     return <Navigate to={paths.login()} replace />
   }
 
-  return <ManageList teams={account.user.managedTeams} />
+  return (
+    <>
+      <SeriesNotice />
+      <ManageList teams={account.user.managedTeams} />
+    </>
+  )
+}
+
+/**
+ * The result line after a recurring-training run (S4.6, AC9). The message is handed over in the
+ * navigation state; it is read once into local state and the history entry replaced, so a refresh
+ * or a back-and-forward does not resurrect it.
+ */
+function SeriesNotice(): React.JSX.Element | null {
+  const location = useLocation()
+  const state: unknown = location.state
+  const stateNotice =
+    typeof state === 'object' &&
+    state !== null &&
+    'notice' in state &&
+    typeof state.notice === 'string'
+      ? state.notice
+      : null
+  const [notice, setNotice] = useState<string | null>(stateNotice)
+
+  useEffect(() => {
+    if (stateNotice != null) {
+      window.history.replaceState({}, '')
+    }
+  }, [stateNotice])
+
+  if (notice == null) return null
+  return (
+    <div className="mt-4 flex items-center justify-between gap-3 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-sm">
+      <span>{notice}</span>
+      <button
+        type="button"
+        onClick={() => {
+          setNotice(null)
+        }}
+        className="min-h-tap min-w-tap shrink-0 px-2 text-muted-foreground hover:text-foreground"
+        aria-label="Dismiss"
+      >
+        Dismiss
+      </button>
+    </div>
+  )
 }
 
 interface TeamRef {

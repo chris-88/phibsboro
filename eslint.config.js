@@ -21,6 +21,23 @@ const DATE_RULES = [
   },
 ]
 
+/** S4.6 AC13, D30 — `series_id` is set by the generator and read by no query. Written the way
+ *  the DateTimeFormat ban above is written, it fails any `series_id` string literal (a select,
+ *  filter, eq or order argument) or property access under `src/` outside `database.types.ts`, so
+ *  no read path can reference it. The row-schema mirror in schemas.ts uses it as an object key,
+ *  which is a definition, not a read, and is not matched. Tests are exempt below, since a test
+ *  asserting the column's absence names it on purpose. */
+const SERIES_RULES = [
+  {
+    selector: "Literal[value='series_id']",
+    message: 'No read path references series_id; the generator sets it, no query reads it. D30.',
+  },
+  {
+    selector: "MemberExpression[property.name='series_id']",
+    message: 'No read path references series_id; the generator sets it, no query reads it. D30.',
+  },
+]
+
 /** S1.5 AC7, D38 — scripts/check-conventions.mjs repeats this check across the whole tree. */
 const SECRET_RULES = [
   {
@@ -127,6 +144,7 @@ export default tseslint.config(
         ENV_RULES,
         KEY_RULES,
         AUTH_SEAM_RULES,
+        SERIES_RULES,
       ),
       'no-restricted-imports': restrictedImports(),
     },
@@ -146,7 +164,13 @@ export default tseslint.config(
   {
     files: ['src/lib/time.ts'],
     rules: {
-      'no-restricted-syntax': restrictedSyntax(SECRET_RULES, ENV_RULES, KEY_RULES, AUTH_SEAM_RULES),
+      'no-restricted-syntax': restrictedSyntax(
+        SECRET_RULES,
+        ENV_RULES,
+        KEY_RULES,
+        AUTH_SEAM_RULES,
+        SERIES_RULES,
+      ),
     },
   },
   // The one parser of the environment, and the module that must initialise before it.
@@ -158,6 +182,7 @@ export default tseslint.config(
         SECRET_RULES,
         KEY_RULES,
         AUTH_SEAM_RULES,
+        SERIES_RULES,
       ),
     },
   },
@@ -182,6 +207,7 @@ export default tseslint.config(
         SECRET_RULES,
         ENV_RULES,
         AUTH_SEAM_RULES,
+        SERIES_RULES,
       ),
     },
   },
@@ -189,7 +215,13 @@ export default tseslint.config(
   {
     files: ['src/lib/auth.ts'],
     rules: {
-      'no-restricted-syntax': restrictedSyntax(DATE_RULES, SECRET_RULES, ENV_RULES, KEY_RULES),
+      'no-restricted-syntax': restrictedSyntax(
+        DATE_RULES,
+        SECRET_RULES,
+        ENV_RULES,
+        KEY_RULES,
+        SERIES_RULES,
+      ),
     },
   },
   // The one client, and the one module that aliases the generated types.

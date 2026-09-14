@@ -107,5 +107,13 @@ export default defineConfig({
       dependencies: ['setup'],
       use: { baseURL: PREVIEW_URL, timezoneId: 'Europe/Dublin', browserName: 'chromium' },
     },
+    // S4.6: the seeded manager generates a twelve-week training series, then cancels one occurrence
+    // and leaves the rest. Uses the stored manager session from `setup`; needs the seeded database.
+    {
+      name: 'recurring-training',
+      testMatch: /recurring-training\.spec\.ts/,
+      dependencies: ['setup'],
+      use: { baseURL: PREVIEW_URL, timezoneId: 'Europe/Dublin' }, // D53
+    },
   ],
 })

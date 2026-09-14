@@ -6,9 +6,18 @@ import { Button } from '@/components/ui/button'
 import { useCreateEvent, eventWriteErrorMessage } from '@/api/events'
 import { useCurrentUser } from '@/features/auth/use-current-user'
 import { EventForm, type EventTeamOption } from '@/features/events/components/EventForm'
-import { DEFAULT_TITLES, type EventFormValues } from '@/features/events/schema'
+import {
+  TrainingSeriesConfirmDialog,
+  type SeriesResult,
+} from '@/features/events/components/TrainingSeriesConfirmDialog'
+import {
+  DEFAULT_TITLES,
+  type EventFormValues,
+  type TrainingSeriesInput,
+} from '@/features/events/schema'
 import { useManageStore } from '@/features/teams/manageStore'
 import { paths } from '@/lib/paths'
+import { dublinLocalToUtcIso } from '@/lib/time'
 
 /**
  * `/manage/event/new` (S4.1). Resolves the manager's active managed teams and handles the account
@@ -74,6 +83,8 @@ function NewEventPanel({ teamOptions }: { teamOptions: EventTeamOption[] }): Rea
   const selectedTeamId = useManageStore((s) => s.selectedTeamId)
   const setSelectedTeamId = useManageStore((s) => s.setSelectedTeamId)
   const [formError, setFormError] = useState<string | null>(null)
+  // The composed series input, held while the confirm dialog is open. Null closes it (S4.6, AC8).
+  const [seriesInput, setSeriesInput] = useState<TrainingSeriesInput | null>(null)
 
   const paramTeam = searchParams.get('team')
   const valid = (id: string | null): id is string =>
@@ -117,6 +128,30 @@ function NewEventPanel({ teamOptions }: { teamOptions: EventTeamOption[] }): Rea
     })
   }
 
+  // The series path (S4.6): compose the first start in Dublin wall time, then confirm before any
+  // write. Nothing is sent until the manager confirms the dialog.
+  const onSubmitSeries = (values: EventFormValues, weeks: number): void => {
+    setFormError(null)
+    setSeriesInput({
+      teamId: values.teamId,
+      firstStartsAt: dublinLocalToUtcIso(values.date, values.time),
+      weeks,
+      title: values.title.trim(),
+      location: values.location.trim(),
+    })
+  }
+
+  const onSeriesDone = ({ created, requested }: SeriesResult): void => {
+    setSeriesInput(null)
+    const notice =
+      created === requested
+        ? `${String(created)} session${created === 1 ? '' : 's'} created.`
+        : `${String(created)} created, ${String(requested - created)} already existed.`
+    // Back to the team's event list, where the invalidated eventKeys.all shows the new rows and
+    // the notice states what happened (AC9).
+    void navigate(paths.manage(), { state: { notice } })
+  }
+
   return (
     <div className="flex flex-col gap-4 py-4">
       <EventForm
@@ -128,6 +163,15 @@ function NewEventPanel({ teamOptions }: { teamOptions: EventTeamOption[] }): Rea
         submitting={create.isPending}
         submitLabel="Add event"
         formError={formError}
+        allowSeries
+        onSubmitSeries={onSubmitSeries}
+      />
+      <TrainingSeriesConfirmDialog
+        input={seriesInput}
+        onOpenChange={(open) => {
+          if (!open) setSeriesInput(null)
+        }}
+        onDone={onSeriesDone}
       />
     </div>
   )

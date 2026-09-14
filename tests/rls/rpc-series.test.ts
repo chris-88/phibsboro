@@ -6,6 +6,8 @@ import { deleteSeries, setTeamActive } from './helpers/arrange.ts'
 import { anonClient, signInAs } from './helpers/clients.ts'
 import { FIRSTS, SECONDS } from './helpers/fixtures.ts'
 import { expectNoExecute, expectRows, expectRpcError } from './helpers/expect.ts'
+import { weeklySlots } from '../../src/lib/series.ts'
+import { formatEventTime } from '../../src/lib/time.ts'
 
 const seriesIds = new Set<string>()
 const weeksOut = (n: number) => new Date(Date.now() + n * 7 * 86_400_000).toISOString()
@@ -49,10 +51,14 @@ describe('row 37 — generate_training_series', () => {
     expect(
       rows.every((r) => r.title === 'Tuesday training' && r.location === 'Dalymount Park'),
     ).toBe(true)
-    const gaps = rows
-      .slice(1)
-      .map((r, i) => new Date(r.starts_at).getTime() - new Date(rows[i]?.starts_at ?? 0).getTime())
-    expect(gaps).toEqual([7 * 86_400_000, 7 * 86_400_000, 7 * 86_400_000])
+    // Weeks are added in Dublin wall-clock time, so the time of day is identical every week even
+    // across the late-October clock change; the raw UTC gap is therefore not a constant 168h and
+    // must not be asserted (S4.6, AC6, D35). The client twin agrees with the function week for
+    // week, so the two arithmetics cannot drift (S4.6 test plan).
+    expect(new Set(rows.map((r) => formatEventTime(r.starts_at, 'time'))).size).toBe(1)
+    expect(rows.map((r) => formatEventTime(r.starts_at, 'share'))).toEqual(
+      weeklySlots(first, 4).map((s) => formatEventTime(s, 'share')),
+    )
 
     const again = await declan.rpc('generate_training_series', args(FIRSTS, first, 4))
     expect(again.error).toBeNull()
