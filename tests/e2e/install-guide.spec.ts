@@ -1,5 +1,6 @@
 /// <reference lib="dom" />
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test } from './fixtures.ts'
+import type { Page } from '@playwright/test'
 import { eventFor, TEAM_FIRSTS } from '../../supabase/seed/fixtures.ts'
 import { PLAYER_STATE } from './auth.setup.ts'
 

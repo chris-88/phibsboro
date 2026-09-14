@@ -1,5 +1,5 @@
 /// <reference lib="dom" />
-import { expect, test } from '@playwright/test'
+import { expect, test } from './fixtures.ts'
 import { PLAYER_STATE } from './auth.setup.ts'
 
 // S2.6, D17: local preview, never the live site. The one that matters is AC7 — a cold start with a

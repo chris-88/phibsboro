@@ -138,6 +138,15 @@ export default tseslint.config(
     rules: {
       '@typescript-eslint/no-explicit-any': 'error',
       '@typescript-eslint/consistent-type-imports': 'error',
+      // S7.1 AC5, D-note. Both rules already come from strictTypeChecked; restated here so the
+      // intent is visible and the one option that matters is set. `checksVoidReturn.attributes:
+      // false` is required, or every RHF `onSubmit={handleSubmit(fn)}` and every `onClick` calling
+      // a mutation goes red for no benefit. A real fire-and-forget call is written `void promise`.
+      '@typescript-eslint/no-floating-promises': 'error',
+      '@typescript-eslint/no-misused-promises': [
+        'error',
+        { checksVoidReturn: { attributes: false } },
+      ],
       'no-restricted-syntax': restrictedSyntax(
         DATE_RULES,
         SECRET_RULES,

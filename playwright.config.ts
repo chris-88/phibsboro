@@ -115,5 +115,18 @@ export default defineConfig({
       dependencies: ['setup'],
       use: { baseURL: PREVIEW_URL, timezoneId: 'Europe/Dublin' }, // D53
     },
+    // S7.1 AC9: the 375x667 layout sweep — no horizontal scroll, no interactive element under 44px
+    // on every route. Uses the stored manager session so the manage routes render populated; needs
+    // the seeded database, not Docker. Deferred behind RUN_LOCAL_STACK with the other e2e projects.
+    {
+      name: 'layout',
+      testMatch: /layout\.spec\.ts/,
+      dependencies: ['setup'],
+      use: {
+        baseURL: PREVIEW_URL,
+        timezoneId: 'Europe/Dublin',
+        viewport: { width: 375, height: 667 },
+      },
+    },
   ],
 })

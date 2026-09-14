@@ -1,5 +1,6 @@
 /// <reference lib="dom" />
-import { expect, test, type BrowserContext, type Page } from '@playwright/test'
+import { expect, test } from './fixtures.ts'
+import type { BrowserContext, Page } from '@playwright/test'
 import { eventFor, NO_TEAM, SEED_PASSWORD, TEAM_FIRSTS } from '../../supabase/seed/fixtures.ts'
 import { PREVIEW_URL } from './pwa-helpers.ts'
 
