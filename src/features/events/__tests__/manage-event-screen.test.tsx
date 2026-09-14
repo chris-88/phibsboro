@@ -61,7 +61,10 @@ vi.mock('@/features/events/components/EventFormDialog', () => ({ EventFormDialog
 vi.mock('@/features/events/components/CancelEventDialog', () => ({ CancelEventDialog: () => null }))
 vi.mock('@/features/events/components/DeleteEventDialog', () => ({ DeleteEventDialog: () => null }))
 vi.mock('@/features/auth/use-current-user', () => ({
-  useCurrentUser: () => ({ status: 'ready', user: { isAdmin: false } }),
+  useCurrentUser: () => ({
+    status: 'ready',
+    user: { isAdmin: false, isManagerOf: () => true },
+  }),
 }))
 vi.mock('@/lib/serverClock', () => ({ serverNow: () => new Date('2026-09-10T00:00:00Z') }))
 
