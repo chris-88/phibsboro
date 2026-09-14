@@ -2,6 +2,7 @@ import type { ComponentType } from 'react'
 import type { RouteObject } from 'react-router'
 import { RootHydrateFallback, RootLayout } from '@/components/root-layout'
 import { NotFound } from '@/components/not-found'
+import { loadChunk } from '@/lib/chunk-reload'
 import { RouteError } from '@/components/route-error'
 import { RequireAdmin, RequireAuth, RequireManager } from '@/features/auth/guards'
 import HistoryScreen from '@/features/attendance/history-screen'
@@ -159,7 +160,8 @@ function toRouteObject(route: AppRoute): RouteObject {
           // guarded (S2.9). The guard wrappers are eager, so the chunk downloads only after the
           // guard admits the viewer.
           lazy: async () => {
-            const Screen = (await screen.lazy()).default
+            // loadChunk reloads once if the chunk is stale after a deploy, instead of hanging.
+            const Screen = (await loadChunk(screen.lazy)).default
             return { Component: () => <>{guard(<Screen />)}</> }
           },
         }
