@@ -98,5 +98,14 @@ export default defineConfig({
       dependencies: ['setup'],
       use: { baseURL: PREVIEW_URL, timezoneId: 'Europe/Dublin', browserName: 'chromium' },
     },
+    // S2.8, D46: the non-webview leg. The stored player session opens an event on a mobile Chrome
+    // context, meets the Install card and never the escape prompt, and installs. The spec injects a
+    // synthetic beforeinstallprompt; Chromium, so the event and evaluate hooks are available.
+    {
+      name: 'install-guide',
+      testMatch: /install-guide\.spec\.ts/,
+      dependencies: ['setup'],
+      use: { baseURL: PREVIEW_URL, timezoneId: 'Europe/Dublin', browserName: 'chromium' },
+    },
   ],
 })

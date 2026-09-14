@@ -15,6 +15,14 @@ vi.mock('@/features/auth/session-context', () => ({
   useSession: () => hoisted.session.value,
 }))
 
+// S2.8's menu item hangs off the real install context; drive it from the test.
+const installCtx: { value: { context: string; promptInstall: null } } = {
+  value: { context: 'other', promptInstall: null },
+}
+vi.mock('@/features/install/install-context', () => ({
+  useInstallContext: () => installCtx.value,
+}))
+
 const { AppShellMenu } = await import('@/components/app-shell-menu')
 const { AppShell } = await import('@/components/app-shell')
 
@@ -29,6 +37,7 @@ beforeAll(() => {
 beforeEach(() => {
   hoisted.signOut.mockReset()
   hoisted.session.value = { status: 'signedIn' }
+  installCtx.value = { context: 'other', promptInstall: null }
 })
 
 describe('AppShellMenu (AC17)', () => {
@@ -53,6 +62,22 @@ describe('AppShellMenu (AC17)', () => {
       'aria-disabled',
       'true',
     )
+  })
+
+  it('shows "Add to home screen" for a non-installed player and opens the sheet (S2.8 AC8)', async () => {
+    installCtx.value = { context: 'ios-safari', promptInstall: null }
+    render(<AppShellMenu />)
+    await userEvent.click(screen.getByRole('button', { name: 'Menu' }))
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Add to home screen' }))
+    expect(await screen.findByRole('dialog')).toBeInTheDocument()
+  })
+
+  it('hides "Add to home screen" when installed (S2.8 AC2)', async () => {
+    installCtx.value = { context: 'standalone', promptInstall: null }
+    render(<AppShellMenu />)
+    await userEvent.click(screen.getByRole('button', { name: 'Menu' }))
+    await screen.findByRole('menuitem', { name: 'Sign out' })
+    expect(screen.queryByRole('menuitem', { name: 'Add to home screen' })).not.toBeInTheDocument()
   })
 })
 

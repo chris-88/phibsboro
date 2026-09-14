@@ -29,6 +29,7 @@ vi.mock('@/stores/prompt-store', () => ({
 const { PostResponsePrompts } = await import('@/features/events/components/PostResponsePrompts')
 
 const escapeLine = /open in (safari|chrome) to add this to your home screen/i
+const installLine = /put phibsboro on your home screen/i
 
 beforeEach(() => {
   hoisted.context.value = 'other'
@@ -41,13 +42,8 @@ afterEach(() => {
 })
 
 const IN_APP: InstallContext[] = ['ios-inapp', 'android-inapp']
-const NOT_PROMPTED: InstallContext[] = [
-  'resolving',
-  'standalone',
-  'installable',
-  'ios-safari',
-  'other',
-]
+const INSTALL: InstallContext[] = ['installable', 'ios-safari']
+const NOT_PROMPTED: InstallContext[] = ['resolving', 'standalone', 'other']
 
 describe('PostResponsePrompts exclusivity gate (D46)', () => {
   it.each(IN_APP)('renders the escape prompt in %s and never an install card (AC11)', (context) => {
@@ -68,6 +64,16 @@ describe('PostResponsePrompts exclusivity gate (D46)', () => {
     expect(screen.getByText(/open in chrome/i)).toBeInTheDocument()
   })
 
+  it.each(INSTALL)(
+    'renders the install card in %s and never the escape prompt (S2.8 AC1, D46)',
+    (context) => {
+      hoisted.context.value = context
+      render(<PostResponsePrompts />)
+      expect(screen.getByText(installLine)).toBeInTheDocument()
+      expect(screen.queryByText(escapeLine)).not.toBeInTheDocument()
+    },
+  )
+
   it.each(NOT_PROMPTED)('renders nothing in %s', (context) => {
     hoisted.context.value = context
     const { container } = render(<PostResponsePrompts />)
@@ -76,7 +82,7 @@ describe('PostResponsePrompts exclusivity gate (D46)', () => {
 
   it('renders nothing until the player has responded, in every context (AC4)', () => {
     hoisted.hasResponded.value = false
-    for (const context of [...IN_APP, ...NOT_PROMPTED]) {
+    for (const context of [...IN_APP, ...INSTALL, ...NOT_PROMPTED]) {
       hoisted.context.value = context
       const { container, unmount } = render(<PostResponsePrompts />)
       expect(container).toBeEmptyDOMElement()

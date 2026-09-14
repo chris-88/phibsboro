@@ -1,5 +1,6 @@
 import { useReducer } from 'react'
 import { EscapePrompt } from '@/features/install/escape-prompt'
+import { InstallGuideCard } from '@/features/install/install-guide-card'
 import { useInstallContext } from '@/features/install/install-context'
 import { isDismissed } from '@/lib/prompt-dismissal'
 import { usePromptStore } from '@/stores/prompt-store'
@@ -11,9 +12,9 @@ import { usePromptStore } from '@/stores/prompt-store'
  * (AC4). In an in-app webview the escape prompt shows and the install guide never does, because
  * installing is impossible where the player is standing (AC11).
  *
- * The `installable` and `ios-safari` branches — S2.8's Install button and written steps — are left
- * to S2.8; they render nothing here yet. `resolving` (the Android window), `standalone` and `other`
- * always render nothing.
+ * The `installable` and `ios-safari` branches show S2.8's install card, which self-guards on the
+ * shown and dismissed keys and marks itself shown once (AC1, AC3). `resolving` (the Android window),
+ * `standalone` and `other` always render nothing.
  */
 export function PostResponsePrompts(): React.JSX.Element | null {
   const { context } = useInstallContext()
@@ -27,6 +28,10 @@ export function PostResponsePrompts(): React.JSX.Element | null {
     return isDismissed('escape') ? null : (
       <EscapePrompt platform={context} onDismiss={rereadDismissal} />
     )
+  }
+
+  if (context === 'installable' || context === 'ios-safari') {
+    return <InstallGuideCard onDismiss={rereadDismissal} />
   }
 
   return null
