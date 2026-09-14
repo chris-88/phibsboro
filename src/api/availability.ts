@@ -1,4 +1,9 @@
-import { useMutation, useQueryClient, type UseMutationResult } from '@tanstack/react-query'
+import {
+  useMutation,
+  useQueryClient,
+  type QueryKey,
+  type UseMutationResult,
+} from '@tanstack/react-query'
 import type { PostgrestError } from '@supabase/supabase-js'
 import type { EventDetail, UpcomingEvent } from '@/api/events'
 import { eventKeys } from '@/api/queryKeys'
@@ -29,6 +34,9 @@ export type SetResponseMutation = UseMutationResult<
 interface SetResponseContext {
   detail: EventDetail | null | undefined
   upcoming: UpcomingEvent[] | undefined
+  /** Every cached calendar-home month for this user, snapshotted for rollback (S10.2). The event
+   *  can sit in any visited month, so all are patched and restored together. */
+  months: [QueryKey, UpcomingEvent[] | undefined][]
 }
 
 /**
@@ -79,7 +87,21 @@ export function useSetResponse(): SetResponseMutation {
             upcoming.map((e) => (e.id === eventId ? { ...e, myResponse: response } : e)),
           )
         }
-        return { detail, upcoming }
+        // The calendar-home day card reads from a month cache (S10.2), not from `upcoming`. Patch
+        // every visited month for this user so a tap on a day card fills before the request
+        // resolves, the same optimism the card gets, and snapshot them for rollback (AC6).
+        const months: [QueryKey, UpcomingEvent[] | undefined][] =
+          userId === undefined
+            ? []
+            : qc.getQueriesData<UpcomingEvent[]>({ queryKey: eventKeys.months(userId) })
+        if (userId !== undefined) {
+          qc.setQueriesData<UpcomingEvent[]>(
+            { queryKey: eventKeys.months(userId) },
+            (list) =>
+              list?.map((e) => (e.id === eventId ? { ...e, myResponse: response } : e)) ?? list,
+          )
+        }
+        return { detail, upcoming, months }
       },
       // S2.7 AC4: raise the post-response prompt only after the server accepts the write, never from
       // onMutate — a D12 refusal rolls back and must not leave a prompt behind.
@@ -90,6 +112,7 @@ export function useSetResponse(): SetResponseMutation {
         if (ctx) {
           qc.setQueryData(eventKeys.detail(eventId), ctx.detail)
           if (userId !== undefined) qc.setQueryData(eventKeys.upcoming(userId), ctx.upcoming)
+          for (const [key, data] of ctx.months) qc.setQueryData(key, data)
         }
         // 42501 = the D12 WITH CHECK refused it: the window shut under the player's feet. Refetch so
         // the screen settles into the started or cancelled state; swallow, since "Tap again." would

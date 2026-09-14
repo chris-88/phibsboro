@@ -34,6 +34,7 @@ import {
   type HomeAway,
   type UpcomingEventRow,
 } from '@/features/events/schema'
+import { dublinMonthRange } from '@/features/events/calendar-month'
 import type { RosterAttendance } from '@/lib/roster'
 import { serverNow } from '@/lib/serverClock'
 import { supabase } from '@/lib/supabase'
@@ -281,6 +282,43 @@ export function useUpcomingEvents(): UseQueryResult<UpcomingEvent[], PostgrestEr
         .order('starts_at', { ascending: true })
         .order('id', { ascending: true })
         .limit(50)
+      if (error) throw error
+      return z.array(upcomingEventRowSchema).parse(data).map(toUpcomingEvent)
+    },
+  })
+}
+
+/**
+ * The player's events for one Dublin month (S10.2, the calendar home). The same select, team
+ * filter and own-response filter as `useUpcomingEvents` — so a leaver never sees a former team's
+ * fixtures and the embed is the caller's own answer, not a teammate's — windowed to a half-open
+ * UTC range `[monthStart, monthEnd)` built from the Dublin month boundary through the time helper
+ * (D48). The `events(team_id, starts_at)` index serves it. Unlike the upcoming read it keeps past
+ * days of the visible month, so the calendar can show them; the month is bounded, so no horizon.
+ *
+ * Keyed on `eventKeys.month(userId, monthKey)`, beneath `eventKeys.all`, so the S3.1 response
+ * mutation's invalidation refreshes the visible month exactly as it does the upcoming card.
+ */
+export function useMonthEvents(monthKey: string): UseQueryResult<UpcomingEvent[], PostgrestError> {
+  const { id: userId, memberships } = useSignedInUser()
+  const teamIds = memberships.map((m) => m.teamId)
+  const { startIso, endIso } = dublinMonthRange(monthKey)
+  return useQuery<UpcomingEvent[], PostgrestError>({
+    queryKey: eventKeys.month(userId, monthKey),
+    enabled: teamIds.length > 0,
+    staleTime: 30_000,
+    refetchOnWindowFocus: true,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('events')
+        .select(UPCOMING_SELECT)
+        .in('team_id', teamIds)
+        .gte('starts_at', startIso)
+        .lt('starts_at', endIso)
+        .eq('event_responses.user_id', userId)
+        .order('starts_at', { ascending: true })
+        .order('id', { ascending: true })
+        .limit(200)
       if (error) throw error
       return z.array(upcomingEventRowSchema).parse(data).map(toUpcomingEvent)
     },

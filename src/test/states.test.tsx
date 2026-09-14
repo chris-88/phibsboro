@@ -109,9 +109,14 @@ describe('/ (home) — S3.1', () => {
     await expectRetryRefetches('/', opts, "Couldn't load your events.")
   })
 
-  it('populated: the next-event card', async () => {
+  it('populated: the next-event card and the month calendar', async () => {
     const { container } = renderRoute('/', { ...opts, scenario: 'populated' })
-    expect(await screen.findByRole('heading', { name: 'Firsts v Shelbourne' })).toBeInTheDocument()
+    // The next-event card (S10.2 keeps it on top) and the selected day's card can both name the
+    // same fixture, so assert at least one heading and the calendar grid beside it.
+    expect(
+      (await screen.findAllByRole('heading', { name: 'Firsts v Shelbourne' })).length,
+    ).toBeGreaterThan(0)
+    expect(screen.getByRole('grid')).toBeInTheDocument()
     expectHealthy(container)
   })
 })

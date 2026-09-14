@@ -15,6 +15,12 @@ export const eventKeys = {
   detail: (eventId: string) => ['events', 'detail', eventId] as const,
   preview: (eventId: string) => ['events', 'preview', eventId] as const,
   upcoming: (userId: string) => ['events', 'upcoming', userId] as const,
+  /** The player's calendar-home month window (S10.2): keyed by user and `YYYY-MM` so a month
+   *  change refetches and the response mutation's `eventKeys.all` invalidation still reaches it. */
+  month: (userId: string, monthKey: string) => ['events', 'month', userId, monthKey] as const,
+  /** The prefix over every month window a user holds, for the optimistic response write to patch
+   *  each cached month in place (S10.2 AC6), the way it patches `upcoming`. */
+  months: (userId: string) => ['events', 'month', userId] as const,
   list: (teamId: string) => ['events', 'list', teamId] as const,
   responses: (eventId: string) => ['events', 'responses', eventId] as const,
   attendance: (eventId: string) => ['events', 'attendance', eventId] as const,

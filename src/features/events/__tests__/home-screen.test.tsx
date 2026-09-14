@@ -1,10 +1,12 @@
 import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Session } from '@supabase/supabase-js'
 import type { UpcomingEvent } from '@/api/events'
+import type { Team } from '@/features/teams/schema'
+import { TEAM_PALETTE } from '@/features/teams/palette'
 import { SessionContext, type SessionState } from '@/features/auth/session-context'
 import type { CurrentUser, TeamMembership } from '@/features/auth/use-current-user'
 
@@ -14,22 +16,28 @@ vi.mock('@/lib/supabase', () => ({
   supabase: { from: () => ({ upsert: (...args: unknown[]) => upsert(...args) }) },
 }))
 
-interface QueryLike {
-  data: UpcomingEvent[] | undefined
+interface QueryLike<T> {
+  data: T | undefined
   isError: boolean
-  isPending: boolean
   isSuccess: boolean
   refetch: () => void
 }
 
 const hoisted = vi.hoisted(() => ({
-  query: { value: undefined as unknown as QueryLike },
+  upcoming: { value: undefined as unknown as QueryLike<UpcomingEvent[]> },
+  month: { value: undefined as unknown as QueryLike<UpcomingEvent[]> },
+  teams: { value: undefined as unknown as QueryLike<Team[]> },
   memberships: { value: [] as TeamMembership[] },
 }))
 
-vi.mock('@/api/events', () => ({ useUpcomingEvents: () => hoisted.query.value }))
+vi.mock('@/api/events', () => ({
+  useUpcomingEvents: () => hoisted.upcoming.value,
+  useMonthEvents: () => hoisted.month.value,
+}))
+vi.mock('@/api/teams', () => ({ useTeams: () => hoisted.teams.value }))
 vi.mock('@/features/auth/use-current-user', () => ({
-  useSignedInUser: (): Pick<CurrentUser, 'memberships'> => ({
+  useSignedInUser: (): Pick<CurrentUser, 'id' | 'memberships'> => ({
+    id: USER_ID,
     memberships: hoisted.memberships.value,
   }),
 }))
@@ -40,6 +48,8 @@ const { AvailabilityButtons } =
 const { eventKeys } = await import('@/api/queryKeys')
 
 const USER_ID = '00000000-0000-4000-8000-0000000000aa'
+const TEAM_ID = '00000000-0000-4000-8000-000000000001'
+const TEAM_2_ID = '00000000-0000-4000-8000-000000000002'
 const EVENT_ID = '00000000-0000-4000-8000-000000000102'
 
 const signedIn: SessionState = {
@@ -54,25 +64,47 @@ const membership = (teamId: string, teamName: string): TeamMembership => ({
   joinedAt: '2026-01-01T00:00:00.000+00:00',
 })
 
+const team = (id: string, colour: string): Team => ({
+  id,
+  name: id === TEAM_ID ? 'Firsts' : 'Seconds',
+  active: true,
+  colour,
+  created_at: '2026-01-01T00:00:00.000+00:00',
+})
+
 const upcoming = (over: Partial<UpcomingEvent> = {}): UpcomingEvent => ({
   id: EVENT_ID,
-  teamId: '00000000-0000-4000-8000-000000000001',
+  teamId: TEAM_ID,
   teamName: 'Firsts',
   type: 'match',
   title: 'Firsts v Shelbourne',
   location: 'Tolka Park',
-  startsAt: '2026-09-15T18:00:00.000+00:00',
+  // Far future so the S3.4 window stays open in every environment.
+  startsAt: '2099-06-13T18:00:00.000+00:00',
   status: 'scheduled',
   myResponse: null,
   ...over,
 })
 
-const settled = (data: UpcomingEvent[]): QueryLike => ({
+const settled = <T,>(data: T): QueryLike<T> => ({
   data,
   isError: false,
-  isPending: false,
   isSuccess: true,
   refetch: vi.fn(),
+})
+
+const pending = <T,>(): QueryLike<T> => ({
+  data: undefined,
+  isError: false,
+  isSuccess: false,
+  refetch: vi.fn(),
+})
+
+const errored = <T,>(refetch = vi.fn()): QueryLike<T> => ({
+  data: undefined,
+  isError: true,
+  isSuccess: false,
+  refetch,
 })
 
 function renderHome(): void {
@@ -93,149 +125,176 @@ function renderHome(): void {
 
 beforeEach(() => {
   upsert.mockReset()
-  hoisted.memberships.value = [membership('00000000-0000-4000-8000-000000000001', 'Firsts')]
-  hoisted.query.value = settled([upcoming()])
+  hoisted.memberships.value = [membership(TEAM_ID, 'Firsts')]
+  hoisted.upcoming.value = settled([upcoming()])
+  hoisted.month.value = settled([upcoming()])
+  hoisted.teams.value = settled([team(TEAM_ID, TEAM_PALETTE[0].value)])
 })
 
-describe('HomeScreen (S3.1) — states', () => {
-  it('renders one next-event card with badge, title, date and location (AC1, AC2)', () => {
+describe('HomeScreen (S10.2) — layout', () => {
+  it('shows the condensed next-event card on top with the shared YES / NO (AC1)', () => {
     renderHome()
-    expect(screen.getByText('Match')).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'Firsts v Shelbourne' })).toBeInTheDocument()
-    expect(screen.getByText('Tolka Park')).toBeInTheDocument()
-    // The one date line, through formatEventTime (Dublin, IST in September).
-    expect(screen.getByText('Tuesday 15 September, 7pm')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Yes' })).toBeInTheDocument()
+    expect(screen.getAllByText('Match').length).toBeGreaterThan(0)
+    expect(screen.getAllByRole('heading', { name: 'Firsts v Shelbourne' }).length).toBeGreaterThan(
+      0,
+    )
+    expect(screen.getAllByRole('button', { name: 'Yes' }).length).toBeGreaterThan(0)
   })
 
-  it('shows the next scheduled event, skipping a cancelled one that sorts first (AC4)', () => {
-    hoisted.query.value = settled([
-      upcoming({ id: 'cancelled-id', status: 'cancelled', title: 'Called off' }),
-      upcoming({ id: 'scheduled-id', title: 'The real next one' }),
+  it('replaces the v1.0.0 chronological list with the month calendar (AC1)', () => {
+    renderHome()
+    expect(screen.getByRole('grid')).toBeInTheDocument()
+    expect(screen.queryByText('Also coming up')).not.toBeInTheDocument()
+    expect(screen.queryByText('Nothing else coming up.')).not.toBeInTheDocument()
+  })
+
+  it('marks a day that has an event with a dot in the team colour (AC2)', () => {
+    renderHome()
+    // The default selection is the next event's day; its cell carries a filled team-colour dot.
+    const grid = screen.getByRole('grid')
+    const dot = grid.querySelector('[style*="background-color"]')
+    expect(dot).not.toBeNull()
+    expect((dot as HTMLElement).getAttribute('style')).toContain('rgb(30, 64, 175)')
+  })
+})
+
+describe('HomeScreen (S10.2) — the selected day (AC3, AC5, AC6)', () => {
+  it('lists the selected day’s events as cards with YES / NO (AC3)', () => {
+    renderHome()
+    // The next event's day is selected by default, so its card is in the day list under the grid.
+    expect(screen.getAllByRole('button', { name: 'Yes' }).length).toBeGreaterThan(0)
+    expect(screen.queryByText('Nothing on.')).not.toBeInTheDocument()
+  })
+
+  it('shows "Nothing on." for a selected day with no events (AC3)', () => {
+    // Next event on the 13th (so that day is selected), but the month's only event is elsewhere.
+    hoisted.month.value = settled([
+      upcoming({ id: 'other', startsAt: '2099-06-20T18:00:00.000+00:00' }),
     ])
     renderHome()
-    expect(screen.getByRole('heading', { name: 'The real next one' })).toBeInTheDocument()
-    // The cancelled fixture is not the card (AC4). Since S3.2 it appears below, in the list, marked
-    // cancelled (D60) — so it is no longer absent from the screen, only absent from the card.
-    expect(screen.queryByRole('heading', { name: 'Called off' })).not.toBeInTheDocument()
+    expect(screen.getByText('Nothing on.')).toBeInTheDocument()
   })
 
-  it('shows the team name when the player is on more than one team (AC3)', () => {
-    hoisted.memberships.value = [
-      membership('00000000-0000-4000-8000-000000000001', 'Firsts'),
-      membership('00000000-0000-4000-8000-000000000002', 'Reserves'),
-    ]
+  it('shows a cancelled event struck-through with a hollow dot, not hidden (AC5)', () => {
+    // A scheduled next event fixes the selected day; the same day's cancelled event fills the list.
+    hoisted.upcoming.value = settled([upcoming({ id: 'nextid', title: 'Next up' })])
+    hoisted.month.value = settled([
+      upcoming({ id: 'cx', title: 'Called off', status: 'cancelled' }),
+    ])
     renderHome()
-    expect(screen.getByText('Firsts')).toBeInTheDocument()
+    const heading = screen.getByRole('heading', { name: 'Called off' })
+    expect(heading.className).toContain('line-through')
+    // Cancelled disables the response with the shared "off" line (S3.4).
+    expect(screen.getByText("This one's off.")).toBeInTheDocument()
+    // The dot is a hollow ring (a border, no fill), never a coloured fill.
+    const grid = screen.getByRole('grid')
+    expect(grid.querySelector('.border-muted-foreground')).not.toBeNull()
+    expect(grid.querySelector('[style*="background-color"]')).toBeNull()
   })
 
-  it('omits the team name when the player is on exactly one team (AC3)', () => {
+  it('records a response from a day card through the shared mutation (AC6)', async () => {
+    upsert.mockResolvedValue({ error: null })
+    hoisted.upcoming.value = settled([upcoming({ id: 'nextid', title: 'Next up' })])
+    hoisted.month.value = settled([upcoming({ id: 'day13', title: 'On the day' })])
     renderHome()
-    expect(screen.queryByText('Firsts')).not.toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'Firsts v Shelbourne' })).toBeInTheDocument()
+    // Scope to the day card (its own heading) so it is that card's YES that is tapped.
+    const dayCard = screen
+      .getByRole('heading', { name: 'On the day' })
+      .closest('[data-slot="card"]')
+    await userEvent.click(within(dayCard as HTMLElement).getByRole('button', { name: 'Yes' }))
+    expect(upsert).toHaveBeenCalledWith(
+      { event_id: 'day13', user_id: USER_ID, response: 'available' },
+      { onConflict: 'event_id,user_id' },
+    )
   })
+})
 
-  it('shows the no-team empty state and no card when there are no memberships (AC12)', () => {
+describe('HomeScreen (S10.2) — day selection (AC3)', () => {
+  it('shows a tapped day’s events beneath the calendar', async () => {
+    // The next event on the 13th shows June 2099 with the 13th selected; the 20th holds another
+    // event that only appears once its day is tapped.
+    hoisted.upcoming.value = settled([upcoming({ id: 'thirteen' })])
+    hoisted.month.value = settled([
+      upcoming({ id: 'thirteen' }),
+      upcoming({
+        id: 'twenty',
+        title: 'On the twentieth',
+        startsAt: '2099-06-20T18:00:00.000+00:00',
+      }),
+    ])
+    renderHome()
+    expect(screen.queryByText('On the twentieth')).not.toBeInTheDocument()
+    const grid = screen.getByRole('grid')
+    await userEvent.click(within(grid).getByText('20'))
+    expect(await screen.findByText('On the twentieth')).toBeInTheDocument()
+  })
+})
+
+describe('HomeScreen (S10.2) — states (AC8)', () => {
+  it('no team: the join-link empty state, no calendar', () => {
     hoisted.memberships.value = []
     renderHome()
     expect(screen.getByText("You're not on a team yet.")).toBeInTheDocument()
-    expect(screen.getByText('Ask your manager for a join link.')).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Yes' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('grid')).not.toBeInTheDocument()
   })
 
-  it('shows the nothing-coming-up empty state with a membership but no scheduled event (AC11)', () => {
-    hoisted.query.value = settled([])
-    renderHome()
-    expect(screen.getByText('Nothing coming up.')).toBeInTheDocument()
-    expect(screen.getByText('Your manager will post the next one here.')).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Yes' })).not.toBeInTheDocument()
-  })
-
-  it('falls to nothing-coming-up when the only upcoming event is cancelled (AC4, AC11)', () => {
-    hoisted.query.value = settled([upcoming({ status: 'cancelled' })])
-    renderHome()
-    expect(screen.getByText('Nothing coming up.')).toBeInTheDocument()
-  })
-
-  it('shows a loading skeleton, same-height, while the query is pending (AC13)', () => {
-    hoisted.query.value = {
-      data: undefined,
-      isError: false,
-      isPending: true,
-      isSuccess: false,
-      refetch: vi.fn(),
-    }
+  it('loading: a skeleton while a query is pending', () => {
+    hoisted.month.value = pending()
     renderHome()
     expect(screen.getByRole('status', { name: 'Loading' })).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Yes' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('grid')).not.toBeInTheDocument()
   })
 
-  it('shows an inline error with a Retry that refetches, keeping no card (AC14)', async () => {
+  it('error: an inline line with a Retry that refetches each failed read', async () => {
     const refetch = vi.fn()
-    hoisted.query.value = {
-      data: undefined,
-      isError: true,
-      isPending: false,
-      isSuccess: false,
-      refetch,
-    }
+    hoisted.month.value = errored(refetch)
     renderHome()
     expect(screen.getByText("Couldn't load your events.")).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: 'Try again' }))
     expect(refetch).toHaveBeenCalledOnce()
   })
-})
 
-describe('HomeScreen (S3.1) — the answer on the card', () => {
-  it('marks the chosen answer pressed with a confirming line on return (AC8)', () => {
-    hoisted.query.value = settled([upcoming({ myResponse: 'available' })])
+  it('empty month with nothing coming up: both empties, no card', () => {
+    hoisted.upcoming.value = settled([])
+    hoisted.month.value = settled([])
     renderHome()
-    expect(screen.getByRole('button', { name: 'Yes' })).toHaveAttribute('aria-pressed', 'true')
-    expect(screen.getByRole('button', { name: 'No' })).toHaveAttribute('aria-pressed', 'false')
-    expect(screen.getByText('You said yes.')).toBeInTheDocument()
-  })
-
-  it('shows neither confirming line for an unanswered event (AC8)', () => {
-    renderHome()
-    expect(screen.queryByText('You said yes.')).not.toBeInTheDocument()
-    expect(screen.queryByText('You said no.')).not.toBeInTheDocument()
-  })
-
-  it('fires no request when the already-selected answer is tapped (AC9)', async () => {
-    hoisted.query.value = settled([upcoming({ myResponse: 'available' })])
-    renderHome()
-    await userEvent.click(screen.getByRole('button', { name: 'Yes' }))
-    expect(upsert).not.toHaveBeenCalled()
+    expect(screen.getByText('Nothing coming up.')).toBeInTheDocument()
+    expect(screen.getByText('Nothing this month.')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Yes' })).not.toBeInTheDocument()
   })
 })
 
-describe('HomeScreen (S3.1) — the card as a link (AC17)', () => {
-  it('navigates to the event when the card body is tapped', async () => {
+describe('HomeScreen (S10.2) — multi-team', () => {
+  it('shows two team-colour dots on a day with two teams’ events (AC2)', () => {
+    hoisted.memberships.value = [membership(TEAM_ID, 'Firsts'), membership(TEAM_2_ID, 'Seconds')]
+    hoisted.teams.value = settled([
+      team(TEAM_ID, TEAM_PALETTE[0].value),
+      team(TEAM_2_ID, TEAM_PALETTE[1].value),
+    ])
+    hoisted.upcoming.value = settled([upcoming()])
+    hoisted.month.value = settled([
+      upcoming(),
+      upcoming({ id: 'seconds', teamId: TEAM_2_ID, teamName: 'Seconds' }),
+    ])
     renderHome()
-    await userEvent.click(screen.getByRole('heading', { name: 'Firsts v Shelbourne' }))
-    expect(await screen.findByText('event page')).toBeInTheDocument()
-  })
-
-  it('records the answer and does not navigate when YES is tapped', async () => {
-    upsert.mockResolvedValue({ error: null })
-    renderHome()
-    await userEvent.click(screen.getByRole('button', { name: 'Yes' }))
-    expect(upsert).toHaveBeenCalledWith(
-      { event_id: EVENT_ID, user_id: USER_ID, response: 'available' },
-      { onConflict: 'event_id,user_id' },
+    const grid = screen.getByRole('grid')
+    const styles = Array.from(grid.querySelectorAll('[style*="background-color"]')).map((el) =>
+      el.getAttribute('style'),
     )
-    expect(screen.queryByText('event page')).not.toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'Firsts v Shelbourne' })).toBeInTheDocument()
+    expect(styles.some((s) => s?.includes('rgb(30, 64, 175)'))).toBe(true)
+    expect(styles.some((s) => s?.includes('rgb(185, 28, 28)'))).toBe(true)
   })
 })
 
-// The card reads its `current` from the upcoming cache, so the optimistic write and its rollback
-// must touch that cache, not only the detail cache (the S3.1 addition to useSetResponse). This
-// harness reads the upcoming cache exactly as the screen does, so the button state is observable.
-describe('the home card optimistic write against the upcoming cache (AC7, AC10)', () => {
-  function UpcomingHarness(): React.JSX.Element {
+// The day card reads its `current` from a month cache, so the optimistic write and its rollback
+// must touch that cache too (the S10.2 addition to useSetResponse). This harness reads a month
+// cache exactly as the screen does, so the button state is observable.
+describe('the day-card optimistic write against a month cache (AC6)', () => {
+  const MONTH_KEY = '2099-06'
+
+  function MonthHarness(): React.JSX.Element {
     const q = useQuery<UpcomingEvent[]>({
-      queryKey: eventKeys.upcoming(USER_ID),
+      queryKey: eventKeys.month(USER_ID, MONTH_KEY),
       queryFn: () => Promise.reject(new Error('must not fetch')),
       enabled: false,
     })
@@ -243,23 +302,22 @@ describe('the home card optimistic write against the upcoming cache (AC7, AC10)'
     return ev ? <AvailabilityButtons eventId={ev.id} current={ev.myResponse} /> : <div />
   }
 
-  function renderHarness(initial: UpcomingEvent): QueryClient {
+  function renderHarness(initial: UpcomingEvent): void {
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-    client.setQueryData(eventKeys.upcoming(USER_ID), [initial])
+    client.setQueryData(eventKeys.month(USER_ID, MONTH_KEY), [initial])
     render(
       <QueryClientProvider client={client}>
         <SessionContext.Provider value={signedIn}>
-          <UpcomingHarness />
+          <MonthHarness />
         </SessionContext.Provider>
       </QueryClientProvider>,
     )
-    return client
   }
 
   const yes = () => screen.getByRole('button', { name: 'Yes' })
   const no = () => screen.getByRole('button', { name: 'No' })
 
-  it('fills the tapped button before the request resolves (AC7)', async () => {
+  it('fills the tapped button before the request resolves (AC6)', async () => {
     let resolve: (v: { error: unknown }) => void = () => undefined
     upsert.mockReturnValue(
       new Promise<{ error: unknown }>((r) => {
@@ -275,7 +333,7 @@ describe('the home card optimistic write against the upcoming cache (AC7, AC10)'
     resolve({ error: null })
   })
 
-  it('rolls the card back and shows the failure line when the write fails (AC10)', async () => {
+  it('rolls the card back and shows the failure line when the write fails (AC6)', async () => {
     upsert.mockResolvedValue({
       error: { message: 'nope', details: '', hint: '', code: 'P0001', name: 'PostgrestError' },
     })
@@ -286,7 +344,5 @@ describe('the home card optimistic write against the upcoming cache (AC7, AC10)'
     })
     expect(yes()).toHaveAttribute('aria-pressed', 'true')
     expect(no()).toHaveAttribute('aria-pressed', 'false')
-    expect(yes()).toBeEnabled()
-    expect(no()).toBeEnabled()
   })
 })

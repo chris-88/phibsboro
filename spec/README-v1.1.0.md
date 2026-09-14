@@ -23,7 +23,7 @@ numbers, captain) · the club's real numbered-teamsheet WhatsApp share · team c
 | 7 | S9.2 | Squad selection (in the Squad tab, and from the match) | 9 Squad | S9.1, S10.3, S4.3 | M | ✓ |
 | 8 | S9.3 | Match share rewrite (numbered squad) | 9 Squad | S9.2, S8.3, S8.4, S5.2 | M | ✓ |
 | 9 | S10.1 | Team colours | 10 Calendar/nav | S6.1 | S | ✓ |
-| 10 | S10.2 | Calendar Home screen | 10 Calendar/nav | S10.1, S3.1–S3.4, S8.x | L |
+| 10 | S10.2 | Calendar Home screen | 10 Calendar/nav | S10.1, S3.1–S3.4, S8.x | L | ✓ |
 
 
 Epic 8 is the foundation (the event model everything else reads). The **Squad tab (S10.3) is built before

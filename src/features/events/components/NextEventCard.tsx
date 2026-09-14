@@ -4,6 +4,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { AvailabilityButtons } from '@/features/availability/components/AvailabilityButtons'
 import { EventMeta } from '@/features/events/components/EventMeta'
 import { EventTypeBadge } from '@/features/events/components/EventTypeBadge'
+import { cn } from 'cn'
 import { paths } from '@/lib/paths'
 
 export interface NextEventCardProps {
@@ -11,6 +12,9 @@ export interface NextEventCardProps {
   /** Shown only when the player belongs to more than one team, so a single-team player is not told
    *  which team an event they could only be on is for (AC3). */
   showTeamName: boolean
+  /** The calendar home (S10.2) renders this above a month grid, so the title tightens by a step
+   *  and the gaps close up; the plain home keeps the larger card. Default false. */
+  condensed?: boolean
 }
 
 /**
@@ -23,18 +27,32 @@ export interface NextEventCardProps {
  * `useSetResponse` (D48, D61) — this card adds none of them and passes only the current answer. No
  * date formatter is called here; `EventMeta` owns the one `formatEventTime` call (D35, AC2).
  */
-export function NextEventCard({ event, showTeamName }: NextEventCardProps): React.JSX.Element {
+export function NextEventCard({
+  event,
+  showTeamName,
+  condensed = false,
+}: NextEventCardProps): React.JSX.Element {
   return (
     <Card>
       <CardContent className="flex flex-col gap-3">
         <Link
           to={paths.event(event.id)}
-          className="flex flex-col gap-3 rounded-md focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+          className={cn(
+            'flex flex-col rounded-md focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
+            condensed ? 'gap-2' : 'gap-3',
+          )}
         >
           {showTeamName && <p className="text-sm text-muted-foreground">{event.teamName}</p>}
           <div className="flex flex-col gap-2">
             <EventTypeBadge type={event.type} />
-            <h2 className="text-xl leading-snug font-semibold text-foreground">{event.title}</h2>
+            <h2
+              className={cn(
+                'leading-snug font-semibold text-foreground',
+                condensed ? 'text-lg' : 'text-xl',
+              )}
+            >
+              {event.title}
+            </h2>
           </div>
           <EventMeta startsAt={event.startsAt} location={event.location} />
         </Link>
