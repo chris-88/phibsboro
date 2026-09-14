@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient, type UseMutationResult } from '@tanstack/react-query'
 import type { PostgrestError } from '@supabase/supabase-js'
-import type { EventDetail } from '@/api/events'
+import type { EventDetail, UpcomingEvent } from '@/api/events'
 import { eventKeys } from '@/api/queryKeys'
 import { useSession } from '@/features/auth/session-context'
 import type { AvailabilityResponse } from '@/features/availability/schema'
@@ -22,10 +22,12 @@ export type SetResponseMutation = UseMutationResult<
   SetResponseContext
 > & { showRetryLine: boolean }
 
-/** Snapshot for rollback (D48). Only the detail cache is owned here; the upcoming list's shape is
- *  S3.1's, so this story refreshes it through `onSettled` rather than writing a speculative row. */
+/** Snapshot for rollback (D48). Both caches an answer can appear in are held: the detail cache
+ *  behind the event screen (S3.3), and the upcoming list behind the home card (S3.1), so a tap on
+ *  either reflects immediately and rolls back together. */
 interface SetResponseContext {
   detail: EventDetail | null | undefined
+  upcoming: UpcomingEvent[] | undefined
 }
 
 /**
@@ -66,10 +68,23 @@ export function useSetResponse(): SetResponseMutation {
           const next: EventDetail = { ...detail, myResponse: response }
           qc.setQueryData(eventKeys.detail(eventId), next)
         }
-        return { detail }
+        // The home card reads from the upcoming list; update it too so a tap on the card fills the
+        // button before the request resolves (S3.1 AC7). Keyed on the signed-in user (D39).
+        const upcomingKey = userId === undefined ? undefined : eventKeys.upcoming(userId)
+        const upcoming = upcomingKey ? qc.getQueryData<UpcomingEvent[]>(upcomingKey) : undefined
+        if (upcomingKey && upcoming) {
+          qc.setQueryData(
+            upcomingKey,
+            upcoming.map((e) => (e.id === eventId ? { ...e, myResponse: response } : e)),
+          )
+        }
+        return { detail, upcoming }
       },
       onError: (error, { eventId }, ctx) => {
-        if (ctx) qc.setQueryData(eventKeys.detail(eventId), ctx.detail)
+        if (ctx) {
+          qc.setQueryData(eventKeys.detail(eventId), ctx.detail)
+          if (userId !== undefined) qc.setQueryData(eventKeys.upcoming(userId), ctx.upcoming)
+        }
         // 42501 = the D12 WITH CHECK refused it: the window shut under the player's feet. Refetch so
         // the screen settles into the started or cancelled state; swallow, since "Tap again." would
         // be a lie (AC9). Every other failure falls through to showRetryLine below (AC10).

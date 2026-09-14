@@ -12,16 +12,19 @@ import { eventKeys } from '@/api/queryKeys'
 import { callRpc } from '@/api/rpc'
 import type { AvailabilityResponse } from '@/features/availability/schema'
 import { useSession } from '@/features/auth/session-context'
+import { useSignedInUser } from '@/features/auth/use-current-user'
 import {
   eventPreviewSchema,
   eventRowSchema,
   eventWithResponseSchema,
   toEventInsert,
+  upcomingEventRowSchema,
   type EventFormValues,
   type EventPreview,
   type EventRow,
   type EventStatus,
   type EventType,
+  type UpcomingEventRow,
 } from '@/features/events/schema'
 import { serverNow } from '@/lib/serverClock'
 import { supabase } from '@/lib/supabase'
@@ -119,6 +122,80 @@ export function useEventDetail(eventId: string | undefined): UseQueryResult<Even
   const session = useSession()
   const userId = session.status === 'signedIn' ? session.session.user.id : undefined
   return useQuery(eventDetailOptions(eventId, userId))
+}
+
+// —— The player's upcoming events (S3.1, and the S3.2 list) ——————————————————————
+
+/** The flat, camelCase view of one upcoming event. The home card and the S3.2 list read it. */
+export interface UpcomingEvent {
+  id: string
+  teamId: string
+  teamName: string
+  type: EventType
+  title: string
+  location: string
+  startsAt: string
+  status: EventStatus
+  /** The caller's own answer, or null while awaiting. Never a teammate's (D22, D32). */
+  myResponse: AvailabilityResponse | null
+}
+
+/**
+ * Every upcoming event across the caller's teams, ascending, in one round trip (S3.1). Four
+ * things carry weight and none is decoration:
+ *
+ * - `.in('team_id', teamIds)` — RLS excludes other teams, but D33 also lets a player select any
+ *   event they hold a response row for, so a leaver would otherwise keep seeing that team's
+ *   fixtures (AC6).
+ * - `.eq('event_responses.user_id', userId)` — a manager's read policy returns the whole squad's
+ *   responses through the embed; without it `event_responses[0]` is a teammate's answer. `.max(1)`
+ *   on the schema fails a test if it is ever dropped (D32).
+ * - `.gte('starts_at', serverNow())` — the server clock, never the device clock (D48, AC5).
+ * - the second `.order('id')` — two events at the same instant would otherwise flip between
+ *   refetches and the card would flicker.
+ *
+ * `enabled: teamIds.length > 0` means the no-memberships case fires no request; the screen reads
+ * `memberships.length === 0` directly for its no-team empty state rather than inferring it.
+ */
+const UPCOMING_SELECT =
+  'id, team_id, type, title, location, starts_at, status, teams!inner(name), event_responses(response, user_id)'
+
+function toUpcomingEvent(row: UpcomingEventRow): UpcomingEvent {
+  return {
+    id: row.id,
+    teamId: row.team_id,
+    teamName: row.teams.name,
+    type: row.type,
+    title: row.title,
+    location: row.location,
+    startsAt: row.starts_at,
+    status: row.status,
+    myResponse: row.event_responses[0]?.response ?? null,
+  }
+}
+
+export function useUpcomingEvents(): UseQueryResult<UpcomingEvent[], PostgrestError> {
+  const { id: userId, memberships } = useSignedInUser()
+  const teamIds = memberships.map((m) => m.teamId)
+  return useQuery<UpcomingEvent[], PostgrestError>({
+    queryKey: eventKeys.upcoming(userId),
+    enabled: teamIds.length > 0,
+    staleTime: 30_000,
+    refetchOnWindowFocus: true,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('events')
+        .select(UPCOMING_SELECT)
+        .in('team_id', teamIds)
+        .gte('starts_at', serverNow().toISOString())
+        .eq('event_responses.user_id', userId)
+        .order('starts_at', { ascending: true })
+        .order('id', { ascending: true })
+        .limit(50)
+      if (error) throw error
+      return z.array(upcomingEventRowSchema).parse(data).map(toUpcomingEvent)
+    },
+  })
 }
 
 // —— The manager list and the create write (S4.1) ——————————————————————————————

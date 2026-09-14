@@ -64,6 +64,29 @@ export const eventWithResponseSchema = eventRowSchema
   })
 export type EventWithResponseRow = z.infer<typeof eventWithResponseSchema>
 
+/**
+ * One row of the upcoming-events read behind the home card (S3.1) and the S3.2 list. The same
+ * shape as the detail read minus `notes` — the card never shows notes — with the team name from
+ * an inner join and the caller's own response embedded. As with the detail read, the embed is
+ * filtered to `auth.uid()` in the query, so `.max(1)` fails loudly in a test if that filter is
+ * ever dropped and a manager's read returns the whole squad (D22, D32).
+ */
+export const upcomingEventRowSchema = eventRowSchema
+  .pick({
+    id: true,
+    team_id: true,
+    type: true,
+    title: true,
+    location: true,
+    starts_at: true,
+    status: true,
+  })
+  .extend({
+    teams: z.object({ name: z.string() }),
+    event_responses: z.array(z.object({ response: availabilityResponseSchema })).max(1),
+  })
+export type UpcomingEventRow = z.infer<typeof upcomingEventRowSchema>
+
 /** What `get_event_preview` returns to anyone, signed in or not (D7). Never `notes`. */
 export const eventPreviewSchema = eventRowSchema
   .pick({ team_id: true, type: true, title: true, location: true, starts_at: true, status: true })

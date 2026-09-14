@@ -1,3 +1,4 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { act, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { RouterProvider, createMemoryRouter } from 'react-router'
@@ -39,11 +40,22 @@ import { routeTable, routes } from '@/routes'
 
 const UUID = '9f1c0b8e-0000-4000-8000-000000000000'
 
+// The real home screen (S3.1) mounts a TanStack Query hook, so the route table now needs a client
+// in context — the admin fixture has no memberships, so `/` settles on its no-team state and fires
+// no request, but the hook is still called.
 const mount = (initial: string) => {
   const router = createMemoryRouter(routes, { initialEntries: [initial] })
-  render(<RouterProvider router={router} />)
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  render(
+    <QueryClientProvider client={client}>
+      <RouterProvider router={router} />
+    </QueryClientProvider>,
+  )
   return router
 }
+
+// The team-less admin fixture lands the real home screen on its no-team empty state.
+const HOME_NO_TEAM = "You're not on a team yet."
 
 const placeholder = () => screen.findByTestId('route-placeholder')
 
@@ -104,7 +116,8 @@ describe('route table (D34)', () => {
 
 describe('resolving routes (AC1, AC15)', () => {
   const cases: [string, string][] = [
-    ['/', 'S3.1'],
+    // `/` is a real screen from S3.1 — no longer a placeholder; the home-screen suite and the
+    // chrome and title cases below assert it directly.
     ['/reset/abc123', 'S2.3'],
     // /event/:id is a real screen from S3.3 and /join/:token from S2.4 — no longer placeholders;
     // EventDetailScreen, JoinByTokenScreen and the routes coverage below assert them directly.
@@ -149,7 +162,7 @@ describe('chrome per route (AC3, AC4)', () => {
 
   it('shows the bottom nav on /', async () => {
     mount('/')
-    await placeholder()
+    await screen.findByText(HOME_NO_TEAM)
     expect(nav()).toBeInTheDocument()
   })
 
@@ -186,7 +199,7 @@ describe('chrome per route (AC3, AC4)', () => {
 describe('document title (AC13)', () => {
   it('changes per route and always carries the one suffix', async () => {
     const router = mount('/')
-    await placeholder()
+    await screen.findByText(HOME_NO_TEAM)
     expect(document.title).toBe(`Home${TITLE_SUFFIX}`)
 
     await act(() => router.navigate('/history'))
