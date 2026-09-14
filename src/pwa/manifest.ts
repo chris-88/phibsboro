@@ -1,7 +1,7 @@
 // The two hex literals below must equal --pwa-theme-color and --pwa-background-color in
 // src/index.css. manifest.test.ts parses that file and fails if they drift. This file is the
 // only hex-literal exemption under src/ (scripts/check-conventions.mjs).
-const THEME_COLOR = '#1351a6'
+const THEME_COLOR = '#4d4d4d'
 const BACKGROUND_COLOR = '#ffffff'
 
 /** Relative to the Vite base, never absolute: the same build must be right at `/` on the

@@ -2,7 +2,6 @@ import { Link } from 'react-router'
 import type { UpcomingEvent } from '@/api/events'
 import { Badge } from '@/components/ui/badge'
 import { ResponsePill } from '@/features/availability/components/ResponsePill'
-import { EventTypeBadge } from '@/features/events/components/EventTypeBadge'
 import { LocationText } from '@/features/events/components/LocationText'
 import { cn } from 'cn'
 import { paths } from '@/lib/paths'
@@ -47,10 +46,10 @@ export function DayEventCard({ event, showTeamName }: DayEventCardProps): React.
             <span className="shrink-0 text-xs text-muted-foreground">{event.teamName}</span>
           )}
         </div>
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <EventTypeBadge type={event.type} />
-          <LocationText location={event.location} className="truncate" />
-        </div>
+        <LocationText
+          location={event.location}
+          className="truncate text-xs text-muted-foreground"
+        />
       </div>
       {cancelled ? (
         <Badge variant="destructive" className="shrink-0">

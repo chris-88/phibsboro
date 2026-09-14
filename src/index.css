@@ -65,7 +65,7 @@
 
   /* The brand hue lives on this line and no other. Placeholder until the club answers
      S0.2 open question 1; changing it restyles every primary surface in the app. */
-  --primary: oklch(0.45 0.15 258);
+  --primary: oklch(0.42 0 0); /* neutral grey (was blue) — Chris, on-brand mono */
   --primary-foreground: oklch(0.985 0 0);
 
   --secondary: oklch(0.97 0 0);
@@ -82,7 +82,7 @@
   --success: oklch(0.52 0.13 152);
   --success-foreground: oklch(0.985 0 0);
 
-  /* The third event type. Match wears --primary (blue) and training --secondary (grey),
+  /* The third event type. Match wears --primary and training --secondary (both neutral now),
      so social gets its own hue — a violet distinct from both (S8.1 AC4). */
   --info: oklch(0.5 0.16 300);
   --info-foreground: oklch(0.985 0 0);
@@ -94,7 +94,7 @@
   /* Read by S0.4's manifest test, which asserts the manifest's theme_color and
      background_color equal these two. Hex, not OKLCH: a manifest takes hex.
      --pwa-theme-color is --primary; --pwa-background-color is --background. */
-  --pwa-theme-color: #1351a6;
+  --pwa-theme-color: #4d4d4d;
   --pwa-background-color: #ffffff;
 }
 
