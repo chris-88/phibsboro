@@ -1,6 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { eventUrl } from '@/lib/paths'
-import { buildShareMessage, EVENT_EMOJI, type ShareEvent, waMeUrl } from '@/lib/shareMessage'
+import {
+  buildReminderMessage,
+  buildShareMessage,
+  EVENT_EMOJI,
+  type ShareEvent,
+  waMeUrl,
+} from '@/lib/shareMessage'
 
 // A concrete event id so eventUrl() is deterministic within a test. The base URL comes from the
 // hermetic vitest env (VITE_APP_BASE_URL), so the last line is asserted through eventUrl(), never
@@ -134,6 +140,83 @@ describe('buildShareMessage', () => {
   // No trailing newline (D13): WhatsApp renders it as a stray empty line.
   it('has no trailing newline', () => {
     expect(buildShareMessage(match()).endsWith('\n')).toBe(false)
+  })
+})
+
+describe('buildReminderMessage (S5.3)', () => {
+  // AC1 / test-plan case 1 — D13's worked example, byte for byte. Same header as the share, a
+  // different last line carrying the count. The URL line is built through eventUrl(ID).
+  it('reproduces the D13 reminder byte for byte', () => {
+    expect(buildReminderMessage(match({ notes: 'Bring both kits.' }), 8)).toBe(
+      [
+        '⚽ Kilbarrack away',
+        'Saturday 14 March, 7.30pm',
+        'Fairview Park pitch 3',
+        'Bring both kits.',
+        '',
+        `8 still to answer. Yes or no: ${eventUrl(ID)}`,
+      ].join('\n'),
+    )
+  })
+
+  // AC2 — the reminder differs from the initial share, and only in the final line. The header
+  // block (every line up to and including the blank separator) is identical.
+  it('shares the header with buildShareMessage and differs only on the last line', () => {
+    const e = match({ notes: 'Bring both kits.' })
+    const reminder = buildReminderMessage(e, 3).split('\n')
+    const share = buildShareMessage(e).split('\n')
+    expect(reminder).toHaveLength(share.length)
+    expect(reminder.slice(0, -1)).toEqual(share.slice(0, -1))
+    expect(reminder[reminder.length - 1]).not.toBe(share[share.length - 1])
+    expect(buildReminderMessage(e, 3)).not.toBe(buildShareMessage(e))
+  })
+
+  // AC10 — one outstanding is "1 still to answer.", no pluralisation, no "1 player".
+  it('does not special-case or pluralise a single outstanding', () => {
+    const lines = buildReminderMessage(match(), 1).split('\n')
+    expect(lines[lines.length - 1]).toBe(`1 still to answer. Yes or no: ${eventUrl(ID)}`)
+  })
+
+  // AC5 — anything but a positive integer throws, so the UI can never emit a nonsense count.
+  it('throws a RangeError for a non-positive-integer count', () => {
+    for (const bad of [0, -1, 1.5, NaN, Infinity]) {
+      expect(() => buildReminderMessage(match(), bad)).toThrow(RangeError)
+    }
+  })
+
+  // AC3 — the function takes a count, never a list, so it cannot name anyone. Even when the notes
+  // a manager typed contain a player's name, nothing new is added: no phone, no token, no @-mention.
+  it('names no player for any input', () => {
+    const msg = buildReminderMessage(
+      match({ title: 'Aoife Byrne', notes: 'Ask Cian about kit' }),
+      5,
+    )
+    expect(msg).not.toMatch(/\+353/)
+    expect(msg).not.toMatch(/\b08\d/)
+    expect(msg).not.toContain('@')
+    // The only names present are the title and notes the manager themselves chose.
+    expect(msg).toBe(
+      [
+        '⚽ Aoife Byrne',
+        'Saturday 14 March, 7.30pm',
+        'Fairview Park pitch 3',
+        'Ask Cian about kit',
+        '',
+        `5 still to answer. Yes or no: ${eventUrl(ID)}`,
+      ].join('\n'),
+    )
+  })
+
+  // Test-plan case — the wa.me encoding of a reminder keeps the hash route, like the share variant.
+  it('survives wa.me encoding with the hash route intact', () => {
+    const url = waMeUrl(buildReminderMessage(match(), 8))
+    expect(url).toContain('%23%2Fevent%2F')
+    expect(url).not.toContain('#')
+  })
+
+  // No trailing newline (D13), matching the share variant.
+  it('has no trailing newline', () => {
+    expect(buildReminderMessage(match(), 8).endsWith('\n')).toBe(false)
   })
 })
 

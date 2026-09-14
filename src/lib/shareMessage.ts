@@ -51,6 +51,24 @@ export function buildShareMessage(event: ShareEvent): string {
   return [...eventHeader(event), `Are you available? ${eventUrl(event.id)}`].join('\n')
 }
 
+/**
+ * The reminder variant (S5.3, D13). Same header block as `buildShareMessage`, reusing
+ * `eventHeader` so the two can never drift, with only the last line changed to the outstanding
+ * count. Takes a `number`, never a list of people, so it is structurally incapable of naming or
+ * @-mentioning a non-responder (Q9, AC3). `outstanding` is the `awaiting` field of `deriveCounts`
+ * (D22); a positive integer is the only valid input, so `0`, negatives and fractions throw rather
+ * than emit a nonsense "0 still to answer" the UI should never have asked for (AC5).
+ */
+export function buildReminderMessage(event: ShareEvent, outstanding: number): string {
+  if (!Number.isInteger(outstanding) || outstanding < 1) {
+    throw new RangeError('buildReminderMessage: outstanding must be a positive integer')
+  }
+  return [
+    ...eventHeader(event),
+    `${String(outstanding)} still to answer. Yes or no: ${eventUrl(event.id)}`,
+  ].join('\n')
+}
+
 /** A `wa.me` link that opens the chat picker with the message prefilled. The body is
  *  percent-encoded because it contains the `#` of the hash route, which an unencoded body is
  *  silently truncated at on a real phone (D52). No `&phone=`: an empty target opens the picker,

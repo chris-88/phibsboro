@@ -5,6 +5,7 @@ import { EventRowMenu } from '@/features/events/components/EventRowMenu'
 import { EventShareControl } from '@/features/events/components/EventShareControl'
 import { EventTypeBadge } from '@/features/events/components/EventTypeBadge'
 import type { EventActionData } from '@/features/events/schema'
+import type { Counts } from '@/lib/counts'
 
 /**
  * The manager event view's header (S4.3): type badge, title, the Dublin date line, location and
@@ -17,10 +18,13 @@ import type { EventActionData } from '@/features/events/schema'
 export function EventHeaderCard({
   event,
   teamName,
+  counts,
   onDeleted,
 }: {
   event: EventActionData
   teamName: string
+  /** S4.3's derived counts, forwarded to the S5.3 reminder control; undefined while loading. */
+  counts?: Counts
   onDeleted: () => void
 }): React.JSX.Element {
   return (
@@ -42,8 +46,9 @@ export function EventHeaderCard({
 
         <EventMeta startsAt={event.starts_at} location={event.location} notes={event.notes} />
 
-        {/* Fills data-slot="share"; renders nothing for a player, a cancelled event or a past one. */}
-        <EventShareControl event={event} />
+        {/* Fills data-slot="share"; renders nothing for a player, a cancelled event or a past one.
+            The reminder button beneath appears only when counts show at least one awaiting (S5.3). */}
+        <EventShareControl event={event} counts={counts} />
       </CardContent>
     </Card>
   )

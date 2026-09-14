@@ -194,6 +194,7 @@ function ManagerEventView({ detail }: { detail: EventDetail }): React.JSX.Elemen
       <EventHeaderCard
         event={eventForMenu}
         teamName={detail.teamName}
+        counts={counts ?? undefined}
         onDeleted={() => void navigate(paths.manage())}
       />
 
