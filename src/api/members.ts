@@ -29,9 +29,21 @@ import type { AppError } from '@/lib/errors'
  * a player out (convenience only). Sorted in `select` so the list and every dialog share one
  * order through the cache — the AC8/gotcha "one query per screen" rule.
  */
-export function useTeamMembers(teamId: string): UseQueryResult<MemberDirectoryRow[]> {
+export interface DirectoryReadOptions {
+  refetchInterval?: number
+  refetchOnWindowFocus?: boolean
+}
+
+export function useTeamMembers(
+  teamId: string,
+  options: DirectoryReadOptions = {},
+): UseQueryResult<MemberDirectoryRow[]> {
   return useQuery({
     queryKey: teamKeys.members(teamId),
+    // Polling is passed by the caller (S4.3's manager event view, D23), not baked in, so the
+    // members admin screen (S6.4) keeps its default of no poll.
+    refetchInterval: options.refetchInterval,
+    refetchOnWindowFocus: options.refetchOnWindowFocus ?? false,
     queryFn: async (): Promise<MemberDirectoryRow[]> => {
       const rows = await callRpc('team_member_directory', { p_team_id: teamId })
       return rows.map((r) => memberDirectoryRowSchema.parse(r))

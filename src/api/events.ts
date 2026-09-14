@@ -10,7 +10,11 @@ import type { PostgrestError } from '@supabase/supabase-js'
 import { z } from 'zod'
 import { eventKeys } from '@/api/queryKeys'
 import { callRpc } from '@/api/rpc'
-import type { AvailabilityResponse } from '@/features/availability/schema'
+import {
+  eventResponseRowSchema,
+  type AvailabilityResponse,
+  type EventResponseRow,
+} from '@/features/availability/schema'
 import { useSession } from '@/features/auth/session-context'
 import { useSignedInUser } from '@/features/auth/use-current-user'
 import {
@@ -123,6 +127,44 @@ export function useEventDetail(eventId: string | undefined): UseQueryResult<Even
   const session = useSession()
   const userId = session.status === 'signedIn' ? session.session.user.id : undefined
   return useQuery(eventDetailOptions(eventId, userId))
+}
+
+/** The polling options S4.3 passes so its two live reads refresh without the player screens
+ *  inheriting a 30-second poll (D23). `refetchIntervalInBackground` stays false by default, so
+ *  the poll already stops while the tab is hidden. */
+export interface LiveReadOptions {
+  refetchInterval?: number
+  refetchOnWindowFocus?: boolean
+}
+
+/**
+ * Every response row for one event (S4.3). The manager read policy is scoped by the owning
+ * event's team (D33), so a leaver's row comes back here and is filtered out by `deriveCounts()`,
+ * not by the database. Read-only; this hook writes nothing. Polling is passed by the screen, not
+ * baked in, so the same key is not force-polled from the player side. Reads under
+ * `eventKeys.responses(eventId)`, which sits beneath `eventKeys.all` — the prefix S3.1's response
+ * mutation invalidates, which is what refreshes these counts the instant the manager themselves
+ * answers (AC7).
+ */
+export function useEventResponses(
+  eventId: string | undefined,
+  options: LiveReadOptions = {},
+): UseQueryResult<EventResponseRow[]> {
+  return useQuery({
+    queryKey: eventKeys.responses(eventId ?? ''),
+    enabled: Boolean(eventId),
+    refetchInterval: options.refetchInterval,
+    refetchOnWindowFocus: options.refetchOnWindowFocus ?? false,
+    queryFn: async (): Promise<EventResponseRow[]> => {
+      if (!eventId) return []
+      const { data, error } = await supabase
+        .from('event_responses')
+        .select('event_id, user_id, response, updated_at')
+        .eq('event_id', eventId)
+      if (error) throw error
+      return z.array(eventResponseRowSchema).parse(data)
+    },
+  })
 }
 
 // —— The player's upcoming events (S3.1, and the S3.2 list) ——————————————————————

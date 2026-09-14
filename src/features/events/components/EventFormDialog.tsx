@@ -10,11 +10,11 @@ import {
 import { Label } from '@/components/ui/label'
 import { eventWriteErrorMessage, useUpdateEvent } from '@/api/events'
 import { EventForm } from '@/features/events/components/EventForm'
-import type { EventFormValues, EventRow } from '@/features/events/schema'
+import type { EventActionData, EventFormValues } from '@/features/events/schema'
 import { utcIsoToDublinParts } from '@/lib/time'
 
 export interface EventFormDialogProps {
-  event: EventRow
+  event: EventActionData
   /** The event's team name, shown read-only: `team_id` is fixed at creation (AC2). */
   teamName: string
   open: boolean

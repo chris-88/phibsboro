@@ -13,10 +13,10 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useDeleteEvent } from '@/api/events'
-import type { EventRow } from '@/features/events/schema'
+import type { EventActionData } from '@/features/events/schema'
 
 export interface DeleteEventDialogProps {
-  event: EventRow
+  event: EventActionData
   open: boolean
   onOpenChange: (open: boolean) => void
   /** Called after a successful delete, so the event view can navigate back to `/manage`. The list

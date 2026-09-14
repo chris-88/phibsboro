@@ -122,7 +122,8 @@ describe('resolving routes (AC1, AC15)', () => {
     // /event/:id is a real screen from S3.3 and /join/:token from S2.4 — no longer placeholders;
     // EventDetailScreen, JoinByTokenScreen and the routes coverage below assert them directly.
     ['/history', 'S3.5'],
-    [`/manage/event/${UUID}`, 'S4.3'],
+    // /manage/event/:id is a real screen from S4.3 — no longer a placeholder; the real-screen
+    // case below asserts it directly.
     // /manage and /manage/event/new are real screens from S4.1 — no longer placeholders; the
     // new-event and admit tests below and manage-screen behaviour cover them. /login is a real
     // screen from S2.2, /register from S2.1, /admin from S6.1 and /manage/team/:teamId/members
@@ -136,11 +137,6 @@ describe('resolving routes (AC1, AC15)', () => {
     expect(card).toHaveTextContent(`Story ${story} builds this screen`)
   })
 
-  it('shows the segment value on parameterised routes', async () => {
-    mount(`/manage/event/${UUID}`)
-    expect(await placeholder()).toHaveTextContent(`id: ${UUID}`)
-  })
-
   it('renders the new-event screen for /manage/event/new, not the edit screen with id "new" (AC2)', async () => {
     mount('/manage/event/new')
     // The real S4.1 new-event screen renders (its empty state, since the admin fixture manages no
@@ -149,11 +145,13 @@ describe('resolving routes (AC1, AC15)', () => {
     expect(screen.queryByTestId('route-placeholder')).not.toBeInTheDocument()
   })
 
-  it('still routes a real id to the manage-event screen (AC2)', async () => {
+  it('routes a real id to the S4.3 manager event screen, not a placeholder (AC2)', async () => {
     mount(`/manage/event/${UUID}`)
-    const card = await placeholder()
-    expect(card).toHaveTextContent('Manage event')
-    expect(card).toHaveTextContent(`id: ${UUID}`)
+    // The real S4.3 screen mounts (its loading skeleton, since this suite provides no session, so
+    // the single-event read stays disabled) — not the old placeholder. Its count skeleton confirms
+    // it — the S4.3 screen is the only one that renders a "Loading counts" region.
+    expect(await screen.findByLabelText('Loading counts')).toBeInTheDocument()
+    expect(screen.queryByTestId('route-placeholder')).not.toBeInTheDocument()
   })
 })
 

@@ -11,10 +11,10 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { eventWriteErrorMessage, useSetEventStatus } from '@/api/events'
-import type { EventRow } from '@/features/events/schema'
+import type { EventActionData } from '@/features/events/schema'
 
 export interface CancelEventDialogProps {
-  event: EventRow
+  event: EventActionData
   /** The target status. `cancelled` is cancel; `scheduled` is reinstate. The two differ only in
    *  copy and target, so one component serves both (S4.2). */
   to: 'cancelled' | 'scheduled'

@@ -42,6 +42,18 @@ export const eventRowSchema = z.object({
 export type EventRow = z.infer<typeof eventRowSchema>
 
 /**
+ * The columns the S4.2 action components (the overflow menu and its edit/cancel/delete dialogs)
+ * actually read. Narrowed from `EventRow` so those components can be mounted on S4.3's manager
+ * event view, which reuses S3.3's single-event read — a projection that omits the four audit
+ * columns (`series_id`, `created_by`, `created_at`, `updated_at`) none of them touch. A full
+ * `EventRow` is assignable to it, so the `/manage` list keeps passing its rows unchanged.
+ */
+export type EventActionData = Pick<
+  EventRow,
+  'id' | 'team_id' | 'type' | 'title' | 'location' | 'notes' | 'starts_at' | 'status'
+>
+
+/**
  * The member read for the event detail screen (S3.3): the event columns, the team name from an
  * inner join, and the caller's own response embedded. The embed is filtered to `auth.uid()` in
  * the query, so `.max(1)` is not decoration — it fails loudly in a test if that filter is ever

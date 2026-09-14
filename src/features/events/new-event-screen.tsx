@@ -107,9 +107,9 @@ function NewEventPanel({ teamOptions }: { teamOptions: EventTeamOption[] }): Rea
     setFormError(null)
     create.mutate(values, {
       onSuccess: (row) => {
-        // S4.3 later moves this to /manage/event/{id}; until then, back to the list (AC4).
+        // Lands on the new event's manager view (S4.3 AC14), not back on the list.
         toast(`${row.title} added.`)
-        void navigate(paths.manage(), { replace: true })
+        void navigate(paths.manageEvent(row.id), { replace: true })
       },
       onError: (error) => {
         setFormError(eventWriteErrorMessage(error))

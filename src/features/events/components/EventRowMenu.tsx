@@ -12,13 +12,13 @@ import { useCurrentUser } from '@/features/auth/use-current-user'
 import { CancelEventDialog } from '@/features/events/components/CancelEventDialog'
 import { DeleteEventDialog } from '@/features/events/components/DeleteEventDialog'
 import { EventFormDialog } from '@/features/events/components/EventFormDialog'
-import type { EventRow } from '@/features/events/schema'
+import type { EventActionData } from '@/features/events/schema'
 import { serverNow } from '@/lib/serverClock'
 
 type OpenDialog = 'edit' | 'cancel' | 'reinstate' | 'delete' | null
 
 export interface EventRowMenuProps {
-  event: EventRow
+  event: EventActionData
   /** The event's team name, for the read-only Team field in the edit dialog (AC2). */
   teamName: string
   /** Called after a successful delete, forwarded to the delete dialog (S4.3 handover). */
