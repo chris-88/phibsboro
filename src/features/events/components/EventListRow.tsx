@@ -4,6 +4,7 @@ import { EventTypeBadge } from '@/features/events/components/EventTypeBadge'
 import type { EventRow } from '@/features/events/schema'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
+import { locationDisplay } from '@/lib/home-venue'
 import { paths } from '@/lib/paths'
 import { formatEventTime } from '@/lib/time'
 
@@ -42,7 +43,7 @@ export function EventListRow({
             {event.title}
           </p>
           <p className="text-sm text-muted-foreground">
-            {formatEventTime(event.starts_at, 'short')} · {event.location}
+            {formatEventTime(event.starts_at, 'short')} · {locationDisplay(event.location).label}
           </p>
         </Link>
         <EventRowMenu event={event} teamName={teamName} />

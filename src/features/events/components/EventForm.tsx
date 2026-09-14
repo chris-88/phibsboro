@@ -22,6 +22,7 @@ import {
 } from '@/features/events/schema'
 import type { EventType } from '@/features/events/schema'
 import { matchTitle } from '@/features/events/match-title'
+import { locationDisplay, locationForMatchSide } from '@/lib/home-venue'
 import { serverNow } from '@/lib/serverClock'
 import { utcIsoToDublinParts } from '@/lib/time'
 
@@ -127,6 +128,24 @@ export function EventForm({
   useEffect(() => {
     if (isMatch) setValue('title', derivedTitle, { shouldValidate: true })
   }, [isMatch, derivedTitle, setValue])
+
+  // Home-venue default (S8.4, V5, AC1). A home match with no location defaults to the Bogies maps
+  // link; toggling to away — or off a match entirely — clears that auto default so a link can be
+  // pasted. `locationForMatchSide` leaves any manager-typed value alone, so this only ever fills a
+  // blank or clears the exact default; the field stays editable.
+  const isHomeMatch = isMatch && homeAway === 'home'
+  useEffect(() => {
+    const current = getValues('location')
+    const next = locationForMatchSide(current, isHomeMatch)
+    if (next !== current)
+      setValue('location', next, { shouldValidate: next !== '', shouldDirty: true })
+  }, [isHomeMatch, getValues, setValue])
+
+  // The live label a URL location will show on the event screens ("Bogies" for the home ground,
+  // "Open in Maps" otherwise); null for plain text or an empty field, so no hint is shown.
+  const location = useWatch({ control, name: 'location' })
+  const locationShown = locationDisplay(location)
+  const locationHint = locationShown.href !== undefined ? locationShown.label : null
 
   const submit = handleSubmit((values) => {
     if (seriesOn && onSubmitSeries) {
@@ -393,9 +412,14 @@ export function EventForm({
         <Input
           id="event-location"
           disabled={submitting}
+          placeholder={isMatch && homeAway === 'away' ? 'Paste a Google Maps link' : undefined}
           aria-invalid={errors.location ? true : undefined}
           {...register('location')}
         />
+        {/* A URL location links on every screen (S8.4); confirm which one the manager pasted. */}
+        {locationHint !== null && (
+          <p className="text-sm text-muted-foreground">Opens as: {locationHint}</p>
+        )}
         <FieldError errors={errors.location ? [errors.location] : undefined} />
       </Field>
 

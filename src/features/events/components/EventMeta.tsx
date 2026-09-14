@@ -1,3 +1,4 @@
+import { LocationText } from '@/features/events/components/LocationText'
 import { formatEventTime } from '@/lib/time'
 
 export interface EventMetaProps {
@@ -28,7 +29,7 @@ export function EventMeta({
           Kick-off {formatEventTime(startsAt, 'time')} · Meet {formatEventTime(meetAt, 'time')}
         </p>
       )}
-      <p className="text-sm text-muted-foreground">{location}</p>
+      <LocationText location={location} className="text-sm text-muted-foreground" />
       {notes !== null && notes !== undefined && notes !== '' && (
         <p className="text-sm whitespace-pre-line text-foreground">{notes}</p>
       )}
