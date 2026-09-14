@@ -58,8 +58,8 @@ import { routeTable, routes } from '@/routes'
 const UUID = '9f1c0b8e-0000-4000-8000-000000000000'
 
 // The real home screen (S3.1) mounts a TanStack Query hook, so the route table now needs a client
-// in context — the admin fixture has no memberships, so `/` settles on its no-team state and fires
-// no request, but the hook is still called.
+// in context — the admin fixture has no administrable teams here, so `/`'s events reads stay
+// disabled and it settles on its loading skeleton, but the hook is still called.
 const mount = (initial: string) => {
   const router = createMemoryRouter(routes, { initialEntries: [initial] })
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
@@ -71,8 +71,10 @@ const mount = (initial: string) => {
   return router
 }
 
-// The team-less admin fixture lands the real home screen on its no-team empty state.
-const HOME_NO_TEAM = "You're not on a team yet."
+// The team-less admin fixture no longer sees the no-team state (S11.2 — an admin always gets the
+// all-teams calendar); with no administrable teams in this backend-less harness the events reads
+// stay disabled, so the real home screen sits on its loading skeleton. That is the landmark.
+const findHome = () => screen.findByRole('status', { name: 'Loading' })
 
 describe('route table (D34)', () => {
   it('lists every D34 route exactly once, plus the catch-all', () => {
@@ -178,7 +180,7 @@ describe('chrome per route (AC3, AC4)', () => {
 
   it('shows the bottom nav on /', async () => {
     mount('/')
-    await screen.findByText(HOME_NO_TEAM)
+    await findHome()
     expect(nav()).toBeInTheDocument()
   })
 
@@ -215,7 +217,7 @@ describe('chrome per route (AC3, AC4)', () => {
 describe('document title (AC13)', () => {
   it('changes per route and always carries the one suffix', async () => {
     const router = mount('/')
-    await screen.findByText(HOME_NO_TEAM)
+    await findHome()
     expect(document.title).toBe(`Home${TITLE_SUFFIX}`)
 
     await act(() => router.navigate('/history'))

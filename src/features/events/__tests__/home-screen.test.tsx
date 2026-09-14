@@ -9,6 +9,7 @@ import type { Team } from '@/features/teams/schema'
 import { TEAM_PALETTE } from '@/features/teams/palette'
 import { SessionContext, type SessionState } from '@/features/auth/session-context'
 import type { CurrentUser, TeamMembership } from '@/features/auth/use-current-user'
+import { todayDayKey } from '@/features/events/calendar-month'
 
 // The one write the buttons make, controllable per test (mirrors the S3.3 buttons test).
 const upsert = vi.fn<(...args: unknown[]) => Promise<{ error: unknown }>>()
@@ -27,18 +28,27 @@ const hoisted = vi.hoisted(() => ({
   upcoming: { value: undefined as unknown as QueryLike<UpcomingEvent[]> },
   month: { value: undefined as unknown as QueryLike<UpcomingEvent[]> },
   teams: { value: undefined as unknown as QueryLike<Team[]> },
+  counts: { value: undefined as unknown as QueryLike<Map<string, number>> },
   memberships: { value: [] as TeamMembership[] },
+  isAdmin: { value: false },
+  administrableTeams: { value: [] as Team[] },
 }))
 
 vi.mock('@/api/events', () => ({
   useUpcomingEvents: () => hoisted.upcoming.value,
   useMonthEvents: () => hoisted.month.value,
+  useMonthAvailableCounts: () => hoisted.counts.value,
 }))
 vi.mock('@/api/teams', () => ({ useTeams: () => hoisted.teams.value }))
 vi.mock('@/features/auth/use-current-user', () => ({
-  useSignedInUser: (): Pick<CurrentUser, 'id' | 'memberships'> => ({
+  useSignedInUser: (): Pick<
+    CurrentUser,
+    'id' | 'memberships' | 'isAdmin' | 'administrableTeams'
+  > => ({
     id: USER_ID,
     memberships: hoisted.memberships.value,
+    isAdmin: hoisted.isAdmin.value,
+    administrableTeams: hoisted.administrableTeams.value,
   }),
 }))
 
@@ -116,6 +126,7 @@ function renderHome(): void {
           <Routes>
             <Route path="/" element={<HomeScreen />} />
             <Route path="/event/:id" element={<div>event page</div>} />
+            <Route path="/manage/event/:id" element={<div>manage page</div>} />
           </Routes>
         </MemoryRouter>
       </SessionContext.Provider>
@@ -126,9 +137,12 @@ function renderHome(): void {
 beforeEach(() => {
   upsert.mockReset()
   hoisted.memberships.value = [membership(TEAM_ID, 'Firsts')]
+  hoisted.isAdmin.value = false
+  hoisted.administrableTeams.value = []
   hoisted.upcoming.value = settled([upcoming()])
   hoisted.month.value = settled([upcoming()])
   hoisted.teams.value = settled([team(TEAM_ID, TEAM_PALETTE[0].value)])
+  hoisted.counts.value = settled(new Map<string, number>())
 })
 
 describe('HomeScreen (S10.2) — layout', () => {
@@ -360,5 +374,138 @@ describe('the day-card optimistic write against a month cache (AC6)', () => {
     })
     expect(yes()).toHaveAttribute('aria-pressed', 'true')
     expect(no()).toHaveAttribute('aria-pressed', 'false')
+  })
+})
+
+describe('HomeScreen (S11.2) — admin god mode', () => {
+  // A pure admin has no top card, so the calendar defaults to today: place events on that exact
+  // Dublin day (noon UTC → same Dublin day) so they land on the default selection without a tap.
+  const todayIso = `${todayDayKey()}T12:00:00.000Z`
+
+  // The seeded admin: is_admin, no memberships. Both active teams administrable.
+  function asAdmin(): void {
+    hoisted.isAdmin.value = true
+    hoisted.memberships.value = []
+    hoisted.administrableTeams.value = [
+      team(TEAM_ID, TEAM_PALETTE[0].value),
+      team(TEAM_2_ID, TEAM_PALETTE[1].value),
+    ]
+    hoisted.teams.value = settled([
+      team(TEAM_ID, TEAM_PALETTE[0].value),
+      team(TEAM_2_ID, TEAM_PALETTE[1].value),
+    ])
+  }
+
+  it('a membership-less admin gets the all-teams calendar, never the no-team state (AC1)', () => {
+    asAdmin()
+    hoisted.upcoming.value = settled([])
+    hoisted.month.value = settled([
+      upcoming({ id: 'a', teamId: TEAM_ID, teamName: 'Firsts', startsAt: todayIso }),
+      upcoming({ id: 'b', teamId: TEAM_2_ID, teamName: 'Seconds', startsAt: todayIso }),
+    ])
+    renderHome()
+    expect(screen.queryByText("You're not on a team yet.")).not.toBeInTheDocument()
+    expect(screen.getByRole('grid')).toBeInTheDocument()
+    // Both teams' dots are on the selected day.
+    const grid = screen.getByRole('grid')
+    const styles = Array.from(grid.querySelectorAll('[style*="background-color"]')).map((el) =>
+      el.getAttribute('style'),
+    )
+    expect(styles.some((s) => s?.includes('rgb(30, 64, 175)'))).toBe(true)
+    expect(styles.some((s) => s?.includes('rgb(185, 28, 28)'))).toBe(true)
+  })
+
+  it('a manage row shows the available count and links to the manager view, no pill (AC2)', () => {
+    asAdmin()
+    hoisted.upcoming.value = settled([])
+    hoisted.month.value = settled([
+      upcoming({
+        id: 'mg',
+        teamId: TEAM_ID,
+        teamName: 'Firsts',
+        title: 'Manage me',
+        startsAt: todayIso,
+      }),
+    ])
+    hoisted.counts.value = settled(new Map([['mg', 6]]))
+    renderHome()
+    const row = screen.getByRole('heading', { name: 'Manage me' }).closest('a')
+    expect(row).not.toBeNull()
+    expect(row).toHaveAttribute('href', expect.stringContaining('/manage/event/mg'))
+    expect(within(row as HTMLElement).getByText('6 available')).toBeInTheDocument()
+    expect(within(row as HTMLElement).queryByText('Awaiting')).not.toBeInTheDocument()
+    expect(within(row as HTMLElement).queryByText('Available')).not.toBeInTheDocument()
+  })
+
+  it('an own-team event stays the player row for a player-admin (AC3)', () => {
+    // Admin who also plays for Firsts: that team's rows are the normal player row.
+    hoisted.isAdmin.value = true
+    hoisted.memberships.value = [membership(TEAM_ID, 'Firsts')]
+    hoisted.administrableTeams.value = [
+      team(TEAM_ID, TEAM_PALETTE[0].value),
+      team(TEAM_2_ID, TEAM_PALETTE[1].value),
+    ]
+    hoisted.teams.value = settled([
+      team(TEAM_ID, TEAM_PALETTE[0].value),
+      team(TEAM_2_ID, TEAM_PALETTE[1].value),
+    ])
+    // Unanswered, so `next` lands the selection on the event's day and the row renders. The top
+    // card also shows this event, so select the day row by its anchor rather than by heading.
+    hoisted.upcoming.value = settled([upcoming({ id: 'own', title: 'My game' })])
+    hoisted.month.value = settled([upcoming({ id: 'own', title: 'My game' })])
+    renderHome()
+    // No manage row for an own team; the day row is the player row, carrying the player's pill and
+    // linking to the player detail (the top card links there too — the pill picks out the day row).
+    const links = screen.getAllByRole('link')
+    expect(links.some((a) => a.getAttribute('href')?.includes('/manage/event/own'))).toBe(false)
+    const dayRow = links.find(
+      (a) =>
+        a.getAttribute('href')?.includes('/event/own') &&
+        within(a).queryByText('Awaiting') !== null,
+    )
+    expect(dayRow).toBeDefined()
+  })
+
+  it('the top card is driven by memberships only — a pure admin gets none (AC4)', () => {
+    asAdmin()
+    // Every all-teams event is unanswered, but the admin is on no team, so none is a personal card.
+    hoisted.upcoming.value = settled([
+      upcoming({ id: 'a', teamId: TEAM_ID, myResponse: null }),
+      upcoming({ id: 'b', teamId: TEAM_2_ID, myResponse: null }),
+    ])
+    hoisted.month.value = settled([upcoming({ id: 'a', teamId: TEAM_ID })])
+    renderHome()
+    expect(screen.queryByRole('button', { name: 'Yes' })).not.toBeInTheDocument()
+    expect(screen.getByRole('grid')).toBeInTheDocument()
+  })
+
+  it('a player-admin still gets the top card for their own unanswered event (AC4)', () => {
+    hoisted.isAdmin.value = true
+    hoisted.memberships.value = [membership(TEAM_ID, 'Firsts')]
+    hoisted.administrableTeams.value = [
+      team(TEAM_ID, TEAM_PALETTE[0].value),
+      team(TEAM_2_ID, TEAM_PALETTE[1].value),
+    ]
+    hoisted.teams.value = settled([
+      team(TEAM_ID, TEAM_PALETTE[0].value),
+      team(TEAM_2_ID, TEAM_PALETTE[1].value),
+    ])
+    // An own unanswered event, plus another team's event the admin does not respond to.
+    hoisted.upcoming.value = settled([
+      upcoming({ id: 'own', teamId: TEAM_ID, title: 'Answer me', myResponse: null }),
+      upcoming({ id: 'other', teamId: TEAM_2_ID, myResponse: null }),
+    ])
+    hoisted.month.value = settled([upcoming({ id: 'own', teamId: TEAM_ID, title: 'Answer me' })])
+    renderHome()
+    expect(screen.getByRole('button', { name: 'Yes' })).toBeInTheDocument()
+  })
+
+  it('empty month reads "No events this month." for an admin (AC6)', () => {
+    asAdmin()
+    hoisted.upcoming.value = settled([])
+    hoisted.month.value = settled([])
+    renderHome()
+    expect(screen.getByText('No events this month.')).toBeInTheDocument()
+    expect(screen.queryByText("You're not on a team yet.")).not.toBeInTheDocument()
   })
 })

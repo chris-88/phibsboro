@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react'
-import { useMonthEvents, useUpcomingEvents } from '@/api/events'
+import { useMonthAvailableCounts, useMonthEvents, useUpcomingEvents } from '@/api/events'
 import { useTeams } from '@/api/teams'
 import { EmptyState, ErrorState } from '@/components/states'
 import { Calendar, CalendarDayButton } from '@/components/ui/calendar'
@@ -24,8 +24,9 @@ import { pickNextEvent } from '@/features/events/pick-next-event'
 import { TEAM_COLOUR_DEFAULT } from '@/features/teams/palette'
 import { formatEventTime } from '@/lib/time'
 
-/** The five states the calendar home resolves to, one discriminated value so S7.1's audit reads
- *  them off a single switch (matches the pre-calendar home's shape). */
+/** The states the calendar home resolves to, one discriminated value so S7.1's audit reads them
+ *  off a single switch (matches the pre-calendar home's shape). `noTeam` never applies to an admin
+ *  (S11.2) — a membership-less admin still gets the all-teams calendar. */
 type HomeState = 'noTeam' | 'loading' | 'error' | 'ready'
 
 /**
@@ -40,11 +41,25 @@ type HomeState = 'noTeam' | 'loading' | 'error' | 'ready'
  * opens the app lands on their next fixture's day rather than an empty today.
  */
 export default function HomeScreen(): React.JSX.Element {
-  const { memberships } = useSignedInUser()
+  const { memberships, isAdmin, administrableTeams } = useSignedInUser()
   const multiTeam = memberships.length > 1
+  // An admin sees every active team's events (V14, S11.1), so a team name is worth showing whenever
+  // more than one team is in view; a player still only sees their own teams.
+  const listShowTeamName = isAdmin ? administrableTeams.length > 1 : multiTeam
+  // The teams the viewer plays for — a manage row is any event on a team NOT in this set, for an
+  // admin (S11.2). For a player this is all their teams, so no event is ever a manage row.
+  const memberTeamIds = useMemo(() => new Set(memberships.map((m) => m.teamId)), [memberships])
 
   const upcoming = useUpcomingEvents()
-  const next = upcoming.data ? pickNextEvent(upcoming.data) : null
+  // The awaiting-only top card (V13) is driven by the admin's own memberships, never by teams they
+  // merely administer (S11.2 AC4): an admin's all-teams `upcoming` is filtered to member teams
+  // before picking. For a player this filter is the identity — `upcoming` is already their teams —
+  // so the player path is byte-for-byte unchanged.
+  const myUpcoming = useMemo(
+    () => (upcoming.data ?? []).filter((e) => memberTeamIds.has(e.teamId)),
+    [upcoming.data, memberTeamIds],
+  )
+  const next = pickNextEvent(myUpcoming)
 
   // The selected day and visible month are UI state, held as user overrides (null until the player
   // taps a day or pages a month). The default is derived, not stored, so no effect writes state:
@@ -69,6 +84,16 @@ export default function HomeScreen(): React.JSX.Element {
   const monthEvents = useMemo(() => month.data ?? [], [month.data])
   const byDay = useMemo(() => groupEventsByDay(monthEvents), [monthEvents])
 
+  // The available-response counts for the admin's manage rows (S11.2). Admin-only: disabled for a
+  // player, so no extra request fires and the player path is unchanged. `null` while it loads,
+  // which `DayEventCard` renders as a plain "Manage" affordance until the count arrives.
+  const monthEventIds = useMemo(() => monthEvents.map((e) => e.id), [monthEvents])
+  const counts = useMonthAvailableCounts(monthKey, monthEventIds, isAdmin)
+  const availableCountFor = useCallback(
+    (eventId: string): number | null => (counts.data ? (counts.data.get(eventId) ?? 0) : null),
+    [counts.data],
+  )
+
   // The day cell: the shared calendar button plus this day's dots. Memoised on its inputs so react
   // -day-picker does not remount every cell each render.
   const DayButton = useMemo(() => {
@@ -86,7 +111,7 @@ export default function HomeScreen(): React.JSX.Element {
   }, [byDay, colourForTeam])
 
   const state: HomeState =
-    memberships.length === 0
+    !isAdmin && memberships.length === 0
       ? 'noTeam'
       : upcoming.isError || month.isError || teams.isError
         ? 'error'
@@ -157,14 +182,27 @@ export default function HomeScreen(): React.JSX.Element {
             {formatEventTime(dateOfDayKey(selectedKey).toISOString(), 'day')}
           </h2>
           {monthEvents.length === 0 ? (
-            <p className="px-1 text-sm text-muted-foreground">Nothing this month.</p>
+            <p className="px-1 text-sm text-muted-foreground">
+              {isAdmin ? 'No events this month.' : 'Nothing this month.'}
+            </p>
           ) : selectedEvents.length === 0 ? (
             <p className="px-1 text-sm text-muted-foreground">Nothing on this day.</p>
           ) : (
             <div className="flex flex-col gap-2">
-              {selectedEvents.map((event) => (
-                <DayEventCard key={event.id} event={event} showTeamName={multiTeam} />
-              ))}
+              {selectedEvents.map((event) => {
+                // An admin viewing a team they don't play for gets a manage row (counts →
+                // manager view); an own-team event, or any player's event, stays the player row.
+                const manage = isAdmin && !memberTeamIds.has(event.teamId)
+                return (
+                  <DayEventCard
+                    key={event.id}
+                    event={event}
+                    showTeamName={listShowTeamName}
+                    manage={manage}
+                    availableCount={manage ? availableCountFor(event.id) : undefined}
+                  />
+                )
+              })}
             </div>
           )}
         </div>

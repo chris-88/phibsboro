@@ -21,6 +21,10 @@ export const eventKeys = {
   /** The prefix over every month window a user holds, for the optimistic response write to patch
    *  each cached month in place (S10.2 AC6), the way it patches `upcoming`. */
   months: (userId: string) => ['events', 'month', userId] as const,
+  /** The admin Home's per-event available counts for one month window (S11.2): the manage-row
+   *  summary ("N available"). Under the `events` prefix so a response change invalidates it too. */
+  availableCounts: (userId: string, monthKey: string) =>
+    ['events', 'availableCounts', userId, monthKey] as const,
   list: (teamId: string) => ['events', 'list', teamId] as const,
   responses: (eventId: string) => ['events', 'responses', eventId] as const,
   attendance: (eventId: string) => ['events', 'attendance', eventId] as const,

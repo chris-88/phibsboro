@@ -332,6 +332,43 @@ export function useMonthEvents(monthKey: string): UseQueryResult<UpcomingEvent[]
   })
 }
 
+/**
+ * The available-response count per event for one month window, for the admin Home's manage rows
+ * (S11.2). One batched read — `event_responses` for the month's event ids where `response =
+ * 'available'` — counted client-side into a `Map<eventId, count>`, so the admin's day list shows
+ * "N available" without a query per row. Admin-only: `enabled` is `false` for a player, so the
+ * player Home fires no extra request and stays byte-for-byte unchanged. A team's rows are
+ * readable by an admin under RLS (V14). Keyed beneath `eventKeys.all`, so S3.1's response
+ * mutation invalidation refreshes the counts along with everything else.
+ */
+export function useMonthAvailableCounts(
+  monthKey: string,
+  eventIds: readonly string[],
+  enabled: boolean,
+): UseQueryResult<Map<string, number>, PostgrestError> {
+  const { id: userId } = useSignedInUser()
+  return useQuery<Map<string, number>, PostgrestError>({
+    queryKey: eventKeys.availableCounts(userId, monthKey),
+    enabled: enabled && eventIds.length > 0,
+    staleTime: 30_000,
+    refetchOnWindowFocus: true,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('event_responses')
+        .select('event_id')
+        .in('event_id', eventIds as string[])
+        .eq('response', 'available')
+      if (error) throw error
+      const rows = z.array(z.object({ event_id: z.string() })).parse(data)
+      const counts = new Map<string, number>()
+      for (const row of rows) {
+        counts.set(row.event_id, (counts.get(row.event_id) ?? 0) + 1)
+      }
+      return counts
+    },
+  })
+}
+
 // —— The manager list and the create write (S4.1) ——————————————————————————————
 
 /**
