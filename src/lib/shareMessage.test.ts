@@ -259,7 +259,7 @@ describe('buildMatchShareMessage (S9.3)', () => {
     expect(buildMatchShareMessage(matchEvent(), 'Firsts', SQUAD)).toBe(
       [
         'Firsts vs Kilbarrack',
-        'KO: 7.30pm | Meet: 6.45pm',
+        'KO: 19:30 | Meet: 18:45',
         'Home Game: Bogies',
         '',
         'Squad:',
@@ -287,7 +287,7 @@ describe('buildMatchShareMessage (S9.3)', () => {
   it('stops after the venue line when no squad is picked', () => {
     const msg = buildMatchShareMessage(matchEvent(), 'Firsts', [])
     expect(msg).toBe(
-      ['Firsts vs Kilbarrack', 'KO: 7.30pm | Meet: 6.45pm', 'Home Game: Bogies'].join('\n'),
+      ['Firsts vs Kilbarrack', 'KO: 19:30 | Meet: 18:45', 'Home Game: Bogies'].join('\n'),
     )
     expect(msg).not.toContain('Squad:')
     expect(msg).not.toContain('http')
@@ -297,7 +297,7 @@ describe('buildMatchShareMessage (S9.3)', () => {
   // AC4 — meet_at null: the second line is just "KO: …" with no "| Meet:".
   it('omits the Meet clause when meet_at is null', () => {
     const msg = buildMatchShareMessage(matchEvent({ meet_at: null }), 'Firsts', SQUAD)
-    expect(msg.split('\n')[1]).toBe('KO: 7.30pm')
+    expect(msg.split('\n')[1]).toBe('KO: 19:30')
     expect(msg).not.toContain('Meet:')
   })
 
@@ -310,14 +310,14 @@ describe('buildMatchShareMessage (S9.3)', () => {
       'Firsts',
       [],
     )
-    expect(winter.split('\n')[1]).toBe('KO: 7.30pm | Meet: 6.45pm')
+    expect(winter.split('\n')[1]).toBe('KO: 19:30 | Meet: 18:45')
     // Summer: 18:30 UTC in July is 7.30pm IST (+1).
     const summer = buildMatchShareMessage(
       matchEvent({ starts_at: '2026-07-18T18:30:00Z', meet_at: '2026-07-18T17:45:00Z' }),
       'Firsts',
       [],
     )
-    expect(summer.split('\n')[1]).toBe('KO: 7.30pm | Meet: 6.45pm')
+    expect(summer.split('\n')[1]).toBe('KO: 19:30 | Meet: 18:45')
   })
 
   // The home label comes from the one HOME_VENUE constant, and team/opponent are trimmed.

@@ -12,7 +12,7 @@
  * WhatsApp message must read the same on every phone.
  */
 
-export type EventTimeStyle = 'share' | 'short' | 'time'
+export type EventTimeStyle = 'share' | 'short' | 'time' | 'clock24'
 
 const DUBLIN = 'Europe/Dublin'
 
@@ -79,6 +79,11 @@ function clock(hour: number, minute: number): string {
     : `${String(h)}.${String(minute).padStart(2, '0')}${suffix}`
 }
 
+/** 24-hour "HH:MM" — how the club states match kick-off and meet times (S9.3, the club message). */
+function clock24(hour: number, minute: number): string {
+  return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`
+}
+
 /** The current year on a Dublin calendar, not the runner's. */
 function currentDublinYear(): number {
   return dublinWallClock(new Date()).year
@@ -99,6 +104,8 @@ export function formatEventTime(iso: string, style: EventTimeStyle): string {
   switch (style) {
     case 'time':
       return time
+    case 'clock24':
+      return clock24(w.hour, w.minute)
     case 'short':
       return `${dayName.slice(0, 3)} ${String(w.day)} ${monthName.slice(0, 3)}, ${time}`
     case 'share': {

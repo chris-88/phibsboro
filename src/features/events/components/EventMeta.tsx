@@ -14,7 +14,7 @@ export interface EventMetaProps {
 
 /** The date line, the location, and — on the member view only — the notes. The one date on this
  *  screen, always through `formatEventTime` (D35, AC3). A match with a meet time gains a
- *  "Kick-off … · Meet …" line, both in Dublin through the `'time'` variant (S8.3, AC4). */
+ *  "Kick-off … · Meet …" line, both in Dublin, 24-hour ('clock24') (S8.3, AC4). */
 export function EventMeta({
   startsAt,
   location,
@@ -26,7 +26,8 @@ export function EventMeta({
       <p className="text-base font-medium text-foreground">{formatEventTime(startsAt, 'share')}</p>
       {meetAt !== null && meetAt !== undefined && (
         <p className="text-sm text-muted-foreground">
-          Kick-off {formatEventTime(startsAt, 'time')} · Meet {formatEventTime(meetAt, 'time')}
+          Kick-off {formatEventTime(startsAt, 'clock24')} · Meet{' '}
+          {formatEventTime(meetAt, 'clock24')}
         </p>
       )}
       <LocationText location={location} className="text-sm text-muted-foreground" />

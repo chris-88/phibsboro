@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { EventActionData } from '@/features/events/schema'
+import { HOME_VENUE } from '@/lib/home-venue'
 
 // serverNow is fixed so the past/future gate (AC8) is deterministic; useCurrentUser is stubbed so
 // the role gate (AC9) can be driven from each test. Both are mocked before the component imports.
@@ -101,7 +102,7 @@ describe('EventShareControl', () => {
       title: 'Firsts v Kilbarrack',
       opponent: 'Kilbarrack',
       home_away: 'home',
-      location: 'https://maps.app.goo.gl/SD1NJmBYwLqz8Z7M6',
+      location: HOME_VENUE.mapsUrl,
     }
     render(<EventShareControl event={match} teamName="Firsts" />)
     const href = screen.getByRole('link', { name: 'Share to WhatsApp' }).getAttribute('href') ?? ''
@@ -109,7 +110,7 @@ describe('EventShareControl', () => {
     expect(body).toBe(
       [
         'Firsts vs Kilbarrack',
-        'KO: 7.30pm',
+        'KO: 19:30',
         'Home Game: Bogies',
         '',
         'Squad:',

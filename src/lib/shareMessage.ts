@@ -112,11 +112,11 @@ export function buildMatchShareMessage(
   teamName: string,
   squad: readonly MatchShareSquadMember[],
 ): string {
-  const ko = formatEventTime(event.starts_at, 'time')
+  const ko = formatEventTime(event.starts_at, 'clock24')
   const koLine =
     event.meet_at === null
       ? `KO: ${ko}`
-      : `KO: ${ko} | Meet: ${formatEventTime(event.meet_at, 'time')}`
+      : `KO: ${ko} | Meet: ${formatEventTime(event.meet_at, 'clock24')}`
   const venueLine =
     event.home_away === 'home' ? `Home Game: ${HOME_VENUE.label}` : `Away: ${event.location.trim()}`
 
