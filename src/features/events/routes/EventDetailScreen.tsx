@@ -14,6 +14,7 @@ import { CancelledBanner } from '@/features/events/components/CancelledBanner'
 import { EventMeta } from '@/features/events/components/EventMeta'
 import { EventPreviewCard } from '@/features/events/components/EventPreviewCard'
 import { EventTypeBadge } from '@/features/events/components/EventTypeBadge'
+import { PostResponsePrompts } from '@/features/events/components/PostResponsePrompts'
 import type { EventPreview } from '@/features/events/schema'
 import { JoinTeamPanel } from '@/features/teams/components/JoinTeamPanel'
 import { classifyJoinError } from '@/features/teams/joinErrors'
@@ -80,6 +81,9 @@ function MemberView({ detail }: { detail: EventDetail }): React.JSX.Element {
         disabled={!responseState.open}
         disabledReason={responseState.open ? undefined : responseState.message}
       />
+      {/* One seam for S2.7 / S2.8, under the YES / NO the player just used (D46). S3.3 leaves none
+          of its own, so this story adds it. Nothing renders until a response has been saved. */}
+      <PostResponsePrompts />
     </div>
   )
 }

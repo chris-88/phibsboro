@@ -5,6 +5,7 @@ import { AppBoot } from '@/app/app-boot'
 import { router } from '@/app/router'
 import { AppErrorBoundary } from '@/components/app-error-boundary'
 import { SessionProvider } from '@/features/auth/session-provider'
+import { InstallProvider } from '@/features/install/install-provider'
 
 // The router instance lives in `@/app/router` so the S2.6 session teardown, which runs above the
 // React tree in the auth subscription, can call `router.navigate()` (D59). HashRouter, never
@@ -20,9 +21,14 @@ export default function App(): React.JSX.Element {
             splash until the stored session resolves, so no route renders against an unknown
             session and a returning player never sees the login screen (AC7). */}
         <SessionProvider>
-          <AppBoot>
-            <RouterProvider router={router} />
-          </AppBoot>
+          {/* S2.7 / D45: registers the beforeinstallprompt listener at app start — inside the
+              session provider, outside AppBoot — so the Android window is running while the splash
+              is still up and the event, which fires early, is never missed. */}
+          <InstallProvider>
+            <AppBoot>
+              <RouterProvider router={router} />
+            </AppBoot>
+          </InstallProvider>
         </SessionProvider>
       </AppErrorBoundary>
     </QueryClientProvider>

@@ -88,5 +88,15 @@ export default defineConfig({
       dependencies: ['setup'],
       use: { baseURL: PREVIEW_URL, timezoneId: 'Europe/Dublin' }, // D53
     },
+    // S2.7, D46: the WhatsApp-webview leg. The stored player session opens an event inside a
+    // simulated iOS WhatsApp webview and meets the escape prompt after responding. The spec sets
+    // its own iOS user agent; clipboard permissions are granted so the copied value can be read
+    // back. Chromium, so navigator.clipboard.readText is available.
+    {
+      name: 'escape-prompt',
+      testMatch: /escape-prompt\.spec\.ts/,
+      dependencies: ['setup'],
+      use: { baseURL: PREVIEW_URL, timezoneId: 'Europe/Dublin', browserName: 'chromium' },
+    },
   ],
 })

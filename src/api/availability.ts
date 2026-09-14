@@ -5,6 +5,7 @@ import { eventKeys } from '@/api/queryKeys'
 import { useSession } from '@/features/auth/session-context'
 import type { AvailabilityResponse } from '@/features/availability/schema'
 import { supabase } from '@/lib/supabase'
+import { usePromptStore } from '@/stores/prompt-store'
 
 export interface SetResponseVars {
   eventId: string
@@ -79,6 +80,11 @@ export function useSetResponse(): SetResponseMutation {
           )
         }
         return { detail, upcoming }
+      },
+      // S2.7 AC4: raise the post-response prompt only after the server accepts the write, never from
+      // onMutate — a D12 refusal rolls back and must not leave a prompt behind.
+      onSuccess: () => {
+        usePromptStore.getState().markResponded()
       },
       onError: (error, { eventId }, ctx) => {
         if (ctx) {
