@@ -32,6 +32,22 @@ vi.mock('@/features/auth/use-current-user', () => {
   }
 })
 
+// The manage screens read `useTeams()` for the S6.3 team picker; this suite provides no backend,
+// so stub it as a settled empty list. The admin fixture then lands on the manage area's "No teams
+// yet." empty state — proof the real screen mounted, which is all these route-table tests probe.
+vi.mock('@/api/teams', () => ({
+  useTeams: () => ({
+    isPending: false,
+    isError: false,
+    isSuccess: true,
+    data: [],
+    refetch: vi.fn(),
+  }),
+  useCreateTeam: () => ({ mutate: vi.fn(), isPending: false }),
+  useRenameTeam: () => ({ mutate: vi.fn(), isPending: false }),
+  useSetTeamActive: () => ({ mutate: vi.fn(), isPending: false }),
+}))
+
 import { RootLayout } from '@/components/root-layout'
 import { RouteError } from '@/components/route-error'
 import EventScreen from '@/features/events/routes/EventDetailScreen'
@@ -136,9 +152,9 @@ describe('resolving routes (AC1, AC15)', () => {
 
   it('renders the new-event screen for /manage/event/new, not the edit screen with id "new" (AC2)', async () => {
     mount('/manage/event/new')
-    // The real S4.1 new-event screen renders (its empty state, since the admin fixture manages no
-    // team) — not the S4.3 manage-event placeholder a literal ":id" of "new" would resolve to.
-    await screen.findByText("You don't manage a team yet.")
+    // The real S4.1 new-event screen renders (its S6.3 empty state, since the admin fixture
+    // manages no team) — not the S4.3 manage-event placeholder a literal ":id" of "new" resolves to.
+    await screen.findByText('No teams yet.')
     expect(screen.queryByTestId('route-placeholder')).not.toBeInTheDocument()
   })
 
@@ -163,9 +179,9 @@ describe('chrome per route (AC3, AC4)', () => {
 
   it('shows the bottom nav on a lazy manager route', async () => {
     mount('/manage')
-    // The real S4.1 manage screen (its empty state for the team-less admin fixture) confirms the
-    // lazy chunk resolved before asserting the nav.
-    await screen.findByText("You don't manage a team yet.")
+    // The real S4.1 manage screen (its S6.3 empty state for the team-less admin fixture) confirms
+    // the lazy chunk resolved before asserting the nav.
+    await screen.findByText('No teams yet.')
     expect(nav()).toBeInTheDocument()
   })
 

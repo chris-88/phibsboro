@@ -1,8 +1,10 @@
+import { useEffect } from 'react'
 import { Navigate } from 'react-router'
 import { LoadingState } from '@/components/states'
 import { useCurrentUser } from '@/features/auth/use-current-user'
 import { useTeams } from '@/api/teams'
 import { JoinLinkPanel } from '@/features/teams/join-link-panel'
+import { useManageStore } from '@/features/teams/manageStore'
 import { MemberList } from '@/features/teams/member-list'
 import { paths } from '@/lib/paths'
 import { useRouteParam } from '@/lib/use-route-param'
@@ -20,6 +22,13 @@ export default function TeamMembersScreen(): React.JSX.Element {
   const teamId = useRouteParam('teamId')
   const account = useCurrentUser()
   const teams = useTeams()
+
+  // The route param is the authority for this screen; the manage-area selection follows it, so the
+  // header on `/manage` matches the team last administered here (S6.3).
+  const setSelectedTeamId = useManageStore((s) => s.setSelectedTeamId)
+  useEffect(() => {
+    setSelectedTeamId(teamId)
+  }, [teamId, setSelectedTeamId])
 
   // No flash of a redirect or a disabled panel while access and the team resolve.
   if (account.status === 'loading') {

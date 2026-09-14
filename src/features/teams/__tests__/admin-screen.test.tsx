@@ -49,6 +49,7 @@ vi.mock('@/api/teams', () => ({
 }))
 
 const AdminScreen = (await import('@/features/teams/admin-screen')).default
+const { useManageStore } = await import('@/features/teams/manageStore')
 
 const team = (id: string, name: string, active: boolean): Team => ({
   id,
@@ -65,6 +66,7 @@ function renderScreen() {
     <MemoryRouter initialEntries={['/admin']}>
       <Routes>
         <Route path="/admin" element={<AdminScreen />} />
+        <Route path="/manage" element={<div>manage screen</div>} />
         <Route path="/" element={<div>home screen</div>} />
       </Routes>
     </MemoryRouter>,
@@ -160,6 +162,23 @@ describe('list states (AC10)', () => {
     expect(screen.getByRole('button', { name: 'Reactivate' })).toBeInTheDocument()
     expect(screen.getByText(/kept, never deleted/i)).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /delete/i })).not.toBeInTheDocument()
+  })
+
+  it("each row links into that team's manage view, selecting it (S6.3 AC1)", async () => {
+    hoisted.teams.value = {
+      isPending: false,
+      isError: false,
+      isSuccess: true,
+      data: [ACTIVE, INACTIVE],
+      refetch: vi.fn(),
+    }
+    renderScreen()
+    const rows = screen.getAllByRole('listitem')
+    const firstsRow = rows.find((r) => within(r).queryByRole('button', { name: /Firsts/ }))
+    if (firstsRow === undefined) throw new Error('Firsts row not found')
+    await userEvent.click(within(firstsRow).getByRole('button', { name: 'Manage' }))
+    expect(screen.getByText('manage screen')).toBeInTheDocument()
+    expect(useManageStore.getState().selectedTeamId).toBe(ACTIVE.id)
   })
 })
 

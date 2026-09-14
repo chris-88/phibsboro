@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { ArrowLeft, ChevronRight } from 'lucide-react'
 import { Link, useNavigate } from 'react-router'
 import { useBulkMarkAttended, useSetAttendance } from '@/api/attendance'
@@ -24,6 +24,7 @@ import {
   PlayerResponseListSkeleton,
 } from '@/features/events/components/PlayerResponseList'
 import type { EventActionData } from '@/features/events/schema'
+import { useManageStore } from '@/features/teams/manageStore'
 import { deriveCounts, type Counts } from '@/lib/counts'
 import { paths } from '@/lib/paths'
 import { availableForAttendance, buildRoster, type RosterRow } from '@/lib/roster'
@@ -79,6 +80,14 @@ export default function ManageEventScreen(): React.JSX.Element {
 
 function ManagerEventView({ detail }: { detail: EventDetail }): React.JSX.Element {
   const navigate = useNavigate()
+  // Point the manage area at this event's team, so an admin opening an event on a team other than
+  // the selected one switches to it — the header and the members link then follow the event, and
+  // going back to /manage lands on the right team (S6.3 AC7). The event query is keyed on the id
+  // and does not depend on the selection, so this is a follow, not a scoping branch.
+  const setSelectedTeamId = useManageStore((s) => s.setSelectedTeamId)
+  useEffect(() => {
+    setSelectedTeamId(detail.teamId)
+  }, [detail.teamId, setSelectedTeamId])
   const responses = useEventResponses(detail.id, LIVE)
   const members = useTeamMembers(detail.teamId, LIVE)
   const attendance = useEventAttendance(detail.id, LIVE)

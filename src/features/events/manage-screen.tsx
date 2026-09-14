@@ -1,56 +1,93 @@
 import { useEffect, useState } from 'react'
 import { Plus } from 'lucide-react'
-import { Link, Navigate, useLocation } from 'react-router'
+import { Link, useLocation } from 'react-router'
+import { useQueryClient } from '@tanstack/react-query'
+import { teamKeys } from '@/api/queryKeys'
 import { EmptyState, ErrorState, LoadingState } from '@/components/states'
 import { Button } from '@/components/ui/button'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { useTeamEvents } from '@/api/events'
-import { useCurrentUser } from '@/features/auth/use-current-user'
 import { EventListRow } from '@/features/events/components/EventListRow'
 import type { EventRow } from '@/features/events/schema'
-import { useManageStore } from '@/features/teams/manageStore'
+import { ManageHeader } from '@/features/teams/components/ManageHeader'
+import { NoManagedTeams } from '@/features/teams/components/NoManagedTeams'
+import { useActiveTeam } from '@/features/teams/hooks/useActiveTeam'
 import { paths } from '@/lib/paths'
 import { serverNow } from '@/lib/serverClock'
 
 /**
- * `/manage` (S4.1): the manager landing list. A team picker when they manage more than one, a
- * New event button, and the team's events split into Upcoming and Past against `serverNow()` —
- * never the device clock, so an event starting in half an hour stays Upcoming even on a phone set
- * an hour fast (AC13, D48). Cancelled events stay in place, badged (D60). The guard already sent a
- * player home (AC10).
+ * `/manage` (S4.1): the manager landing list. The header names the active team and, for an admin
+ * or a multi-team manager, becomes S6.3's team picker; the team is resolved through
+ * `useActiveTeam()`, the single source of truth (D50, AC4). A New event button, disabled with a
+ * line on an inactive team (AC5), and the team's events split into Upcoming and Past against
+ * `serverNow()` — never the device clock (AC13, D48). Cancelled events stay in place, badged
+ * (D60). The guard already sent a player home (AC10).
  */
 export default function ManageScreen(): React.JSX.Element {
-  const account = useCurrentUser()
+  return (
+    <>
+      <SeriesNotice />
+      <ManageBody />
+    </>
+  )
+}
 
-  if (account.status === 'loading') {
+function ManageBody(): React.JSX.Element {
+  const { teamId, team, isLoading, isError } = useActiveTeam()
+  const qc = useQueryClient()
+
+  if (isError) {
+    return (
+      <div className="py-4">
+        <ErrorState
+          title="Couldn't load teams."
+          onRetry={() => void qc.invalidateQueries({ queryKey: teamKeys.all })}
+        />
+      </div>
+    )
+  }
+  if (isLoading) {
     return (
       <div className="py-4">
         <LoadingState label="Loading" />
       </div>
     )
   }
-  if (account.status === 'error') {
+  if (teamId === null || team === null) {
     return (
       <div className="py-4">
-        <ErrorState title="Couldn't load your account." onRetry={account.refetch} />
+        <NoManagedTeams />
       </div>
     )
   }
-  if (account.status === 'signedOut') {
-    return <Navigate to={paths.login()} replace />
-  }
 
   return (
-    <>
-      <SeriesNotice />
-      <ManageList teams={account.user.managedTeams} />
-    </>
+    <div className="flex flex-col gap-4 py-4">
+      <header className="flex items-center justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <ManageHeader />
+        </div>
+        {team.active ? (
+          <Button asChild size="sm">
+            <Link to={paths.newEvent()}>
+              <Plus className="size-4" aria-hidden="true" />
+              New event
+            </Link>
+          </Button>
+        ) : (
+          <Button size="sm" disabled aria-disabled>
+            <Plus className="size-4" aria-hidden="true" />
+            New event
+          </Button>
+        )}
+      </header>
+
+      {/* On an inactive team every create path is refused by RLS (D50); say why once (AC5). */}
+      {!team.active && (
+        <p className="text-xs text-muted-foreground">Reactivate this team to add events.</p>
+      )}
+
+      <TeamEvents teamId={teamId} teamName={team.name} active={team.active} />
+    </div>
   )
 }
 
@@ -95,68 +132,18 @@ function SeriesNotice(): React.JSX.Element | null {
   )
 }
 
-interface TeamRef {
+/** Splits one team's events into Upcoming (ascending) and Past (reverse-chronological) against a
+ *  server timestamp. Cancelled events keep their slot, badged by `EventListRow` (D60). An inactive
+ *  team offers no create control (AC5). */
+function TeamEvents({
+  teamId,
+  teamName,
+  active,
+}: {
   teamId: string
   teamName: string
-}
-
-function ManageList({ teams }: { teams: readonly TeamRef[] }): React.JSX.Element {
-  const selectedTeamId = useManageStore((s) => s.selectedTeamId)
-  const setSelectedTeamId = useManageStore((s) => s.setSelectedTeamId)
-
-  if (teams.length === 0) {
-    return (
-      <div className="py-4">
-        <EmptyState title="You don't manage a team yet." />
-      </div>
-    )
-  }
-
-  const valid = selectedTeamId != null && teams.some((t) => t.teamId === selectedTeamId)
-  const teamId = valid ? selectedTeamId : (teams[0]?.teamId ?? '')
-  const team = teams.find((t) => t.teamId === teamId)
-  const multiTeam = teams.length > 1
-
-  return (
-    <div className="flex flex-col gap-4 py-4">
-      <header className="flex items-center justify-between gap-3">
-        <h2 className="truncate text-sm font-medium text-muted-foreground">{team?.teamName}</h2>
-        <Button asChild size="sm">
-          <Link to={`${paths.newEvent()}?team=${teamId}`}>
-            <Plus className="size-4" aria-hidden="true" />
-            New event
-          </Link>
-        </Button>
-      </header>
-
-      {multiTeam && (
-        <Select
-          value={teamId}
-          onValueChange={(v) => {
-            setSelectedTeamId(v)
-          }}
-        >
-          <SelectTrigger className="w-full" aria-label="Team">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {teams.map((t) => (
-              <SelectItem key={t.teamId} value={t.teamId}>
-                {t.teamName}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      )}
-
-      <TeamEvents teamId={teamId} teamName={team?.teamName ?? ''} />
-    </div>
-  )
-}
-
-/** Splits one team's events into Upcoming (ascending) and Past (reverse-chronological) against a
- *  server timestamp. Cancelled events keep their slot, badged by `EventListRow` (D60). */
-function TeamEvents({ teamId, teamName }: { teamId: string; teamName: string }): React.JSX.Element {
+  active: boolean
+}): React.JSX.Element {
   const events = useTeamEvents(teamId)
 
   if (events.isPending) {
@@ -170,12 +157,14 @@ function TeamEvents({ teamId, teamName }: { teamId: string; teamName: string }):
   if (rows.length === 0) {
     return (
       <EmptyState
-        title="No events yet."
-        body="Add Saturday's match."
+        title={active ? 'No events yet.' : 'Nothing on for this team.'}
+        body={active ? "Add Saturday's match." : undefined}
         action={
-          <Button asChild>
-            <Link to={`${paths.newEvent()}?team=${teamId}`}>New event</Link>
-          </Button>
+          active ? (
+            <Button asChild>
+              <Link to={paths.newEvent()}>New event</Link>
+            </Button>
+          ) : undefined
         }
       />
     )

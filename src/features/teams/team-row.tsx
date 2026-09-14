@@ -1,10 +1,11 @@
 import { useRef, useState } from 'react'
-import { Link } from 'react-router'
+import { Link, useNavigate } from 'react-router'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useRenameTeam, useSetTeamActive } from '@/api/teams'
 import { DeactivateTeamDialog } from '@/features/teams/deactivate-team-dialog'
+import { useManageStore } from '@/features/teams/manageStore'
 import { teamNameSchema, type Team } from '@/features/teams/schema'
 import { isUniqueViolation } from '@/lib/errors'
 import { paths } from '@/lib/paths'
@@ -23,6 +24,8 @@ export interface TeamRowProps {
 export function TeamRow({ team }: TeamRowProps): React.JSX.Element {
   const rename = useRenameTeam()
   const setActive = useSetTeamActive()
+  const navigate = useNavigate()
+  const setSelectedTeamId = useManageStore((s) => s.setSelectedTeamId)
   const busy = rename.isPending || setActive.isPending
 
   const [editing, setEditing] = useState(false)
@@ -148,7 +151,22 @@ export function TeamRow({ team }: TeamRowProps): React.JSX.Element {
           </Button>
         )}
 
-        {/* AC15: reach the join-link screen without typing a URL. S6.3 adds the manage-view link. */}
+        {/* S6.3 AC1: open this team's manage view — set the selection and go to /manage, no URL
+            typing. Beside S6.2 AC15's Members link, which reaches the join-link screen. */}
+        {!editing && (
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={busy}
+            onClick={() => {
+              setSelectedTeamId(team.id)
+              void navigate(paths.manage())
+            }}
+          >
+            Manage
+          </Button>
+        )}
+
         {!editing && (
           <Button asChild variant="outline" size="sm" disabled={busy}>
             <Link to={paths.teamMembers(team.id)}>Members</Link>

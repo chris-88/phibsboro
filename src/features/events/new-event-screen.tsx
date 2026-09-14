@@ -1,11 +1,12 @@
 import { useState } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router'
+import { Link, useNavigate } from 'react-router'
+import { useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
+import { teamKeys } from '@/api/queryKeys'
 import { EmptyState, ErrorState, LoadingState } from '@/components/states'
 import { Button } from '@/components/ui/button'
 import { useCreateEvent, eventWriteErrorMessage } from '@/api/events'
-import { useCurrentUser } from '@/features/auth/use-current-user'
-import { EventForm, type EventTeamOption } from '@/features/events/components/EventForm'
+import { EventForm } from '@/features/events/components/EventForm'
 import {
   TrainingSeriesConfirmDialog,
   type SeriesResult,
@@ -15,103 +16,88 @@ import {
   type EventFormValues,
   type TrainingSeriesInput,
 } from '@/features/events/schema'
-import { useManageStore } from '@/features/teams/manageStore'
+import { ManageHeader } from '@/features/teams/components/ManageHeader'
+import { NoManagedTeams } from '@/features/teams/components/NoManagedTeams'
+import { useActiveTeam } from '@/features/teams/hooks/useActiveTeam'
+import type { Team } from '@/features/teams/schema'
 import { paths } from '@/lib/paths'
 import { dublinLocalToUtcIso } from '@/lib/time'
 
 /**
- * `/manage/event/new` (S4.1). Resolves the manager's active managed teams and handles the account
- * states; the create mutation lives in the child so a team-less manager (its empty state) never
- * touches the query cache. The guard already sent a player home (AC10).
+ * `/manage/event/new` (S4.1). The team is the manage area's active team, resolved through
+ * `useActiveTeam()` and shown in the S6.3 header picker — no `?team=` query param, no in-form team
+ * dropdown (S6.3 supersedes S4.1's implementation note). Switching team in the header re-scopes
+ * the form. An inactive team refuses every create path, so the form is replaced with a line rather
+ * than shown disabled (AC5). The guard already sent a player home (AC10).
  */
 export default function NewEventScreen(): React.JSX.Element {
-  const account = useCurrentUser()
+  const { teamId, team, isLoading, isError } = useActiveTeam()
+  const qc = useQueryClient()
 
-  if (account.status === 'loading') {
+  if (isLoading) {
     return (
       <div className="py-4">
         <LoadingState rows={1} label="Loading" />
       </div>
     )
   }
-  if (account.status === 'error') {
+  if (isError) {
     return (
       <div className="py-4">
-        <ErrorState title="Couldn't load your account." onRetry={account.refetch} />
+        <ErrorState
+          title="Couldn't load teams."
+          onRetry={() => void qc.invalidateQueries({ queryKey: teamKeys.all })}
+        />
       </div>
     )
   }
-  // The guard keeps signedOut unreachable; the account query is enabled only when signed in.
-  if (account.status !== 'ready') {
+  // Not reachable in the happy path — the New event button is hidden without a resolvable team.
+  if (teamId === null || team === null) {
     return (
       <div className="py-4">
-        <LoadingState rows={1} label="Loading" />
+        <NoManagedTeams />
       </div>
     )
   }
 
-  const teamOptions: EventTeamOption[] = account.user.managedTeams.map((t) => ({
-    id: t.teamId,
-    name: t.teamName,
-  }))
-
-  // Not reachable empty in the happy path: a manager with no managed active team (AC8, UI states).
-  if (teamOptions.length === 0) {
-    return (
-      <div className="py-4">
+  return (
+    <div className="flex flex-col gap-4 py-4">
+      <ManageHeader />
+      {team.active ? (
+        // Keyed on the team so switching in the header remounts the form with the new default.
+        <NewEventPanel key={team.id} team={team} />
+      ) : (
         <EmptyState
-          title="You don't manage a team yet."
+          title="This team is inactive."
+          body="Reactivate this team to add events."
           action={
             <Button asChild variant="outline">
               <Link to={paths.manage()}>Back to Manage</Link>
             </Button>
           }
         />
-      </div>
-    )
-  }
-
-  return <NewEventPanel teamOptions={teamOptions} />
+      )}
+    </div>
+  )
 }
 
-/** The create form and its mutation. Rendered only once at least one managed team exists, so the
- *  team picker (AC8) always has a real choice and the mutation always has a team to write to. */
-function NewEventPanel({ teamOptions }: { teamOptions: EventTeamOption[] }): React.JSX.Element {
+/** The create form and its mutation, scoped to the active team. Rendered only for an active team,
+ *  so the mutation always has a team it may write to. */
+function NewEventPanel({ team }: { team: Team }): React.JSX.Element {
   const navigate = useNavigate()
   const create = useCreateEvent()
-  const [searchParams, setSearchParams] = useSearchParams()
-  const selectedTeamId = useManageStore((s) => s.selectedTeamId)
-  const setSelectedTeamId = useManageStore((s) => s.setSelectedTeamId)
   const [formError, setFormError] = useState<string | null>(null)
   // The composed series input, held while the confirm dialog is open. Null closes it (S4.6, AC8).
   const [seriesInput, setSeriesInput] = useState<TrainingSeriesInput | null>(null)
 
-  const paramTeam = searchParams.get('team')
-  const valid = (id: string | null): id is string =>
-    id != null && teamOptions.some((t) => t.id === id)
-  // ?team= first, then the store, then the single managed team (AC8). Only ?team= survives a hard
-  // refresh; the store persists in S6.3.
-  const resolvedTeamId = valid(paramTeam)
-    ? paramTeam
-    : valid(selectedTeamId)
-      ? selectedTeamId
-      : (teamOptions[0]?.id ?? '')
-
   const defaultValues: EventFormValues = {
-    teamId: resolvedTeamId,
+    teamId: team.id,
     type: 'training',
     title: DEFAULT_TITLES.training,
     date: '',
     time: '',
     location: '',
     notes: '',
-  }
-
-  const onTeamChange = (teamId: string): void => {
-    setSelectedTeamId(teamId)
-    const next = new URLSearchParams(searchParams)
-    next.set('team', teamId)
-    setSearchParams(next, { replace: true })
   }
 
   const onSubmit = (values: EventFormValues): void => {
@@ -153,12 +139,11 @@ function NewEventPanel({ teamOptions }: { teamOptions: EventTeamOption[] }): Rea
   }
 
   return (
-    <div className="flex flex-col gap-4 py-4">
+    <div className="flex flex-col gap-4">
       <EventForm
         mode="create"
         defaultValues={defaultValues}
-        teamOptions={teamOptions}
-        onTeamChange={onTeamChange}
+        teamOptions={[{ id: team.id, name: team.name }]}
         onSubmit={onSubmit}
         submitting={create.isPending}
         submitLabel="Add event"
