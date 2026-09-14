@@ -1,7 +1,10 @@
+import { useEffect } from 'react'
 import { Outlet, ScrollRestoration, useLocation, useMatches, useNavigate } from 'react-router'
 import { AppShell, AppShellSkeleton } from '@/components/app-shell'
 import { LoadingState } from '@/components/states'
+import { SessionInvalidError } from '@/api/current-user'
 import { useCurrentUser } from '@/features/auth/use-current-user'
+import { supabase } from '@/lib/supabase'
 import { PendingJoinGate } from '@/features/teams/PendingJoinGate'
 import { NOT_FOUND_TITLE, useDocumentTitle } from '@/lib/document-title'
 import type { AppRole } from '@/lib/nav'
@@ -36,6 +39,14 @@ function RoutedShell(): React.JSX.Element {
   const { pathname } = useLocation()
   const navigate = useNavigate()
   const user = useCurrentUser()
+  // A session whose account was deleted (a removed member, or a reseed) loads a valid-looking
+  // token but no profile. Rather than hang on the skeleton or offer a retry that can never
+  // succeed, sign out — SessionProvider then routes to /login with the "signed out" notice and
+  // remembers the intended route (S2.6). Guarded so it fires once per resolved dead session.
+  const deadSession = user.status === 'error' && user.error instanceof SessionInvalidError
+  useEffect(() => {
+    if (deadSession) void supabase.auth.signOut()
+  }, [deadSession])
   const chrome = meta?.chrome ?? 'bare'
   const guard: GuardLevel = meta?.guard ?? 'public'
   useDocumentTitle(meta?.title ?? NOT_FOUND_TITLE)

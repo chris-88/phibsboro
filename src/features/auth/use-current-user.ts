@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { fetchCurrentUser } from '@/api/current-user'
+import { fetchCurrentUser, SessionInvalidError } from '@/api/current-user'
 import { userKeys } from '@/api/queryKeys'
 import { useSession } from '@/features/auth/session-context'
 import type { Enums } from '@/lib/db'
@@ -57,7 +57,10 @@ export function useCurrentUser(): CurrentUserState {
     enabled: userId !== undefined,
     staleTime: 5 * 60_000,
     refetchOnWindowFocus: true,
-    retry: 3,
+    // Retry the signup race — a fresh signUp can beat PostgREST observing the S1.2 trigger's row —
+    // but never a SessionInvalidError, which means the account is gone and will not reappear.
+    retry: (failureCount, error) => !(error instanceof SessionInvalidError) && failureCount < 3,
+    retryDelay: (attempt) => 300 * (attempt + 1),
   })
 
   const data = query.data
