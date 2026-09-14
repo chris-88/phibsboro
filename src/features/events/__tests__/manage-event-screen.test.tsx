@@ -49,6 +49,12 @@ vi.mock('@/api/events', () => ({
   useEventAttendance: () => hoisted.attendance.value,
 }))
 vi.mock('@/api/members', () => ({ useTeamMembers: () => hoisted.members.value }))
+// The S4.5 attendance mutations reach the query cache; this screen test is about states and
+// counts, so stub them. Their behaviour is covered by the attendance hook tests.
+vi.mock('@/api/attendance', () => ({
+  useSetAttendance: () => ({ mutate: vi.fn(), isPending: false }),
+  useBulkMarkAttended: () => ({ mutate: vi.fn(), isPending: false }),
+}))
 // The overflow menu's dialogs own mutation hooks that reach the query cache; stub them so this
 // screen test is about states and counts, not their behaviour (covered by the S4.2 tests).
 vi.mock('@/features/events/components/EventFormDialog', () => ({ EventFormDialog: () => null }))
@@ -170,10 +176,10 @@ describe('ManageEventScreen', () => {
       expect(screen.getByText(`Player m${String(i)}`)).toBeInTheDocument()
     }
     expect(screen.queryByText('Player leaver')).toBeNull()
-    // Read-only here: every attendance control is disabled until S4.5 supplies the handler (AC7).
+    // S4.5 supplies the handler, so every attendance control is now live (AC1).
     const controls = screen.getAllByRole('radio', { name: 'Not recorded' })
     expect(controls).toHaveLength(12)
-    for (const c of controls) expect(c).toBeDisabled()
+    for (const c of controls) expect(c).toBeEnabled()
   })
 
   it('shows the roster skeleton while attendance is still loading (AC11)', () => {
@@ -230,5 +236,52 @@ describe('ManageEventScreen', () => {
 
     expect(screen.getByText("This one's off.")).toBeInTheDocument()
     expect(tileValue('Squad')).toBe('12')
+  })
+
+  it('S4.5: live attendance controls and an enabled bulk button for a scheduled event (AC1, AC6)', () => {
+    hoisted.detail.value = hoisted.settled<EventDetail | null>(detail())
+    hoisted.responses.value = hoisted.settled(responsesWithLeaver)
+    hoisted.members.value = hoisted.settled(squad12)
+    hoisted.attendance.value = hoisted.settled<RosterAttendance[]>([])
+    renderScreen()
+
+    // Six members are available, so the bulk action is offered and enabled.
+    expect(screen.getByRole('button', { name: 'Mark available as attended' })).toBeEnabled()
+    expect(screen.getAllByRole('radio', { name: 'Attended' })[0]).toBeEnabled()
+  })
+
+  it('S4.5: the bulk button is disabled when nobody is available (AC6)', () => {
+    hoisted.detail.value = hoisted.settled<EventDetail | null>(detail())
+    hoisted.responses.value = hoisted.settled<EventResponseRow[]>([
+      response('m0', 'unavailable'),
+      response('m1', 'unavailable'),
+    ])
+    hoisted.members.value = hoisted.settled(squad12)
+    hoisted.attendance.value = hoisted.settled<RosterAttendance[]>([])
+    renderScreen()
+
+    expect(screen.getByRole('button', { name: 'Mark available as attended' })).toBeDisabled()
+  })
+
+  it('S4.5: a cancelled event disables the controls and bulk button, with the line (AC8)', () => {
+    hoisted.detail.value = hoisted.settled<EventDetail | null>(detail({ status: 'cancelled' }))
+    hoisted.responses.value = hoisted.settled(responsesWithLeaver)
+    hoisted.members.value = hoisted.settled(squad12)
+    hoisted.attendance.value = hoisted.settled<RosterAttendance[]>([])
+    renderScreen()
+
+    expect(screen.getByRole('button', { name: 'Mark available as attended' })).toBeDisabled()
+    expect(screen.getAllByRole('radio', { name: 'Not recorded' })[0]).toBeDisabled()
+    expect(screen.getAllByText('Cancelled — nothing to record.')[0]).toBeInTheDocument()
+  })
+
+  it('S4.5: no bulk button for an empty squad (AC6)', () => {
+    hoisted.detail.value = hoisted.settled<EventDetail | null>(detail())
+    hoisted.responses.value = hoisted.settled<EventResponseRow[]>([])
+    hoisted.members.value = hoisted.settled<MemberDirectoryRow[]>([])
+    hoisted.attendance.value = hoisted.settled<RosterAttendance[]>([])
+    renderScreen()
+
+    expect(screen.queryByRole('button', { name: 'Mark available as attended' })).toBeNull()
   })
 })

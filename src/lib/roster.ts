@@ -74,3 +74,13 @@ export function buildRoster(
     return a.userId < b.userId ? -1 : a.userId > b.userId ? 1 : 0
   })
 }
+
+/**
+ * The `userId`s the S4.5 bulk action targets: current members whose response is `available`. The
+ * "and has no attendance row yet" half of AC5 is left to the write's `on conflict do nothing`, not
+ * filtered here, so an already-marked `Absent` player survives a re-run. Empty for an all-awaiting
+ * or all-unavailable squad, which is what disables the bulk button (AC6).
+ */
+export function availableForAttendance(rows: readonly RosterRow[]): string[] {
+  return rows.filter((r) => r.response === 'available').map((r) => r.userId)
+}

@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import { deriveCounts } from '@/lib/counts'
 import {
+  availableForAttendance,
   buildRoster,
   type RosterAttendance,
   type RosterMember,
   type RosterResponse,
+  type RosterRow,
 } from '@/lib/roster'
 
 const member = (userId: string, name: string): RosterMember => ({ userId, name, role: 'player' })
@@ -97,5 +99,36 @@ describe('buildRoster', () => {
     expect(rows.filter((r) => r.response === 'unavailable')).toHaveLength(counts.unavailable)
     expect(rows.filter((r) => r.response === null)).toHaveLength(counts.awaiting)
     expect(rows).toHaveLength(counts.squad)
+  })
+})
+
+describe('availableForAttendance (S4.5 bulk payload)', () => {
+  const row = (userId: string, response: RosterRow['response']): RosterRow => ({
+    userId,
+    name: userId,
+    role: 'player',
+    response,
+    attended: null,
+  })
+
+  it('picks only current members whose response is available, in row order', () => {
+    const rows = [
+      row('a', 'available'),
+      row('b', 'unavailable'),
+      row('c', null),
+      row('d', 'available'),
+    ]
+    expect(availableForAttendance(rows)).toEqual(['a', 'd'])
+  })
+
+  it('returns [] for an all-unavailable or all-awaiting squad', () => {
+    expect(availableForAttendance([row('a', 'unavailable'), row('b', null)])).toEqual([])
+    expect(availableForAttendance([])).toEqual([])
+  })
+
+  it('does not filter on attendance: an already-marked available player is still included', () => {
+    // The "no attendance row yet" half of AC5 is left to the write's on-conflict-do-nothing.
+    const marked: RosterRow = { ...row('a', 'available'), attended: false }
+    expect(availableForAttendance([marked])).toEqual(['a'])
   })
 })

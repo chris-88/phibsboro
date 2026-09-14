@@ -10,8 +10,11 @@ export interface PlayerResponseListProps {
   rows: readonly RosterRow[]
   /** Forwarded to every card. Omitted in S4.4 (the control is inert); supplied by S4.5. */
   onAttendanceChange?: PlayerResponseCardProps['onAttendanceChange']
-  /** The `userId` whose write is in flight, if any (S4.5). */
-  savingUserId?: string
+  /** The `userId`s whose write is in flight (S4.5). Each row saves independently, so a set. */
+  savingUserIds?: ReadonlySet<string>
+  /** The `userId`s whose last write failed (S4.5): the inline "Tap again." line renders under that
+   *  card, control still enabled, without touching the frozen card markup (AC9). */
+  failedUserIds?: ReadonlySet<string>
   /** Rendered under every control when the event forbids editing, e.g. cancelled (S4.5). */
   disabledReason?: string
 }
@@ -25,19 +28,25 @@ export interface PlayerResponseListProps {
 export function PlayerResponseList({
   rows,
   onAttendanceChange,
-  savingUserId,
+  savingUserIds,
+  failedUserIds,
   disabledReason,
 }: PlayerResponseListProps): React.JSX.Element {
   return (
     <ul className="flex flex-col gap-2">
       {rows.map((row) => (
-        <li key={row.userId}>
+        <li key={row.userId} className="flex flex-col gap-1">
           <PlayerResponseCard
             row={row}
             onAttendanceChange={onAttendanceChange}
-            saving={savingUserId === row.userId}
+            saving={savingUserIds?.has(row.userId) ?? false}
             disabledReason={disabledReason}
           />
+          {failedUserIds?.has(row.userId) && (
+            <p role="alert" className="px-1 text-xs text-destructive">
+              Couldn&apos;t save. Tap again.
+            </p>
+          )}
         </li>
       ))}
     </ul>

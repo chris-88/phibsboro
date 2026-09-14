@@ -51,7 +51,7 @@ shell, routing and PWA are exempt because they touch no data.
 | 30 | [S4.2](stories/S4.2-edit-and-cancel-event.md) | Edit and cancel event | 4 Manager | S1.3, S1.4, S1.5, S2.9, S3.3, S4.1 | M | **Done** |
 | 31 | [S4.3](stories/S4.3-manager-event-view.md) | Manager event view | 4 Manager | S1.3, S1.4, S1.5, S2.9, S3.3, S4.1, S4.2, S6.2, S6.4 | M | **Done** |
 | 32 | [S4.4](stories/S4.4-player-response-list.md) | Player response list | 4 Manager | S1.3, S1.4, S1.5, S2.9, S3.2, S4.3 | M | **Done** |
-| 33 | [S4.5](stories/S4.5-record-attendance.md) | Record attendance | 4 Manager | S1.3, S1.4, S1.5, S4.3, S4.4 | M | Not started |
+| 33 | [S4.5](stories/S4.5-record-attendance.md) | Record attendance | 4 Manager | S1.3, S1.4, S1.5, S4.3, S4.4 | M | **Done** |
 | 34 | [S3.5](stories/S3.5-own-attendance-history.md) | Own attendance history | 3 Player | S0.2, S0.3, S1.4, S1.5, S2.9, S3.3, S3.4, S4.5 | M | Not started |
 | 35 | [S5.1](stories/S5.1-message-generator.md) | Message generator | 5 Sharing | S0.1, S0.3, S1.5 | S | **Done** |
 | 36 | [S5.2](stories/S5.2-share-action.md) | Share action | 5 Sharing | S0.2, S2.9, S4.3, S5.1, S6.2 | S | Not started |

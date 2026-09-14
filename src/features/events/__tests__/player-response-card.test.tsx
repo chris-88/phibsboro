@@ -68,4 +68,28 @@ describe('PlayerResponseCard', () => {
     expect(screen.getByRole('radio', { name: 'Not recorded' })).toBeDisabled()
     expect(screen.getByText('Off.')).toBeInTheDocument()
   })
+
+  it('clears the row by re-tapping the selected state or tapping Not recorded (AC3)', async () => {
+    const user = userEvent.setup()
+    const onChange = vi.fn()
+    // Attended is selected; tapping it again is Radix deselect ('') → clear.
+    const { rerender } = render(
+      <PlayerResponseCard row={row({ attended: true })} onAttendanceChange={onChange} />,
+    )
+    await user.click(screen.getByRole('radio', { name: 'Attended' }))
+    expect(onChange).toHaveBeenLastCalledWith('u1', null)
+
+    // Absent selected; tapping Not recorded also clears.
+    rerender(<PlayerResponseCard row={row({ attended: false })} onAttendanceChange={onChange} />)
+    await user.click(screen.getByRole('radio', { name: 'Not recorded' }))
+    expect(onChange).toHaveBeenLastCalledWith('u1', null)
+  })
+
+  it('fires nothing when the already not-recorded row is re-tapped (no redundant clear)', async () => {
+    const user = userEvent.setup()
+    const onChange = vi.fn()
+    render(<PlayerResponseCard row={row({ attended: null })} onAttendanceChange={onChange} />)
+    await user.click(screen.getByRole('radio', { name: 'Not recorded' }))
+    expect(onChange).not.toHaveBeenCalled()
+  })
 })

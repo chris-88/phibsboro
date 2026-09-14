@@ -1,6 +1,7 @@
-import { useMemo } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { ArrowLeft, ChevronRight } from 'lucide-react'
 import { Link, useNavigate } from 'react-router'
+import { useBulkMarkAttended, useSetAttendance } from '@/api/attendance'
 import { NotFound } from '@/components/not-found'
 import { EmptyState, ErrorState } from '@/components/states'
 import { Button } from '@/components/ui/button'
@@ -25,7 +26,7 @@ import {
 import type { EventActionData } from '@/features/events/schema'
 import { deriveCounts, type Counts } from '@/lib/counts'
 import { paths } from '@/lib/paths'
-import { buildRoster, type RosterRow } from '@/lib/roster'
+import { availableForAttendance, buildRoster, type RosterRow } from '@/lib/roster'
 import { useRouteParam } from '@/lib/use-route-param'
 
 /** Both live reads poll every 30s and refetch on focus while this screen is mounted (D23). The
@@ -115,6 +116,59 @@ function ManagerEventView({ detail }: { detail: EventDetail }): React.JSX.Elemen
     [rosterMembers, rosterResponses, attendance.data],
   )
 
+  // Attendance writes (S4.5). Both mutations own only the `eventKeys.attendance` cache, so the
+  // counts above never move on a mark (AC12). Per-row saving and failed state lives here, not in
+  // the hook, since a mutation instance tracks one call at a time but many rows write in parallel.
+  const setAttendance = useSetAttendance(detail.id)
+  const bulkMark = useBulkMarkAttended(detail.id)
+  const cancelled = detail.status === 'cancelled'
+  const [savingUserIds, setSavingUserIds] = useState<ReadonlySet<string>>(new Set())
+  const [failedUserIds, setFailedUserIds] = useState<ReadonlySet<string>>(new Set())
+  const [bulkMessage, setBulkMessage] = useState<string | null>(null)
+  const [bulkFailed, setBulkFailed] = useState(false)
+
+  const withoutId = (set: ReadonlySet<string>, id: string): Set<string> => {
+    const next = new Set(set)
+    next.delete(id)
+    return next
+  }
+  const withId = (set: ReadonlySet<string>, id: string): Set<string> => new Set(set).add(id)
+
+  const handleAttendanceChange = useCallback(
+    (userId: string, attended: boolean | null) => {
+      // Clear any prior failure for this row and flag it saving; the per-call callbacks below flip
+      // it back on settle, so only this card shows a spinner and the line without touching others.
+      setFailedUserIds((prev) => withoutId(prev, userId))
+      setSavingUserIds((prev) => withId(prev, userId))
+      setAttendance.mutate(
+        { userId, attended },
+        {
+          onError: () => {
+            setFailedUserIds((prev) => withId(prev, userId))
+          },
+          onSettled: () => {
+            setSavingUserIds((prev) => withoutId(prev, userId))
+          },
+        },
+      )
+    },
+    [setAttendance],
+  )
+
+  const availableIds = roster ? availableForAttendance(roster) : []
+  const runBulk = (): void => {
+    setBulkMessage(null)
+    setBulkFailed(false)
+    bulkMark.mutate(availableIds, {
+      onSuccess: (written) => {
+        setBulkMessage(written > 0 ? `Marked ${String(written)} as attended.` : 'Nothing to mark.')
+      },
+      onError: () => {
+        setBulkFailed(true)
+      },
+    })
+  }
+
   // Reused by S4.2's action components. Every field is a real value from the detail read; the four
   // audit columns those components never touch are not in the projection, which is why the prop is
   // narrowed to EventActionData (schema.ts).
@@ -171,9 +225,42 @@ function ManagerEventView({ detail }: { detail: EventDetail }): React.JSX.Elemen
       </Card>
 
       <section className="flex flex-col gap-2">
-        <h3 className="px-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-          Who&apos;s in
-        </h3>
+        <div className="flex items-center justify-between gap-2 px-1">
+          <h3 className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+            Who&apos;s in
+          </h3>
+          {/* The bulk action sits beside the section head (D42). Disabled until the roster resolves
+              so it never flips absent-then-present, when no member is available, and on a cancelled
+              event. It reads the cached roster, so no extra query. */}
+          {!rosterFailed && !membersEmpty && (
+            <Button
+              type="button"
+              variant="secondary"
+              className="min-h-tap"
+              onClick={runBulk}
+              disabled={
+                roster === null || cancelled || availableIds.length === 0 || bulkMark.isPending
+              }
+            >
+              Mark available as attended
+            </Button>
+          )}
+        </div>
+        {/* AC6: the outcome of a run is announced politely; a failure offers a retry beside it. */}
+        {(bulkMessage !== null || bulkFailed) && (
+          <div className="flex items-center gap-2 px-1" aria-live="polite">
+            {bulkFailed ? (
+              <>
+                <span className="text-xs text-destructive">Couldn&apos;t save.</span>
+                <Button type="button" size="sm" variant="outline" onClick={runBulk}>
+                  Retry
+                </Button>
+              </>
+            ) : (
+              <span className="text-xs text-muted-foreground">{bulkMessage}</span>
+            )}
+          </div>
+        )}
         {rosterFailed ? (
           <ErrorState
             title="Couldn't load the squad."
@@ -195,9 +282,13 @@ function ManagerEventView({ detail }: { detail: EventDetail }): React.JSX.Elemen
         ) : roster === null ? (
           <PlayerResponseListSkeleton />
         ) : (
-          // Read-only in S4.4: no `onAttendanceChange`, so every attendance control is disabled.
-          // S4.5 supplies the handler and this component does not change (Definition of done).
-          <PlayerResponseList rows={roster} />
+          <PlayerResponseList
+            rows={roster}
+            onAttendanceChange={handleAttendanceChange}
+            savingUserIds={savingUserIds}
+            failedUserIds={failedUserIds}
+            disabledReason={cancelled ? 'Cancelled — nothing to record.' : undefined}
+          />
         )}
       </section>
     </div>

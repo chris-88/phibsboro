@@ -1,6 +1,7 @@
 import { Card, CardContent } from '@/components/ui/card'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { ResponsePill } from '@/features/availability/components/ResponsePill'
+import { attendanceValue, toAttended } from '@/features/events/components/attendance-value'
 import type { RosterRow } from '@/lib/roster'
 
 export interface PlayerResponseCardProps {
@@ -12,11 +13,6 @@ export interface PlayerResponseCardProps {
   /** Set means disabled, with this line rendered under the control. S4.5 passes the cancelled-event
    *  line; S4.4 never passes it. */
   disabledReason?: string
-}
-
-function attendanceValue(attended: boolean | null): 'none' | 'yes' | 'no' {
-  if (attended === null) return 'none'
-  return attended ? 'yes' : 'no'
 }
 
 /**
@@ -37,10 +33,11 @@ export function PlayerResponseCard({
 
   function handleValueChange(next: string): void {
     if (onAttendanceChange === undefined) return
-    // Radix emits '' when the selected item is clicked again; a member always holds one of the
-    // three states, so ignore the deselect rather than fall back to "not recorded".
-    if (next === '') return
-    onAttendanceChange(row.userId, next === 'none' ? null : next === 'yes')
+    // '' (Radix deselect) and 'none' both mean "not recorded" (AC3). Skip a no-op clear on a row
+    // that is already not recorded so tapping the selected "Not recorded" fires nothing.
+    const attended = toAttended(next)
+    if (attended === row.attended) return
+    onAttendanceChange(row.userId, attended)
   }
 
   return (
