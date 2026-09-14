@@ -19,7 +19,8 @@ relabelled as v1.0.0's and a "## v1.1.0 scope" note is added; nothing here is a 
 | V8 | The match share message is rewritten to the club's real format (D13 amended) | S9.3, S5.1, S5.3 |
 | V9 | `teams` gains a `colour`, admin-editable, used by the calendar | S10.1, S10.2 |
 | V10 | The Home screen becomes a calendar; the upcoming list is replaced | S10.2 (amends S3.1, S3.2) |
-| V11 | Managers get a Squad bottom-nav tab | S10.3 (amends S2.9 nav) |
+| V11 | Managers get a Squad tab — a matchday + members hub | S10.3 |
+| V12 | Squad selection lives in the Squad tab (built before Epic 9), also reachable from the match | S10.3, S9.2 |
 
 ---
 
@@ -98,11 +99,22 @@ a month calendar with a team-coloured dot per event per day, then the selected d
 v1.0.0 chronological upcoming list (S3.2) is replaced by the calendar + selected-day list. Cancelled events
 show a hollow/grey dot and struck-through in the day list, consistent with existing cancelled styling.
 
-### V11 — Manager Squad tab (amends the nav)
-**Decision** — `navItemsForRole` gains a **Squad** item for managers (and admins): Home | History | Manage
-| Squad (admins also keep Admin). Squad opens the managed team's member list (the existing S6.4
-team-members screen) with the reset / remove / change-role actions, reusing the active-team selector for a
-manager of more than one team. Fixes the v1.0.0 gap where that screen was only reachable via an event.
+### V11 — Manager Squad tab, a matchday + members hub
+**Decision** — `navItemsForRole` gains a **Squad** item for managers: Home | History | Manage | Squad
+(admins keep Admin — no 5th tab, Q4). The Squad tab is the manager's squad hub with two sections:
+**Matchday** on top (the managed team's upcoming matches, each opening the squad picker) and **Members**
+below (the existing S6.4 roster: reset / remove / change-role). Reuses the active-team selector for a
+manager of more than one team. Fixes the v1.0.0 gap where the member/reset actions were only reachable via
+an event, and gives the matchday squad a home.
+
+### V12 — Squad selection lives in the Squad tab, built before Epic 9
+**Decision** — Owner's call (2026-09-14): the matchday squad picker (S9.2) lives inside the Squad tab's
+Matchday section, and is also reachable by a "Pick squad" link on the match manager view (S4.3) — two entry
+points, one editor at `/squad/event/:id`. So the Squad tab (S10.3) is built **before** Epic 9's picker, and
+the v1.1.0 build order is S8.x → S10.3 → S9.1 → S9.2 → S9.3 → S10.1 → S10.2. S10.3 ships the tab shell + the
+members section + the matchday match-list with entry points; S9.1/S9.2 add the data model and the picker;
+S9.3 the share. Rationale: you pick and share a squad as one squad-focused task, so it belongs in the Squad
+tab, not buried on the event screen.
 
 ## Open questions (v1.1.0)
 | # | Question | Proposed default |

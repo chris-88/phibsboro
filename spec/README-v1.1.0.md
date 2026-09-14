@@ -12,22 +12,25 @@ numbers, captain) · the club's real numbered-teamsheet WhatsApp share · team c
 
 ## Build order
 
-| # | ID | Story | Epic | Depends on | Size | Status |
-|---|---|---|---|---|---|---|
-| 1 | S8.1 | Social event type | 8 Events | S4.1 | S | ✓ Done |
-| 2 | S8.2 | Match opponent + home/away + generated title | 8 Events | S8.1 | M | |
+| # | ID | Story | Epic | Depends on | Size |
+|---|---|---|---|---|---|
+| 1 | S8.1 | Social event type | 8 Events | S4.1 | S |
+| 2 | S8.2 | Match opponent + home/away + generated title | 8 Events | S8.1 | M |
 | 3 | S8.3 | Meet + Kick-off times | 8 Events | S8.2 | S |
 | 4 | S8.4 | Google-Maps location + Bogies default | 8 Events | S8.2 | S |
-| 5 | S9.1 | Squad data model + RLS (`event_squad`) | 9 Squad | S8.2, S1.4 | M |
-| 6 | S9.2 | Squad selection screen | 9 Squad | S9.1, S4.3 | M |
-| 7 | S9.3 | Match share rewrite (numbered squad) | 9 Squad | S9.2, S8.3, S8.4, S5.2 | M |
-| 8 | S10.1 | Team colours | 10 Calendar/nav | S6.1 | S |
-| 9 | S10.2 | Calendar Home screen | 10 Calendar/nav | S10.1, S3.1–S3.4, S8.x | L |
-| 10 | S10.3 | Manager Squad tab | 10 Calendar/nav | S6.4, S2.9 | S |
+| 5 | S10.3 | Manager Squad tab (matchday + members hub) | 10 Calendar/nav | S6.4, S2.9, S8.2 | M |
+| 6 | S9.1 | Squad data model + RLS (`event_squad`) | 9 Squad | S8.2, S1.4 | M |
+| 7 | S9.2 | Squad selection (in the Squad tab, and from the match) | 9 Squad | S9.1, S10.3, S4.3 | M |
+| 8 | S9.3 | Match share rewrite (numbered squad) | 9 Squad | S9.2, S8.3, S8.4, S5.2 | M |
+| 9 | S10.1 | Team colours | 10 Calendar/nav | S6.1 | S |
+| 10 | S10.2 | Calendar Home screen | 10 Calendar/nav | S10.1, S3.1–S3.4, S8.x | L |
 
-Epic 8 is the foundation (the event model everything else reads). Epic 9 is the headline feature (squad +
-teamsheet share). Epic 10 (team colours → calendar, and the Squad tab) is largely independent and can run
-last or in parallel after Epic 8.
+
+Epic 8 is the foundation (the event model everything else reads). The **Squad tab (S10.3) is built before
+Epic 9** because the squad picker lives inside it (V12): the tab hosts upcoming matches (pick a squad) on
+top and the roster (reset/remove/role) below. Epic 9 then adds the data model, the picker (mounted in the
+tab and linked from the match view) and the teamsheet share. Team colours + the calendar Home (S10.1, S10.2)
+come last — independent of the squad work.
 
 ## What each epic delivers
 - **Epic 8 — Richer event model:** create a Social event; enter an opponent and home/away and the title
