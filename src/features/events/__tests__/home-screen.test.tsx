@@ -17,6 +17,7 @@ vi.mock('@/lib/supabase', () => ({
 interface QueryLike {
   data: UpcomingEvent[] | undefined
   isError: boolean
+  isPending: boolean
   isSuccess: boolean
   refetch: () => void
 }
@@ -69,6 +70,7 @@ const upcoming = (over: Partial<UpcomingEvent> = {}): UpcomingEvent => ({
 const settled = (data: UpcomingEvent[]): QueryLike => ({
   data,
   isError: false,
+  isPending: false,
   isSuccess: true,
   refetch: vi.fn(),
 })
@@ -113,7 +115,9 @@ describe('HomeScreen (S3.1) — states', () => {
     ])
     renderHome()
     expect(screen.getByRole('heading', { name: 'The real next one' })).toBeInTheDocument()
-    expect(screen.queryByText('Called off')).not.toBeInTheDocument()
+    // The cancelled fixture is not the card (AC4). Since S3.2 it appears below, in the list, marked
+    // cancelled (D60) — so it is no longer absent from the screen, only absent from the card.
+    expect(screen.queryByRole('heading', { name: 'Called off' })).not.toBeInTheDocument()
   })
 
   it('shows the team name when the player is on more than one team (AC3)', () => {
@@ -154,7 +158,13 @@ describe('HomeScreen (S3.1) — states', () => {
   })
 
   it('shows a loading skeleton, same-height, while the query is pending (AC13)', () => {
-    hoisted.query.value = { data: undefined, isError: false, isSuccess: false, refetch: vi.fn() }
+    hoisted.query.value = {
+      data: undefined,
+      isError: false,
+      isPending: true,
+      isSuccess: false,
+      refetch: vi.fn(),
+    }
     renderHome()
     expect(screen.getByRole('status', { name: 'Loading' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Yes' })).not.toBeInTheDocument()
@@ -162,7 +172,13 @@ describe('HomeScreen (S3.1) — states', () => {
 
   it('shows an inline error with a Retry that refetches, keeping no card (AC14)', async () => {
     const refetch = vi.fn()
-    hoisted.query.value = { data: undefined, isError: true, isSuccess: false, refetch }
+    hoisted.query.value = {
+      data: undefined,
+      isError: true,
+      isPending: false,
+      isSuccess: false,
+      refetch,
+    }
     renderHome()
     expect(screen.getByText("Couldn't load your events.")).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: 'Try again' }))

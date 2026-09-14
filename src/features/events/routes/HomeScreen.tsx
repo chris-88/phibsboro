@@ -4,6 +4,7 @@ import { useSignedInUser } from '@/features/auth/use-current-user'
 import { NextEventCard } from '@/features/events/components/NextEventCard'
 import { NextEventCardSkeleton } from '@/features/events/components/NextEventCardSkeleton'
 import { PostResponsePrompts } from '@/features/events/components/PostResponsePrompts'
+import { UpcomingEventsList } from '@/features/events/components/UpcomingEventsList'
 import { pickNextEvent } from '@/features/events/pick-next-event'
 
 /** The five states of the home card, as one discriminated value so S7.1's audit reads them off a
@@ -61,7 +62,16 @@ export default function HomeScreen(): React.JSX.Element {
           <PostResponsePrompts />
         </>
       )}
-      {/* S3.2 mounts <UpcomingEventsList /> here. */}
+      {/* Everything else coming up, in order, with the player's own answer (S3.2). It defers to the
+          card's states — hidden entirely when the player is on no team, since the query is then
+          disabled and would sit pending — and takes the card's event id so no fixture shows twice. */}
+      {state !== 'noTeam' && (
+        <UpcomingEventsList
+          query={query}
+          excludeEventId={next?.id ?? null}
+          showTeamName={memberships.length > 1}
+        />
+      )}
     </div>
   )
 }
