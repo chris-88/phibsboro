@@ -14,6 +14,8 @@ import {
   type EventDetail,
 } from '@/api/events'
 import { useTeamMembers } from '@/api/members'
+import { useEventSquad } from '@/api/squad'
+import { squadStatusText } from '@/features/events/squad-picker'
 import {
   EventCountsPanel,
   EventCountsPanelSkeleton,
@@ -237,6 +239,10 @@ function ManagerEventView({ detail }: { detail: EventDetail }): React.JSX.Elemen
         </CardContent>
       </Card>
 
+      {/* The squad picker (S9.2), match-only. The status hint reads from the same squad cache the
+          picker writes, so it updates the moment a player is added. */}
+      {detail.type === 'match' && <PickSquadLink eventId={detail.id} />}
+
       <section className="flex flex-col gap-2">
         <div className="flex items-center justify-between gap-2 px-1">
           <h3 className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
@@ -305,6 +311,37 @@ function ManagerEventView({ detail }: { detail: EventDetail }): React.JSX.Elemen
         )}
       </section>
     </div>
+  )
+}
+
+/** The "Pick squad" link on the match manager view (S9.2), with the current squad status beneath.
+ *  Its own component so `useEventSquad` runs only for a match, and the status follows the same
+ *  cache the picker writes. A failed read shows the link without a count rather than an error —
+ *  the picker itself is the place a load failure surfaces. */
+function PickSquadLink({ eventId }: { eventId: string }): React.JSX.Element {
+  const squad = useEventSquad(eventId)
+  const status =
+    squad.data === undefined
+      ? null
+      : squadStatusText(
+          squad.data.length,
+          squad.data.some((s) => s.is_captain),
+        )
+  return (
+    <Card size="sm">
+      <CardContent>
+        <Link
+          to={paths.squadEvent(eventId)}
+          className="flex min-h-tap items-center justify-between gap-2"
+        >
+          <span className="flex min-w-0 flex-col">
+            <span className="text-sm font-medium text-foreground">Pick squad</span>
+            {status !== null && <span className="text-xs text-muted-foreground">{status}</span>}
+          </span>
+          <ChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+        </Link>
+      </CardContent>
+    </Card>
   )
 }
 

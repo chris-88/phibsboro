@@ -26,6 +26,9 @@ vi.mock('@/features/teams/hooks/useActiveTeam', () => ({
   useActiveTeam: () => hoisted.active.value,
 }))
 vi.mock('@/api/events', () => ({ useTeamEvents: () => hoisted.events.value }))
+// The matchday row reads the per-match squad for its status hint (S9.2); a stub keeps this suite
+// about the list, not the squad read. Undefined data renders the "Squad not picked" hint.
+vi.mock('@/api/squad', () => ({ useEventSquad: () => ({ data: undefined }) }))
 // Convenience-role flag only; not under test here.
 vi.mock('@/features/auth/use-current-user', () => ({
   useCurrentUser: () => ({ status: 'ready', user: { isAdmin: false } }),
@@ -143,7 +146,7 @@ describe('Matchday section (AC2, AC4)', () => {
     expect(screen.queryByText('Called off')).not.toBeInTheDocument()
   })
 
-  it('links each match to its manager view (S9.2 target; AC3)', () => {
+  it('links each match to its squad picker (S9.2; AC1)', () => {
     hoisted.events.value = {
       isPending: false,
       isError: false,
@@ -153,7 +156,7 @@ describe('Matchday section (AC2, AC4)', () => {
     renderScreen()
     expect(screen.getByRole('link', { name: /real match/i })).toHaveAttribute(
       'href',
-      '/manage/event/abc-match',
+      '/squad/event/abc-match',
     )
   })
 

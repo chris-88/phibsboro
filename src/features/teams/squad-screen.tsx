@@ -5,6 +5,8 @@ import { teamKeys } from '@/api/queryKeys'
 import { EmptyState, ErrorState, LoadingState } from '@/components/states'
 import { Card, CardContent } from '@/components/ui/card'
 import { useTeamEvents } from '@/api/events'
+import { useEventSquad } from '@/api/squad'
+import { squadStatusText } from '@/features/events/squad-picker'
 import type { EventRow } from '@/features/events/schema'
 import { ManageHeader } from '@/features/teams/components/ManageHeader'
 import { MemberList } from '@/features/teams/member-list'
@@ -83,8 +85,7 @@ export default function SquadScreen(): React.JSX.Element {
  * The managed team's upcoming matches (AC2, AC4): type match, kick-off in the future, not
  * cancelled — training and social never appear, and a cancelled match needs no squad. Soonest
  * first. Reuses `useTeamEvents` (no new read); the filter is client-side so the same cached rows
- * back the manage list. Each row links to the squad picker route (S9.2); until that lands the
- * target is the match manager view (AC3).
+ * back the manage list. Each row links to the squad picker route (S9.2).
  */
 function MatchdayList({ teamId }: { teamId: string }): React.JSX.Element {
   const events = useTeamEvents(teamId)
@@ -119,16 +120,24 @@ function MatchdayList({ teamId }: { teamId: string }): React.JSX.Element {
   )
 }
 
-/** One match row: the fixture, a Kick-off (and Meet, when set) line, and the squad-status hint.
- *  The count comes with S9.1/S9.2's `event_squad`; before it lands the hint reads "Squad not
- *  picked" for every match, which is the honest pre-picked state. */
+/** One match row: the fixture, a Kick-off (and Meet, when set) line, and the squad-status hint,
+ *  opening the squad picker (S9.2). The status reads the per-match `event_squad` cache the picker
+ *  writes — "Squad not picked" until someone is in, then "{n} picked" with a captain note. */
 function MatchdayRow({ match }: { match: EventRow }): React.JSX.Element {
   const meet = match.meet_at !== null ? ` · Meet ${formatEventTime(match.meet_at, 'time')}` : ''
+  const squad = useEventSquad(match.id)
+  const status =
+    squad.data === undefined
+      ? 'Squad not picked'
+      : squadStatusText(
+          squad.data.length,
+          squad.data.some((s) => s.is_captain),
+        )
   return (
     <Card>
       <CardContent className="p-0">
         <Link
-          to={paths.manageEvent(match.id)}
+          to={paths.squadEvent(match.id)}
           className="flex min-h-tap items-center gap-3 rounded-xl px-4 py-3 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
         >
           <span className="flex min-w-0 flex-1 flex-col gap-1.5">
@@ -137,7 +146,7 @@ function MatchdayRow({ match }: { match: EventRow }): React.JSX.Element {
               {formatEventTime(match.starts_at, 'short')}
               {meet} · {locationDisplay(match.location).label}
             </span>
-            <span className="text-xs font-medium text-muted-foreground">Squad not picked</span>
+            <span className="text-xs font-medium text-muted-foreground">{status}</span>
           </span>
           <ChevronRight className="size-5 shrink-0 text-muted-foreground" aria-hidden="true" />
         </Link>

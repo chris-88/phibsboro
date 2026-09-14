@@ -89,6 +89,7 @@ describe('route table (D34)', () => {
       '/manage/event/:id',
       '/manage/team/:teamId/members',
       '/squad',
+      '/squad/event/:id',
       '/admin',
       '*',
     ])
@@ -120,6 +121,7 @@ describe('route table (D34)', () => {
       '/manage/event/:id': 'nav',
       '/manage/team/:teamId/members': 'nav',
       '/squad': 'nav',
+      '/squad/event/:id': 'nav',
       '/admin': 'nav',
       '*': 'bare',
     })
