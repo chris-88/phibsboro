@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { EventDetail } from '@/api/events'
 import type { EventResponseRow } from '@/features/availability/schema'
 import type { MemberDirectoryRow } from '@/features/teams/schema'
+import type { RosterAttendance } from '@/lib/roster'
 
 interface QueryLike<T> {
   isPending: boolean
@@ -35,6 +36,7 @@ const hoisted = vi.hoisted(() => {
     detail: { value: pending<EventDetail | null>() },
     responses: { value: pending<EventResponseRow[]>() },
     members: { value: pending<MemberDirectoryRow[]>() },
+    attendance: { value: pending<RosterAttendance[]>() },
     settled,
     pending,
     errored,
@@ -44,6 +46,7 @@ const hoisted = vi.hoisted(() => {
 vi.mock('@/api/events', () => ({
   useEventDetail: () => hoisted.detail.value,
   useEventResponses: () => hoisted.responses.value,
+  useEventAttendance: () => hoisted.attendance.value,
 }))
 vi.mock('@/api/members', () => ({ useTeamMembers: () => hoisted.members.value }))
 // The overflow menu's dialogs own mutation hooks that reach the query cache; stub them so this
@@ -108,9 +111,11 @@ function renderScreen() {
   )
 }
 
-/** The tile is a Card holding a number span over a label span; find it by its label. */
+/** The tile is a Card holding a number span over a label span; find it by its label. Scoped to
+ *  the counts group, because the same words now appear on the response pills below (S4.4). */
 function tileValue(label: string): string {
-  const card = screen.getByText(label).closest('[data-slot="card"]')
+  const panel = screen.getByRole('group', { name: 'Response counts' })
+  const card = within(panel).getByText(label).closest('[data-slot="card"]')
   expect(card).not.toBeNull()
   // The first span in the tile is the number.
   return within(card as HTMLElement).getAllByText(/^\d+$/)[0]?.textContent ?? ''
@@ -120,6 +125,7 @@ beforeEach(() => {
   hoisted.detail.value = hoisted.pending<EventDetail | null>()
   hoisted.responses.value = hoisted.pending<EventResponseRow[]>()
   hoisted.members.value = hoisted.pending<MemberDirectoryRow[]>()
+  hoisted.attendance.value = hoisted.pending<RosterAttendance[]>()
 })
 
 describe('ManageEventScreen', () => {
@@ -141,6 +147,7 @@ describe('ManageEventScreen', () => {
     hoisted.detail.value = hoisted.settled<EventDetail | null>(detail())
     hoisted.responses.value = hoisted.settled(responsesWithLeaver)
     hoisted.members.value = hoisted.settled(squad12)
+    hoisted.attendance.value = hoisted.settled<RosterAttendance[]>([])
     renderScreen()
 
     expect(screen.getByText('Evening session')).toBeInTheDocument()
@@ -148,7 +155,48 @@ describe('ManageEventScreen', () => {
     expect(tileValue('Unavailable')).toBe('3')
     expect(tileValue('Awaiting')).toBe('3')
     expect(tileValue('Squad')).toBe('12')
-    expect(screen.getByText('Player list coming next.')).toBeInTheDocument()
+  })
+
+  it('renders one card per member and drops the placeholder line (AC1, AC4)', () => {
+    hoisted.detail.value = hoisted.settled<EventDetail | null>(detail())
+    hoisted.responses.value = hoisted.settled(responsesWithLeaver)
+    hoisted.members.value = hoisted.settled(squad12)
+    hoisted.attendance.value = hoisted.settled<RosterAttendance[]>([])
+    renderScreen()
+
+    expect(screen.queryByText('Player list coming next.')).toBeNull()
+    // 12 members → 12 cards, the leaver's orphaned response contributing none.
+    for (let i = 0; i < 12; i++) {
+      expect(screen.getByText(`Player m${String(i)}`)).toBeInTheDocument()
+    }
+    expect(screen.queryByText('Player leaver')).toBeNull()
+    // Read-only here: every attendance control is disabled until S4.5 supplies the handler (AC7).
+    const controls = screen.getAllByRole('radio', { name: 'Not recorded' })
+    expect(controls).toHaveLength(12)
+    for (const c of controls) expect(c).toBeDisabled()
+  })
+
+  it('shows the roster skeleton while attendance is still loading (AC11)', () => {
+    hoisted.detail.value = hoisted.settled<EventDetail | null>(detail())
+    hoisted.responses.value = hoisted.settled(responsesWithLeaver)
+    hoisted.members.value = hoisted.settled(squad12)
+    hoisted.attendance.value = hoisted.pending<RosterAttendance[]>()
+    renderScreen()
+
+    expect(screen.getByLabelText('Loading the squad')).toBeInTheDocument()
+  })
+
+  it('shows an inline squad error with Retry when attendance fails (AC11)', () => {
+    hoisted.detail.value = hoisted.settled<EventDetail | null>(detail())
+    hoisted.responses.value = hoisted.settled(responsesWithLeaver)
+    hoisted.members.value = hoisted.settled(squad12)
+    hoisted.attendance.value = hoisted.errored<RosterAttendance[]>()
+    renderScreen()
+
+    // Header and counts stay on screen; only the squad region shows its error.
+    expect(screen.getByText('Evening session')).toBeInTheDocument()
+    expect(tileValue('Squad')).toBe('12')
+    expect(screen.getByText("Couldn't load the squad.")).toBeInTheDocument()
   })
 
   it('renders four zeros and the empty message for a squad of none (AC12)', () => {

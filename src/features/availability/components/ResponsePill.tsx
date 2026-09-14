@@ -7,6 +7,9 @@ export interface ResponsePillProps {
   /** The player's own answer, or `null` while awaiting. `null` renders "Awaiting" — absence is the
    *  third state, never a stored value (D12, D25). */
   response: AvailabilityResponse | null
+  /** Overrides the accessible name so S4.4's card can read "Dara Byrne, awaiting" rather than a
+   *  bare "Awaiting" out of context. Omitted, the visible word is the accessible text. */
+  'aria-label'?: string
 }
 
 /**
@@ -30,10 +33,13 @@ const variants: Record<'available' | 'unavailable' | 'awaiting', Variant> = {
   awaiting: { label: 'Awaiting', icon: Minus, variant: 'outline' },
 }
 
-export function ResponsePill({ response }: ResponsePillProps): React.JSX.Element {
+export function ResponsePill({
+  response,
+  'aria-label': ariaLabel,
+}: ResponsePillProps): React.JSX.Element {
   const { label, icon: Icon, variant } = variants[response ?? 'awaiting']
   return (
-    <Badge variant={variant}>
+    <Badge variant={variant} aria-label={ariaLabel}>
       <Icon aria-hidden="true" />
       {label}
     </Badge>

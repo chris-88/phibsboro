@@ -6,16 +6,26 @@ import { EmptyState, ErrorState } from '@/components/states'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
-import { useEventDetail, useEventResponses, type EventDetail } from '@/api/events'
+import {
+  useEventAttendance,
+  useEventDetail,
+  useEventResponses,
+  type EventDetail,
+} from '@/api/events'
 import { useTeamMembers } from '@/api/members'
 import {
   EventCountsPanel,
   EventCountsPanelSkeleton,
 } from '@/features/events/components/EventCountsPanel'
 import { EventHeaderCard } from '@/features/events/components/EventHeaderCard'
+import {
+  PlayerResponseList,
+  PlayerResponseListSkeleton,
+} from '@/features/events/components/PlayerResponseList'
 import type { EventActionData } from '@/features/events/schema'
 import { deriveCounts, type Counts } from '@/lib/counts'
 import { paths } from '@/lib/paths'
+import { buildRoster, type RosterRow } from '@/lib/roster'
 import { useRouteParam } from '@/lib/use-route-param'
 
 /** Both live reads poll every 30s and refetch on focus while this screen is mounted (D23). The
@@ -70,6 +80,7 @@ function ManagerEventView({ detail }: { detail: EventDetail }): React.JSX.Elemen
   const navigate = useNavigate()
   const responses = useEventResponses(detail.id, LIVE)
   const members = useTeamMembers(detail.teamId, LIVE)
+  const attendance = useEventAttendance(detail.id, LIVE)
 
   // Both mapped to `userId` at the call site so `deriveCounts` keeps a shape that owes nothing to
   // PostgREST. No `?? []` default: a count built from one loaded query and one empty fallback is a
@@ -82,6 +93,26 @@ function ManagerEventView({ detail }: { detail: EventDetail }): React.JSX.Elemen
   const counts: Counts | null = useMemo(
     () => (squad && responded ? deriveCounts(squad, responded) : null),
     [squad, responded],
+  )
+
+  // The response list reads the same two cached queries the counts do — `teamKeys.members` and
+  // `eventKeys.responses` — plus attendance, so the cards and the counts can never disagree (AC9).
+  // Derived once here, the single owner, mirroring the counts. `undefined` means still loading, and
+  // is distinct from `[]`, an event whose team has no members.
+  const rosterMembers = useMemo(
+    () => members.data?.map((m) => ({ userId: m.user_id, name: m.name, role: m.role })),
+    [members.data],
+  )
+  const rosterResponses = useMemo(
+    () => responses.data?.map((r) => ({ userId: r.user_id, response: r.response })),
+    [responses.data],
+  )
+  const roster: RosterRow[] | null = useMemo(
+    () =>
+      rosterMembers && rosterResponses && attendance.data
+        ? buildRoster(rosterMembers, rosterResponses, attendance.data)
+        : null,
+    [rosterMembers, rosterResponses, attendance.data],
   )
 
   // Reused by S4.2's action components. Every field is a real value from the detail read; the four
@@ -100,6 +131,7 @@ function ManagerEventView({ detail }: { detail: EventDetail }): React.JSX.Elemen
 
   const countsFailed = responses.isError || members.isError
   const membersEmpty = members.data?.length === 0
+  const rosterFailed = responses.isError || members.isError || attendance.isError
 
   return (
     <div className="flex flex-col gap-4 py-4">
@@ -142,7 +174,16 @@ function ManagerEventView({ detail }: { detail: EventDetail }): React.JSX.Elemen
         <h3 className="px-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
           Who&apos;s in
         </h3>
-        {membersEmpty ? (
+        {rosterFailed ? (
+          <ErrorState
+            title="Couldn't load the squad."
+            onRetry={() => {
+              void responses.refetch()
+              void members.refetch()
+              void attendance.refetch()
+            }}
+          />
+        ) : membersEmpty ? (
           <EmptyState
             title="No one has joined this team yet."
             action={
@@ -151,9 +192,12 @@ function ManagerEventView({ detail }: { detail: EventDetail }): React.JSX.Elemen
               </Button>
             }
           />
+        ) : roster === null ? (
+          <PlayerResponseListSkeleton />
         ) : (
-          // Placeholder for the per-player list; S4.4 removes this line (Definition of done).
-          <p className="px-1 text-sm text-muted-foreground">Player list coming next.</p>
+          // Read-only in S4.4: no `onAttendanceChange`, so every attendance control is disabled.
+          // S4.5 supplies the handler and this component does not change (Definition of done).
+          <PlayerResponseList rows={roster} />
         )}
       </section>
     </div>

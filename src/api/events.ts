@@ -10,6 +10,7 @@ import type { PostgrestError } from '@supabase/supabase-js'
 import { z } from 'zod'
 import { eventKeys } from '@/api/queryKeys'
 import { callRpc } from '@/api/rpc'
+import { attendanceRowSchema } from '@/features/attendance/schema'
 import {
   eventResponseRowSchema,
   type AvailabilityResponse,
@@ -31,6 +32,7 @@ import {
   type EventType,
   type UpcomingEventRow,
 } from '@/features/events/schema'
+import type { RosterAttendance } from '@/lib/roster'
 import { serverNow } from '@/lib/serverClock'
 import { supabase } from '@/lib/supabase'
 
@@ -163,6 +165,39 @@ export function useEventResponses(
         .eq('event_id', eventId)
       if (error) throw error
       return z.array(eventResponseRowSchema).parse(data)
+    },
+  })
+}
+
+/**
+ * Every attendance row for one event (S4.4). Two columns only, so the row type is the picked
+ * shape, never the full `AttendanceRow`, and `phone` cannot reach a component by accident. The
+ * manager select policy is scoped by the owning event's team (D33), so a leaver's row comes back
+ * and `buildRoster()` drops it — the same shape the responses read has. Read-only; polling is
+ * passed by the screen so the same key is not force-polled elsewhere. Sits under
+ * `eventKeys.attendance(eventId)`, beneath `eventKeys.all`, so S4.2's invalidation reaches it too.
+ */
+export function useEventAttendance(
+  eventId: string | undefined,
+  options: LiveReadOptions = {},
+): UseQueryResult<RosterAttendance[]> {
+  return useQuery({
+    queryKey: eventKeys.attendance(eventId ?? ''),
+    enabled: Boolean(eventId),
+    refetchInterval: options.refetchInterval,
+    refetchOnWindowFocus: options.refetchOnWindowFocus ?? false,
+    queryFn: async (): Promise<RosterAttendance[]> => {
+      if (!eventId) return []
+      const { data, error } = await supabase
+        .from('attendance')
+        .select('user_id, attended')
+        .eq('event_id', eventId)
+      if (error) throw error
+      const picked = attendanceRowSchema.pick({ user_id: true, attended: true })
+      return z
+        .array(picked)
+        .parse(data)
+        .map((r) => ({ userId: r.user_id, attended: r.attended }))
     },
   })
 }

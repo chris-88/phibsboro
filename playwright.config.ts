@@ -79,5 +79,14 @@ export default defineConfig({
       dependencies: ['setup'],
       use: { baseURL: PREVIEW_URL, timezoneId: 'Europe/Dublin' }, // D53
     },
+    // S4.4: the seeded manager opens an event and reads the awaiting-first response list at 375px.
+    // Uses the stored manager session from `setup`, so it depends on it and needs a seeded
+    // database, not Docker.
+    {
+      name: 'response-list',
+      testMatch: /response-list\.spec\.ts/,
+      dependencies: ['setup'],
+      use: { baseURL: PREVIEW_URL, timezoneId: 'Europe/Dublin' }, // D53
+    },
   ],
 })
