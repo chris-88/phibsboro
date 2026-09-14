@@ -53,4 +53,23 @@ describe('loadChunk', () => {
     await Promise.resolve()
     expect(reload).toHaveBeenCalledTimes(1)
   })
+
+  it('falls back to window.location.reload when no reload is injected (S7.2 coverage floor)', async () => {
+    // Every other case injects a spy, so the default parameter is otherwise never exercised.
+    // jsdom's location.reload cannot be spied (see the source note), so swap window.location for a
+    // stand-in whose reload is observable. Restored in finally; nothing else reads location here.
+    sessionStorage.clear()
+    const reload = vi.fn()
+    const original = window.location
+    Object.defineProperty(window, 'location', { configurable: true, value: { reload } })
+    try {
+      const chunkError = new Error('Failed to fetch dynamically imported module: /assets/x.js')
+      void loadChunk(() => Promise.reject(chunkError)).catch(() => undefined)
+      await Promise.resolve()
+      await Promise.resolve()
+      expect(reload).toHaveBeenCalledTimes(1)
+    } finally {
+      Object.defineProperty(window, 'location', { configurable: true, value: original })
+    }
+  })
 })

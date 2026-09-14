@@ -54,6 +54,24 @@ describe('deriveCounts', () => {
     expectSums(counts)
   })
 
+  it('every response orphaned by an empty squad moves no number (S7.2 AC5, D22)', () => {
+    // Not one member, yet a leaver's row still comes back: it is excluded from all four numbers.
+    const counts = deriveCounts([], [available('z')])
+    expect(counts).toEqual({ available: 0, unavailable: 0, awaiting: 0, squad: 0 })
+    expectSums(counts)
+  })
+
+  it('a member with two response rows does not throw and still sums (S7.2 AC5)', () => {
+    // The (event_id, user_id) primary key makes this impossible through the wire, but the pure
+    // function must not throw if handed it. deriveCounts counts every matching row rather than
+    // de-duplicating, so the sum invariant holds by construction and awaiting absorbs the double
+    // count — never a crash.
+    const counts = deriveCounts([member('a')], [available('a'), unavailable('a')])
+    expect(() => deriveCounts([member('a')], [available('a'), unavailable('a')])).not.toThrow()
+    expect(counts.squad).toBe(1)
+    expectSums(counts)
+  })
+
   it('matches the seeded event 102: squad 12, one leaver response among ten rows', () => {
     // The real seed row this screen was verified against: 10 response rows, one from a leaver,
     // 6 member-available and 3 member-unavailable → awaiting 3 (D22/D33). See the build report.

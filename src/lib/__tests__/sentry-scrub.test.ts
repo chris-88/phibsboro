@@ -108,6 +108,62 @@ describe('scrubString token truncation (AC8)', () => {
   })
 })
 
+describe('scrubString does not over-redact (S7.2 AC6, D16)', () => {
+  // The failure nobody notices until an issue is unreadable: a pattern eating the identifiers that
+  // make an error traceable. Each is asserted with toBe(input), not merely "no mask".
+  const EVENT_UUID = '9f1c2d3e-4a5b-6c7d-8e9f-0a1b2c3d4e5f'
+
+  it('leaves an event uuid whole', () => {
+    expect(scrubString(EVENT_UUID)).toBe(EVENT_UUID)
+  })
+
+  it('leaves the /#/event/{uuid} path whole — it is how an issue is traced back to an event', () => {
+    const path = `/#/event/${EVENT_UUID}`
+    expect(scrubString(path)).toBe(path)
+    // The event route is not a token route: unlike /#/join and /#/reset it is not truncated.
+    expect(scrubString(`https://app.phibsboro.ie${path}`)).toBe(`https://app.phibsboro.ie${path}`)
+  })
+
+  it('leaves a Postgres error code whole', () => {
+    expect(scrubString('PGRST116')).toBe('PGRST116')
+  })
+
+  it('masks a bare 13-digit run — the err-wide BARE_DIGITS rule, a documented false positive (S7.2 deviation)', () => {
+    // AC6 asks that a 13-digit millisecond timestamp such as 1774000000000 survive whole. The
+    // scrubber deliberately masks any bare 9–15 digit run (D16: "every pattern errs wide"), because
+    // a bare Supabase-stored phone (353871234567) is 12 digits and 00353… is 14, and a false
+    // negative is an unrecoverable leak while a false positive costs one digit run in a report.
+    // Preserving the timestamp would mean narrowing a security pattern owned by S0.6, so the
+    // behaviour is left as designed and pinned here rather than changed. See the build notes.
+    expect(scrubString('1774000000000')).toBe(PHONE_MASK)
+  })
+})
+
+describe('scrubEvent and scrubBreadcrumb do not mutate their input (S7.2 AC6)', () => {
+  // Sentry reuses the event object, so a scrubber that edited in place would corrupt the caller's
+  // copy. Deep-equality against a clone taken before the call is the proof.
+  it('scrubEvent returns a scrubbed copy and leaves the argument untouched', () => {
+    const event = eventCarrying('+353871234567')
+    const before = structuredClone(event)
+    const out = scrubEvent(event)
+    expect(event).toStrictEqual(before)
+    // And it actually scrubbed the copy, so the non-mutation is not a no-op.
+    expect(everyString(out).join(' ')).not.toContain(DIGITS)
+  })
+
+  it('scrubBreadcrumb returns a scrubbed copy and leaves the argument untouched', () => {
+    const crumb: BreadcrumbLike = {
+      category: 'ui.click',
+      message: 'tap 0871234567',
+      data: { form: { fields: { phone: '+353871234567' }, list: ['087 123 4567'] } },
+    }
+    const before = structuredClone(crumb)
+    const out = scrubBreadcrumb(crumb)
+    expect(crumb).toStrictEqual(before)
+    expect(out.message).toBe(`tap ${PHONE_MASK}`)
+  })
+})
+
 describe('scrubBreadcrumb', () => {
   it('scrubs a nested data object', () => {
     const crumb: BreadcrumbLike = {

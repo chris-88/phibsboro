@@ -1,5 +1,54 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { dublinLocalToUtcIso, formatEventTime, utcIsoToDublinParts } from '@/lib/time'
+
+// —— S7.2 cross-cutting cases (D57) ————————————————————————————————————————————
+// The runner-clock guard and the literal DST/boundary table nobody else owns. Everything below
+// is a fixed UTC instant asserted as a literal Dublin wall-clock string; TZ=UTC is pinned in
+// vitest.config.ts (D53), and this suite proves the pin is actually in force before it trusts a
+// single date.
+
+describe('the runner clock is UTC (S7.2 AC1, D53)', () => {
+  it('TZ is UTC and the wall clock has no offset, so a Dublin date is never the runner’s', () => {
+    // If a runner escaped the pin, every year-suffix and DST assertion below would go wrong
+    // quietly; this fails loudly instead.
+    expect(process.env.TZ).toBe('UTC')
+    expect(new Date().getTimezoneOffset()).toBe(0)
+  })
+})
+
+describe('formatEventTime — the literal boundary table (S7.2 AC2, AC3)', () => {
+  // Frozen once for the whole block so the year-appending rule is deterministic: an event in
+  // 2026 appends no year, one in 2027 does.
+  beforeAll(() => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-03-01T12:00:00Z'))
+  })
+  afterAll(() => {
+    vi.useRealTimers()
+  })
+
+  it.each([
+    ['2026-01-17T19:30:00Z', 'share', 'Saturday 17 January, 7.30pm'], // GMT, winter
+    ['2026-07-18T18:30:00Z', 'share', 'Saturday 18 July, 7.30pm'], // IST, summer: UTC+1 applied
+    ['2026-03-29T00:30:00Z', 'share', 'Sunday 29 March, 12.30am'], // 30 min before spring-forward
+    ['2026-03-29T01:30:00Z', 'share', 'Sunday 29 March, 2.30am'], // 30 min after; 01:00–02:00 IST does not exist
+    ['2027-01-16T19:30:00Z', 'share', 'Saturday 16 January 2027, 7.30pm'], // year appended, not current
+    ['2026-07-18T18:30:00Z', 'short', 'Sat 18 Jul, 7.30pm'], // abbreviated
+    ['2026-07-18T18:00:00Z', 'time', '7pm'], // minutes dropped on the hour
+    ['2026-01-18T00:00:00Z', 'time', '12am'], // midnight, not 0am
+    ['2026-01-18T12:00:00Z', 'time', '12pm'], // midday, not 0pm
+  ] as const)('%s (%s) → %s', (iso, style, expected) => {
+    expect(formatEventTime(iso, style)).toBe(expected)
+  })
+
+  it('renders the repeated October hour identically for both passes (AC3)', () => {
+    // 00:30Z is the first, IST pass through 01.30am; 01:30Z is the second, GMT pass. The clocks-back
+    // hour is deliberately NOT disambiguated: printing IST/GMT in a WhatsApp message would be worse,
+    // and no event is scheduled at half one in the morning (D57 Q4).
+    expect(formatEventTime('2026-10-25T00:30:00Z', 'share')).toBe('Sunday 25 October, 1.30am')
+    expect(formatEventTime('2026-10-25T01:30:00Z', 'share')).toBe('Sunday 25 October, 1.30am')
+  })
+})
 
 // Every instant below is a fixed UTC string, exactly as PostgREST returns a timestamptz, and
 // vitest.config.ts pins TZ=UTC (D53). The assertions are Dublin wall-clock, so they must also

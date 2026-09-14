@@ -48,7 +48,9 @@ jobs:
       - run: npm run typecheck
       - run: npm run lint
       - run: npm run format:check
-      - run: npm test
+      # S7.2 AC9 — runs the unit suite with the v8 coverage floor over src/lib and fails below
+      # threshold. Replaces the plain `npm test`: it runs every test and adds the gate.
+      - run: npm run test:coverage
       - run: npm run build
       # scripts/check-env-parity.mjs is S0.5's file (its AC14). Until S0.5 ships it there is
       # nothing to compare .env.example against, so the step reports and passes rather than

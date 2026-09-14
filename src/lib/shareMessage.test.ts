@@ -106,6 +106,15 @@ describe('buildShareMessage', () => {
     expect(msg.split('\n')[2]).toBe('Fairview Park pitch 3')
   })
 
+  // S7.2 AC8 — an event 30 minutes into the spring-forward hour. Its Dublin wall clock is 2.30am
+  // (the 01:00–02:00 IST hour does not exist), proving the generator reads Dublin local time and
+  // not the UTC instant it was handed. Neither S5.1 nor S1.5 owns a share case that crosses DST.
+  it('reads Dublin local time across the spring-forward boundary', () => {
+    expect(buildShareMessage(match({ starts_at: '2026-03-29T01:30:00Z' }))).toContain(
+      'Sunday 29 March, 2.30am',
+    )
+  })
+
   // Test-plan case 6 — a different calendar year reaches the message (the rule is formatEventTime's).
   it('carries the year for a non-current-year event', () => {
     expect(buildShareMessage(match({ starts_at: '2027-02-20T20:00:00Z' }))).toContain(
@@ -239,5 +248,17 @@ describe('waMeUrl', () => {
     const url = waMeUrl(buildShareMessage(match()))
     expect(url).toContain('%20')
     expect(url).not.toContain('+')
+  })
+
+  // S7.2 AC7 — every newline in the body survives as %0A, and the whole body round-trips through
+  // the URL's own parser back to the exact input, which is the assertion that would catch a silent
+  // truncation at the '#' (D52).
+  it('encodes each newline as %0A and round-trips via URL.searchParams', () => {
+    const message = buildShareMessage(match({ notes: 'Bring both kits.' }))
+    const url = waMeUrl(message)
+    const newlines = (message.match(/\n/g) ?? []).length
+    expect(newlines).toBeGreaterThan(0)
+    expect((url.match(/%0A/g) ?? []).length).toBe(newlines)
+    expect(decodeURIComponent(new URL(url).searchParams.get('text') ?? '')).toBe(message)
   })
 })

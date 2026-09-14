@@ -37,6 +37,27 @@ export default mergeConfig(
         VITE_SENTRY_RELEASE: 'test',
         VITE_SENTRY_ENVIRONMENT: 'test',
       },
+      // S7.2 AC9 — a coverage floor over the pure helpers in src/lib so the cross-cutting logic
+      // (dates, share text, counts, the scrubber) cannot rot silently. Scoped to src/lib only,
+      // deliberately: a global number would be meaningless or would force the component tests this
+      // story does not want (D57). Enforced by the `check` CI job via `npm run test:coverage`;
+      // `npm run test` stays plain and fast (AC11).
+      coverage: {
+        provider: 'v8',
+        include: ['src/lib/**/*.ts'],
+        exclude: [
+          'src/lib/database.types.ts', // generated
+          'src/lib/**/*.test.ts',
+          'src/lib/supabase.ts', // a client constructor with nothing to assert (spec)
+          'src/lib/env.ts', // the one module allowed to read import.meta.env; no branch to floor (spec)
+          // S7.2 deviation: auth.ts's two live functions are thin `supabase.auth.*` wrappers, the
+          // same shape as the excluded supabase.ts, and can only be reached by stubbing the client
+          // — which this story forbids ("no client, no stub, no network"). Its pure `mapAuthError`
+          // keeps its own S2.1 tests, which still run. Excluded so functions:100 stays honest.
+          'src/lib/auth.ts',
+        ],
+        thresholds: { lines: 95, statements: 95, branches: 90, functions: 100 },
+      },
     },
   }),
 )
