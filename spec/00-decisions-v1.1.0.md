@@ -22,6 +22,7 @@ relabelled as v1.0.0's and a "## v1.1.0 scope" note is added; nothing here is a 
 | V11 | Managers get a Squad tab — a matchday + members hub | S10.3 |
 | V12 | Squad selection lives in the Squad tab (built before Epic 9), also reachable from the match | S10.3, S9.2 |
 | V13 | Home refinements: awaiting-only top card, compressed calendar, compact day rows | S10.2 (amends S3.1) |
+| V14 | Admin god mode: admins see and manage every active team, everywhere | S11.1, S11.2 |
 
 ---
 
@@ -133,6 +134,30 @@ tab, not buried on the event screen.
 
 **Amends** S10.2 AC1 (top card awaiting-only), AC3 (compact rows + day heading), AC6 (respond via the top
 card / detail, not inline in the list). `pickNextEvent` now filters to `myResponse === null`.
+
+### V14 — Admin god mode (Epic 11, Chris's call 2026-09-14)
+
+**Issue** — At the DATA layer an admin already has full read/write on every team (RLS, proven by S1.4). But
+the UI scopes to team membership: the Home calendar filters events to the viewer's memberships, and
+`managedTeams` resolves to the admin's own memberships (often none), so a membership-less admin sees an
+empty Home and empty pickers despite RLS granting everything.
+
+**Decision** — Make the experience match the permission. When the viewer is an admin:
+1. **Reads are club-wide** — the Home month/upcoming reads and the manager-side reads include **every active
+   team's** events, not just memberships. The event queries stop hard-filtering by `teamIds` for an admin
+   (RLS already scopes correctly; for an admin that is everything).
+2. **Pickers widen** — create-event, squad selection, member admin and the Squad-tab team selector offer
+   **every active team** for an admin.
+3. **The admin Home is an all-teams calendar** — every team's events, colour-coded. A row on a team the
+   admin is *not* a member of is view/manage: it links to the manager event view and shows a manage-oriented
+   summary (the counts, e.g. "6 available") rather than a personal Yes/No pill — the admin is not a squad
+   member and does not "respond". If the admin *is* also a player on a team, that team's events keep the
+   normal Yes/No + pill. The awaiting-only top card (V13) therefore applies only to the admin's own
+   memberships; a pure admin (no memberships) gets no top card, just the all-teams calendar.
+4. **No new permissions** — RLS is unchanged; this is UI scoping only.
+
+**Affects** — S11.1 (admin-aware reads + widened pickers), S11.2 (admin Home all-teams calendar). Amends the
+S10.2 Home and the events hooks; does not touch RLS or the schema.
 
 ## Open questions (v1.1.0)
 | # | Question | Proposed default |
