@@ -21,6 +21,7 @@ relabelled as v1.0.0's and a "## v1.1.0 scope" note is added; nothing here is a 
 | V10 | The Home screen becomes a calendar; the upcoming list is replaced | S10.2 (amends S3.1, S3.2) |
 | V11 | Managers get a Squad tab — a matchday + members hub | S10.3 |
 | V12 | Squad selection lives in the Squad tab (built before Epic 9), also reachable from the match | S10.3, S9.2 |
+| V13 | Home refinements: awaiting-only top card, compressed calendar, compact day rows | S10.2 (amends S3.1) |
 
 ---
 
@@ -115,6 +116,23 @@ the v1.1.0 build order is S8.x → S10.3 → S9.1 → S9.2 → S9.3 → S10.1 �
 members section + the matchday match-list with entry points; S9.1/S9.2 add the data model and the picker;
 S9.3 the share. Rationale: you pick and share a squad as one squad-focused task, so it belongs in the Squad
 tab, not buried on the event screen.
+
+### V13 — Home calendar refinements (Chris's feedback, 2026-09-14)
+
+**Decision** — Three changes to the calendar Home (S10.2), from testing the live screen:
+1. **The top card is awaiting-only.** It shows the soonest scheduled event the player has *not* answered,
+   with YES / NO. Once answered it hides and the next unanswered event takes its place; when nothing upcoming
+   is awaiting, the card disappears entirely and the calendar rises to the top. (Was: the soonest event
+   regardless of answer, showing "You said …". The old "Nothing coming up." line is gone.)
+2. **The calendar is compressed** — tighter cells (`--cell-size` 11→9) and card padding — so the selected
+   day's list starts above the fold.
+3. **The day list is compact rows, not response cards.** Each row shows time, title, location and the
+   player's answer as a `ResponsePill` (Available / Unavailable / Awaiting), and is a link to the event
+   detail. Inline YES / NO is removed from the list — responding happens on the top card or on the detail
+   (tap through). A heading names the selected day so the list is obviously tied to the calendar selection.
+
+**Amends** S10.2 AC1 (top card awaiting-only), AC3 (compact rows + day heading), AC6 (respond via the top
+card / detail, not inline in the list). `pickNextEvent` now filters to `myResponse === null`.
 
 ## Open questions (v1.1.0)
 | # | Question | Proposed default |

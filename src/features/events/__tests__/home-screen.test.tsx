@@ -159,20 +159,23 @@ describe('HomeScreen (S10.2) — layout', () => {
 })
 
 describe('HomeScreen (S10.2) — the selected day (AC3, AC5, AC6)', () => {
-  it('lists the selected day’s events as cards with YES / NO (AC3)', () => {
+  it('lists the selected day’s events as compact rows linking to the detail (AC3, V13)', () => {
     renderHome()
-    // The next event's day is selected by default, so its card is in the day list under the grid.
-    expect(screen.getAllByRole('button', { name: 'Yes' }).length).toBeGreaterThan(0)
-    expect(screen.queryByText('Nothing on.')).not.toBeInTheDocument()
+    // The next event's day is selected by default; it appears in the day list as a row (its title
+    // is a link to the detail). Inline YES / NO is not in the day list — that is the top card.
+    expect(screen.getAllByRole('heading', { name: 'Firsts v Shelbourne' }).length).toBeGreaterThan(
+      0,
+    )
+    expect(screen.queryByText('Nothing on this day.')).not.toBeInTheDocument()
   })
 
-  it('shows "Nothing on." for a selected day with no events (AC3)', () => {
+  it('shows "Nothing on this day." for a selected day with no events (AC3)', () => {
     // Next event on the 13th (so that day is selected), but the month's only event is elsewhere.
     hoisted.month.value = settled([
       upcoming({ id: 'other', startsAt: '2099-06-20T18:00:00.000+00:00' }),
     ])
     renderHome()
-    expect(screen.getByText('Nothing on.')).toBeInTheDocument()
+    expect(screen.getByText('Nothing on this day.')).toBeInTheDocument()
   })
 
   it('shows a cancelled event struck-through with a hollow dot, not hidden (AC5)', () => {
@@ -184,28 +187,41 @@ describe('HomeScreen (S10.2) — the selected day (AC3, AC5, AC6)', () => {
     renderHome()
     const heading = screen.getByRole('heading', { name: 'Called off' })
     expect(heading.className).toContain('line-through')
-    // Cancelled disables the response with the shared "off" line (S3.4).
-    expect(screen.getByText("This one's off.")).toBeInTheDocument()
+    // The compact row shows a Cancelled badge, not inline YES / NO (V13).
+    expect(screen.getByText('Cancelled')).toBeInTheDocument()
     // The dot is a hollow ring (a border, no fill), never a coloured fill.
     const grid = screen.getByRole('grid')
     expect(grid.querySelector('.border-muted-foreground')).not.toBeNull()
     expect(grid.querySelector('[style*="background-color"]')).toBeNull()
   })
 
-  it('records a response from a day card through the shared mutation (AC6)', async () => {
-    upsert.mockResolvedValue({ error: null })
+  it('a day row links to the event detail with a status pill, no inline YES / NO (AC3, AC6, V13)', () => {
+    // Responding moves to the top card / the detail (V13): the day list is an overview.
     hoisted.upcoming.value = settled([upcoming({ id: 'nextid', title: 'Next up' })])
     hoisted.month.value = settled([upcoming({ id: 'day13', title: 'On the day' })])
     renderHome()
-    // Scope to the day card (its own heading) so it is that card's YES that is tapped.
-    const dayCard = screen
-      .getByRole('heading', { name: 'On the day' })
-      .closest('[data-slot="card"]')
-    await userEvent.click(within(dayCard as HTMLElement).getByRole('button', { name: 'Yes' }))
-    expect(upsert).toHaveBeenCalledWith(
-      { event_id: 'day13', user_id: USER_ID, response: 'available' },
-      { onConflict: 'event_id,user_id' },
-    )
+    const row = screen.getByRole('heading', { name: 'On the day' }).closest('a')
+    expect(row).not.toBeNull()
+    expect(row).toHaveAttribute('href', expect.stringContaining('/event/day13'))
+    expect(
+      within(row as HTMLElement).queryByRole('button', { name: 'Yes' }),
+    ).not.toBeInTheDocument()
+    // The current answer shows as a pill (awaiting by default).
+    expect(within(row as HTMLElement).getByText('Awaiting')).toBeInTheDocument()
+  })
+
+  it('hides the top card once the next event is answered (awaiting-only, V13)', () => {
+    hoisted.upcoming.value = settled([
+      upcoming({ id: 'answered', title: 'Already answered', myResponse: 'available' }),
+    ])
+    hoisted.month.value = settled([
+      upcoming({ id: 'answered', title: 'Already answered', myResponse: 'available' }),
+    ])
+    renderHome()
+    // Nothing is awaiting, so no prominent card and no top-card YES / NO (V13). The calendar still
+    // renders; the answered event is reachable by navigating to its day (shown with its pill there).
+    expect(screen.queryByRole('button', { name: 'Yes' })).not.toBeInTheDocument()
+    expect(screen.getByRole('grid')).toBeInTheDocument()
   })
 })
 
@@ -258,7 +274,7 @@ describe('HomeScreen (S10.2) — states (AC8)', () => {
     hoisted.upcoming.value = settled([])
     hoisted.month.value = settled([])
     renderHome()
-    expect(screen.getByText('Nothing coming up.')).toBeInTheDocument()
+    // No awaiting event → no top card (and no "Nothing coming up." text, V13); just the empties.
     expect(screen.getByText('Nothing this month.')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Yes' })).not.toBeInTheDocument()
   })

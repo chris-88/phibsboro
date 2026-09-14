@@ -1,9 +1,7 @@
 import { Link } from 'react-router'
 import type { UpcomingEvent } from '@/api/events'
 import { Badge } from '@/components/ui/badge'
-import { Card, CardContent } from '@/components/ui/card'
-import { AvailabilityButtons } from '@/features/availability/components/AvailabilityButtons'
-import { useResponseWindow } from '@/features/availability/use-response-window'
+import { ResponsePill } from '@/features/availability/components/ResponsePill'
 import { EventTypeBadge } from '@/features/events/components/EventTypeBadge'
 import { LocationText } from '@/features/events/components/LocationText'
 import { cn } from 'cn'
@@ -18,50 +16,49 @@ export interface DayEventCardProps {
 }
 
 /**
- * One event under the calendar, for the selected day (S10.2). The same card shape as the S3.1
- * next-event card — a `<Link>` body to `/event/{id}` with the shared YES / NO outside it (D48,
- * D61) — but keyed to a day, so it shows the kick-off time, not the full date line. The S3.4
- * response window is decided once here, so a cancelled or already-started event disables the
- * buttons with the single explanatory line, never a tap the database would refuse (AC6). A
- * cancelled event is struck-through, not hidden (AC5).
+ * One compact row under the calendar, for the selected day (S10.2, refined per Chris's feedback
+ * 2026-09-14 / V13). The day list is an overview, not a response surface: each row shows the
+ * kick-off time, type, title, location and the player's current answer as a `ResponsePill`
+ * (accept / decline / awaiting) — no inline YES / NO. The whole row is a `<Link>` to `/event/{id}`,
+ * where the player responds or changes their answer (the soonest unanswered event also gets the
+ * prominent card at the top of the home). A cancelled event is struck-through, not hidden (AC5).
  */
 export function DayEventCard({ event, showTeamName }: DayEventCardProps): React.JSX.Element {
   const cancelled = event.status === 'cancelled'
-  const window = useResponseWindow({ status: event.status, starts_at: event.startsAt })
   return (
-    <Card>
-      <CardContent className="flex flex-col gap-3">
-        <Link
-          to={paths.event(event.id)}
-          className="flex flex-col gap-2 rounded-md focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-        >
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-sm text-muted-foreground">
-              {formatEventTime(event.startsAt, 'time')}
-            </span>
-            <EventTypeBadge type={event.type} />
-            {cancelled && <Badge variant="destructive">Cancelled</Badge>}
-            {showTeamName && (
-              <span className="text-sm text-muted-foreground">{event.teamName}</span>
-            )}
-          </div>
+    <Link
+      to={paths.event(event.id)}
+      className="flex items-center gap-3 rounded-md border bg-card px-3 py-2.5 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+    >
+      <span className="w-14 shrink-0 text-sm font-medium text-muted-foreground">
+        {formatEventTime(event.startsAt, 'time')}
+      </span>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2">
           <h3
             className={cn(
-              'text-lg leading-snug font-semibold',
+              'truncate text-sm font-semibold',
               cancelled ? 'text-muted-foreground line-through' : 'text-foreground',
             )}
           >
             {event.title}
           </h3>
-          <LocationText location={event.location} className="text-sm text-muted-foreground" />
-        </Link>
-        <AvailabilityButtons
-          eventId={event.id}
-          current={event.myResponse}
-          disabled={!window.open}
-          disabledReason={window.open ? undefined : window.message}
-        />
-      </CardContent>
-    </Card>
+          {showTeamName && (
+            <span className="shrink-0 text-xs text-muted-foreground">{event.teamName}</span>
+          )}
+        </div>
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <EventTypeBadge type={event.type} />
+          <LocationText location={event.location} className="truncate" />
+        </div>
+      </div>
+      {cancelled ? (
+        <Badge variant="destructive" className="shrink-0">
+          Cancelled
+        </Badge>
+      ) : (
+        <ResponsePill response={event.myResponse} />
+      )}
+    </Link>
   )
 }

@@ -99,9 +99,9 @@ describe('/ (home) — S3.1', () => {
     expectHealthy(container)
   })
 
-  it('empty: "Nothing coming up."', async () => {
+  it('empty: the calendar with "Nothing this month." (V13 — no card when nothing awaiting)', async () => {
     const { container } = renderRoute('/', { ...opts, scenario: 'empty' })
-    expect(await screen.findByText('Nothing coming up.')).toBeInTheDocument()
+    expect(await screen.findByText('Nothing this month.')).toBeInTheDocument()
     expectHealthy(container)
   })
 

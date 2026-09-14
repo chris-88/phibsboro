@@ -22,6 +22,7 @@ import { NextEventCard } from '@/features/events/components/NextEventCard'
 import { PostResponsePrompts } from '@/features/events/components/PostResponsePrompts'
 import { pickNextEvent } from '@/features/events/pick-next-event'
 import { TEAM_COLOUR_DEFAULT } from '@/features/teams/palette'
+import { formatEventTime } from '@/lib/time'
 
 /** The five states the calendar home resolves to, one discriminated value so S7.1's audit reads
  *  them off a single switch (matches the pre-calendar home's shape). */
@@ -117,19 +118,20 @@ export default function HomeScreen(): React.JSX.Element {
       )}
 
       {state === 'ready' && (
-        <div className="flex flex-col gap-4">
-          {next ? (
+        <div className="flex flex-col gap-3">
+          {/* Only the soonest UNANSWERED event gets the prominent card; once answered it hides and
+              the calendar rises to the top (V13, Chris's feedback). No card when nothing is awaiting. */}
+          {next && (
             <>
               <NextEventCard event={next} showTeamName={multiTeam} condensed />
               {/* One seam for S2.7 and S2.8; returns null in this story (D46). */}
               <PostResponsePrompts />
             </>
-          ) : (
-            <p className="text-sm text-muted-foreground">Nothing coming up.</p>
           )}
 
+          {/* Compressed so the selected day's list starts above the fold (V13). */}
           <Card>
-            <CardContent className="flex flex-col gap-3">
+            <CardContent className="p-2">
               <Calendar
                 mode="single"
                 required
@@ -142,19 +144,24 @@ export default function HomeScreen(): React.JSX.Element {
                   setUserSelected(dayKeyOfDate(d))
                 }}
                 showOutsideDays
-                className="[--cell-size:--spacing(11)]"
+                className="[--cell-size:--spacing(9)]"
                 classNames={{ root: 'w-full' }}
                 components={{ DayButton }}
               />
             </CardContent>
           </Card>
 
+          {/* Tied to the calendar selection: a heading names the chosen day so it is obvious these
+              are that day's events (V13). */}
+          <h2 className="px-1 text-sm font-semibold text-foreground">
+            {formatEventTime(dateOfDayKey(selectedKey).toISOString(), 'day')}
+          </h2>
           {monthEvents.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Nothing this month.</p>
+            <p className="px-1 text-sm text-muted-foreground">Nothing this month.</p>
           ) : selectedEvents.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Nothing on.</p>
+            <p className="px-1 text-sm text-muted-foreground">Nothing on this day.</p>
           ) : (
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-2">
               {selectedEvents.map((event) => (
                 <DayEventCard key={event.id} event={event} showTeamName={multiTeam} />
               ))}

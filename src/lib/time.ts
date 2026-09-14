@@ -12,7 +12,7 @@
  * WhatsApp message must read the same on every phone.
  */
 
-export type EventTimeStyle = 'share' | 'short' | 'time' | 'clock24'
+export type EventTimeStyle = 'share' | 'short' | 'time' | 'clock24' | 'day'
 
 const DUBLIN = 'Europe/Dublin'
 
@@ -108,6 +108,11 @@ export function formatEventTime(iso: string, style: EventTimeStyle): string {
       return clock24(w.hour, w.minute)
     case 'short':
       return `${dayName.slice(0, 3)} ${String(w.day)} ${monthName.slice(0, 3)}, ${time}`
+    case 'day': {
+      // Date only, no time — the calendar's selected-day heading (S10.2).
+      const y = w.year === currentDublinYear() ? '' : ` ${String(w.year)}`
+      return `${dayName} ${String(w.day)} ${monthName}${y}`
+    }
     case 'share': {
       const year = w.year === currentDublinYear() ? '' : ` ${String(w.year)}`
       return `${dayName} ${String(w.day)} ${monthName}${year}, ${time}`
