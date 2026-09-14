@@ -119,6 +119,26 @@ describe('AvailabilityButtons (S3.3)', () => {
     expect(no()).toBeEnabled()
   })
 
+  it('a 42501 window-shut refusal rolls back and shows no retry line (S3.4 AC9)', async () => {
+    upsert.mockResolvedValue({
+      error: {
+        message: 'new row violates row-level security policy',
+        details: '',
+        hint: '',
+        code: '42501',
+        name: 'PostgrestError',
+      },
+    })
+    renderWith(detailWith('available'))
+    await userEvent.click(no())
+    // Rolled back to the previous answer, and — unlike a network failure — no line is shown.
+    await waitFor(() => {
+      expect(yes()).toHaveAttribute('aria-pressed', 'true')
+    })
+    expect(no()).toHaveAttribute('aria-pressed', 'false')
+    expect(screen.queryByText("Couldn't save. Tap again.")).not.toBeInTheDocument()
+  })
+
   it('disables both buttons and shows the reason for a cancelled event (AC14)', async () => {
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
     const wrapper = ({ children }: { children: ReactNode }) => (

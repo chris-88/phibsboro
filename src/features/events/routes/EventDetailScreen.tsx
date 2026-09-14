@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { AvailabilityButtons } from '@/features/availability/components/AvailabilityButtons'
+import { useResponseWindow } from '@/features/availability/use-response-window'
 import { setPendingJoin } from '@/features/auth/pending-join'
 import { useSession } from '@/features/auth/session-context'
 import { CancelledBanner } from '@/features/events/components/CancelledBanner'
@@ -55,15 +56,17 @@ function EventDetailSkeleton({ withButtons }: { withButtons: boolean }): React.J
   )
 }
 
-/** The member view: the full event and the availability controls. */
+/** The member view: the full event and the availability controls. The window is decided once, by
+ *  `useResponseWindow`, so cancelled and after-`starts_at` share the single decision point (S3.4
+ *  AC13) and the buttons disable themselves at kick-off with no reload (AC8). */
 function MemberView({ detail }: { detail: EventDetail }): React.JSX.Element {
-  const cancelled = detail.status === 'cancelled'
+  const responseState = useResponseWindow({ status: detail.status, starts_at: detail.startsAt })
   return (
     <div className="flex flex-col gap-4">
       <Card>
         <CardContent className="flex flex-col gap-3">
           <p className="text-sm text-muted-foreground">{detail.teamName}</p>
-          {cancelled && <CancelledBanner />}
+          {detail.status === 'cancelled' && <CancelledBanner />}
           <div className="flex flex-col gap-2">
             <EventTypeBadge type={detail.type} />
             <h2 className="text-lg leading-snug font-semibold text-foreground">{detail.title}</h2>
@@ -74,8 +77,8 @@ function MemberView({ detail }: { detail: EventDetail }): React.JSX.Element {
       <AvailabilityButtons
         eventId={detail.id}
         current={detail.myResponse}
-        disabled={cancelled}
-        disabledReason={cancelled ? "This one's off." : undefined}
+        disabled={!responseState.open}
+        disabledReason={responseState.open ? undefined : responseState.message}
       />
     </div>
   )

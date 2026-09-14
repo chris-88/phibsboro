@@ -71,5 +71,13 @@ export default defineConfig({
       testMatch: /deep-link\.spec\.ts/,
       use: { baseURL: PREVIEW_URL, timezoneId: 'Europe/Dublin', browserName: 'webkit' },
     },
+    // S3.4: the seeded player switches an answer and meets the shut-window states. Uses the stored
+    // player session from `setup`, so it depends on it and needs a seeded database, not Docker.
+    {
+      name: 'change-response',
+      testMatch: /change-response\.spec\.ts/,
+      dependencies: ['setup'],
+      use: { baseURL: PREVIEW_URL, timezoneId: 'Europe/Dublin' }, // D53
+    },
   ],
 })

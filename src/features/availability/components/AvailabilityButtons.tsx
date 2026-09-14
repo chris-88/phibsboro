@@ -73,9 +73,11 @@ export function AvailabilityButtons({
         <p className="text-sm text-muted-foreground">{disabledReason}</p>
       )}
 
-      {/* Kept in the tree so the failure is announced, not just shown (AC8). */}
+      {/* Kept in the tree so the failure is announced, not just shown (AC8). Keyed on
+          `showRetryLine`, not `isError`: a 42501 window-shut refusal shows no line and settles into
+          the closed state instead (S3.4 AC9, AC10). */}
       <p aria-live="polite" className="min-h-5 text-sm text-destructive">
-        {setResponse.isError ? "Couldn't save. Tap again." : ''}
+        {setResponse.showRetryLine ? "Couldn't save. Tap again." : ''}
       </p>
     </div>
   )

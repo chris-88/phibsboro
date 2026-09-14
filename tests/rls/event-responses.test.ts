@@ -18,8 +18,9 @@ import {
 const FIRSTS_IMMINENT_ROWS = 10
 
 afterAll(async () => {
-  // Ian's row from row 14, and Aaron's far-event row back to the seeded value.
+  // Ian's rows from row 14 and the S3.4 case, and Aaron's far-event row back to the seeded value.
   await deleteResponse(EVENT.firsts.imminent.id, idOf('playerFirstsAwaiting'))
+  await deleteResponse(EVENT.firsts.far.id, idOf('playerFirstsAwaiting'))
   await setResponse(EVENT.firsts.far.id, idOf('playerFirsts'), 'available')
 })
 
@@ -140,6 +141,43 @@ describe('row 15 — player updates their own response', () => {
       { event_id: EVENT.firsts.far.id, user_id: idOf('playerFirsts') },
       { response: 'unavailable' },
     )
+  })
+})
+
+describe('S3.4 AC1 — a genuine change on a scheduled future event', () => {
+  it('upsert available then unavailable both succeed, one row, updated_at advances', async () => {
+    const ian = await signInAs('playerFirstsAwaiting')
+    const key = { event_id: EVENT.firsts.far.id, user_id: idOf('playerFirstsAwaiting') }
+
+    const first = expectRows(
+      await ian
+        .from('event_responses')
+        .upsert({ ...key, response: 'available' }, { onConflict: 'event_id,user_id' })
+        .select('response, updated_at'),
+      1,
+    )
+    expect(first[0]?.response).toBe('available')
+
+    const second = expectRows(
+      await ian
+        .from('event_responses')
+        .upsert({ ...key, response: 'unavailable' }, { onConflict: 'event_id,user_id' })
+        .select('response, updated_at'),
+      1,
+    )
+    expect(second[0]?.response).toBe('unavailable')
+
+    // The before-update trigger, not the client, advances updated_at (the client sends none).
+    const firstAt = first[0]?.updated_at ?? ''
+    const secondAt = second[0]?.updated_at ?? ''
+    expect(Date.parse(secondAt)).toBeGreaterThan(Date.parse(firstAt))
+
+    // Exactly one row for the pair throughout — an upsert changed the value, it did not add a row.
+    expectRows(await ian.from('event_responses').select('user_id').match(key), 1)
+
+    // Ian holds no seeded row anywhere, so remove this one now rather than only in afterAll, or it
+    // inflates the file-wide response count the row 40 admin test asserts.
+    await deleteResponse(EVENT.firsts.far.id, idOf('playerFirstsAwaiting'))
   })
 })
 
