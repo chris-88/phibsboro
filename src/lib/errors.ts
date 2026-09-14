@@ -12,6 +12,11 @@ export const APP_ERROR_CODES = [
   'phone_taken',
   'series_too_long',
   'starts_in_past',
+  // The three squad words (S9.1, V7). The set_squad_member RPC raises one of these so the picker
+  // (S9.2) can say why a write was refused without any Postgres column or constraint leaking.
+  'not_available',
+  'number_taken',
+  'captain_taken',
   'unknown',
 ] as const
 
@@ -48,6 +53,9 @@ const COPY: Record<AppErrorCode, string> = {
   phone_taken: 'That number is already registered.',
   series_too_long: "That's too many sessions. Pick a shorter run.",
   starts_in_past: 'Pick a date in the future.',
+  not_available: "That player hasn't said they're available.",
+  number_taken: "That number's already taken.",
+  captain_taken: "There's already a captain.",
   unknown: 'Something went wrong. Try again.',
 }
 

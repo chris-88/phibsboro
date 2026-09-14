@@ -18,6 +18,7 @@ export const eventKeys = {
   list: (teamId: string) => ['events', 'list', teamId] as const,
   responses: (eventId: string) => ['events', 'responses', eventId] as const,
   attendance: (eventId: string) => ['events', 'attendance', eventId] as const,
+  squad: (eventId: string) => ['events', 'squad', eventId] as const,
 } as const
 
 export const teamKeys = {

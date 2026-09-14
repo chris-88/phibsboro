@@ -62,6 +62,7 @@ const TABLES: readonly Table[] = [
   'reset_tokens',
   'events',
   'event_responses',
+  'event_squad',
   'attendance',
 ]
 

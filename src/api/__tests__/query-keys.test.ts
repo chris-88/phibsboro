@@ -15,6 +15,7 @@ describe('query keys (AC15, A6)', () => {
       keys.eventKeys.list(id),
       keys.eventKeys.responses(id),
       keys.eventKeys.attendance(id),
+      keys.eventKeys.squad(id),
     ]) {
       expect(key[0]).toBe(keys.eventKeys.all[0])
       expect(key).toHaveLength(3)

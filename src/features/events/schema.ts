@@ -129,12 +129,29 @@ export const eventPreviewSchema = eventRowSchema
   .extend({ team_name: z.string() })
 export type EventPreview = z.infer<typeof eventPreviewSchema>
 
+/**
+ * The `event_squad` row, column for column (data-model-v1.1.0, V6/S9.1). One picked player: their
+ * shirt number 1–20, whether they wear the armband, and who recorded it. Written only through the
+ * S9.1 RPCs and read by `useEventSquad` (src/api/squad.ts); the picker UI is S9.2. `shirt_number`
+ * carries the 1–20 bound the DB check enforces, so a bad value fails at the boundary parse.
+ */
+export const squadRowSchema = z.object({
+  event_id: uuidSchema,
+  user_id: uuidSchema,
+  shirt_number: z.number().int().min(1).max(20),
+  is_captain: z.boolean(),
+  recorded_by: uuidSchema,
+  updated_at: timestampSchema,
+})
+export type SquadRow = z.infer<typeof squadRowSchema>
+
 /** Compile-time parity with the generated types (D24, S1.5 AC2, AC3). */
 export type Parity = [
   Expect<Equal<EventType, Enums<'event_type'>>>,
   Expect<Equal<EventStatus, Enums<'event_status'>>>,
   Expect<Equal<HomeAway, Enums<'home_away'>>>,
   Expect<Equal<EventRow, Tables<'events'>>>,
+  Expect<Equal<SquadRow, Tables<'event_squad'>>>,
   Expect<Equal<EventPreview, FnRow<'get_event_preview'>>>,
 ]
 

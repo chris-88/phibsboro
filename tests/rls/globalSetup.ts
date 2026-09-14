@@ -19,6 +19,7 @@ const TABLES: readonly (keyof Database['public']['Tables'])[] = [
   'reset_tokens',
   'events',
   'event_responses',
+  'event_squad',
   'attendance',
 ]
 

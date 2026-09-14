@@ -8,6 +8,7 @@ import { sql } from '../helpers/sql.ts'
 const TABLES = [
   'attendance',
   'event_responses',
+  'event_squad',
   'events',
   'profiles',
   'reset_tokens',

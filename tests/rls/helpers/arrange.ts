@@ -75,6 +75,25 @@ export async function setResponse(
   )
 }
 
+export async function insertSquad(row: Insert<'event_squad'>) {
+  check((await admin.from('event_squad').insert(row)).error, 'insertSquad')
+}
+
+export async function deleteSquad(eventId: string, userId: string) {
+  check(
+    (await admin.from('event_squad').delete().match({ event_id: eventId, user_id: userId })).error,
+    'deleteSquad',
+  )
+}
+
+/** Every squad row. The seed creates none, so this restores the seeded state (0 rows). */
+export async function deleteAllSquad() {
+  check(
+    (await admin.from('event_squad').delete().not('event_id', 'is', null)).error,
+    'deleteAllSquad',
+  )
+}
+
 export async function insertAttendance(row: Insert<'attendance'>) {
   check((await admin.from('attendance').insert(row)).error, 'insertAttendance')
 }

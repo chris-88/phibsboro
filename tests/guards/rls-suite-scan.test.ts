@@ -96,6 +96,7 @@ describe('the service-role client stays out of assertions (S1.4 AC8)', () => {
       'rpc-preview.test.ts',
       'rpc-reset.test.ts',
       'rpc-series.test.ts',
+      'squad.test.ts', // S9.1 — event_squad table, policies and RPCs
       'stranger.test.ts',
       'structural.test.ts',
       'team-invites.test.ts',

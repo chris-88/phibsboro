@@ -90,6 +90,55 @@ export type Database = {
           },
         ]
       }
+      event_squad: {
+        Row: {
+          event_id: string
+          is_captain: boolean
+          recorded_by: string
+          shirt_number: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          event_id: string
+          is_captain?: boolean
+          recorded_by: string
+          shirt_number: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          event_id?: string
+          is_captain?: boolean
+          recorded_by?: string
+          shirt_number?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'event_squad_event_id_fkey'
+            columns: ['event_id']
+            isOneToOne: false
+            referencedRelation: 'events'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'event_squad_recorded_by_fkey'
+            columns: ['recorded_by']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'event_squad_user_id_fkey'
+            columns: ['user_id']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       events: {
         Row: {
           created_at: string
@@ -351,6 +400,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      clear_squad: { Args: { p_event_id: string }; Returns: undefined }
       create_team_invite: {
         Args: {
           p_role: Database['public']['Enums']['member_role']
@@ -395,6 +445,10 @@ export type Database = {
       }
       has_event_row: { Args: { p_event_id: string }; Returns: boolean }
       is_admin: { Args: never; Returns: boolean }
+      is_available_for: {
+        Args: { p_event_id: string; p_user_id: string }
+        Returns: boolean
+      }
       is_team_manager: { Args: { p_team_id: string }; Returns: boolean }
       is_team_member: { Args: { p_team_id: string }; Returns: boolean }
       issue_reset_token: {
@@ -432,6 +486,10 @@ export type Database = {
         Args: { p_team_id: string; p_user_id: string }
         Returns: undefined
       }
+      remove_squad_member: {
+        Args: { p_event_id: string; p_user_id: string }
+        Returns: undefined
+      }
       revoke_team_invite: {
         Args: {
           p_role: Database['public']['Enums']['member_role']
@@ -447,6 +505,15 @@ export type Database = {
         Args: {
           p_role: Database['public']['Enums']['member_role']
           p_team_id: string
+          p_user_id: string
+        }
+        Returns: undefined
+      }
+      set_squad_member: {
+        Args: {
+          p_event_id: string
+          p_is_captain: boolean
+          p_shirt_number: number
           p_user_id: string
         }
         Returns: undefined
