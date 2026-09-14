@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { availabilityResponseSchema } from '@/features/availability/schema'
-import type { Enums, FnRow, Insert, Tables } from '@/lib/db'
+import type { Enums, FnRow, Insert, Tables, Update } from '@/lib/db'
 import type { Equal, Expect } from '@/lib/type-assert'
 import { dublinLocalToUtcIso } from '@/lib/time'
 import { timestampSchema, uuidSchema } from '@/lib/zod'
@@ -177,5 +177,22 @@ export function toEventInsert(v: EventFormValues, createdBy: string): Insert<'ev
     notes: notes === '' ? null : notes,
     starts_at: dublinLocalToUtcIso(v.date, v.time),
     created_by: createdBy,
+  }
+}
+
+/**
+ * Form values → the update payload (S4.2). Only the six editable columns are written:
+ * `team_id`, `created_by`, `created_at` and `series_id` are never in the payload — omitting
+ * `series_id` is what makes "editing one occurrence leaves the others untouched" true by
+ * construction (D30). `updated_at` is the trigger's job. Blank notes become NULL, never '' (AC7).
+ */
+export function toEventUpdate(v: EventFormValues): Update<'events'> {
+  const notes = v.notes.trim()
+  return {
+    type: v.type,
+    title: v.title.trim(),
+    location: v.location.trim(),
+    notes: notes === '' ? null : notes,
+    starts_at: dublinLocalToUtcIso(v.date, v.time),
   }
 }

@@ -4,6 +4,7 @@ import {
   eventFormSchema,
   shouldRewriteTitle,
   toEventInsert,
+  toEventUpdate,
   type EventFormValues,
 } from '@/features/events/schema'
 
@@ -163,5 +164,52 @@ describe('DEFAULT_TITLES', () => {
   it('defaults training to Training and match to Match', () => {
     expect(DEFAULT_TITLES.training).toBe('Training')
     expect(DEFAULT_TITLES.match).toBe('Match')
+  })
+})
+
+describe('eventFormSchema — the edit flag (S4.2 AC5)', () => {
+  // A past instant, four hours before NOW, so the future-only rule is the only thing that could
+  // reject it.
+  const past = (overrides: Partial<EventFormValues> = {}): EventFormValues =>
+    goodValues({ date: '2026-03-14', time: '08:00', ...overrides })
+
+  it('requireFuture false accepts a past instant — last night is editable', () => {
+    const schema = eventFormSchema({ requireFuture: false, now: NOW })
+    expect(schema.safeParse(past()).success).toBe(true)
+  })
+
+  it('requireFuture true rejects the same past instant', () => {
+    const schema = eventFormSchema({ requireFuture: true, now: NOW })
+    const result = schema.safeParse(past())
+    expect(result.success).toBe(false)
+  })
+
+  it('the length and 365-day rules stay on even when requireFuture is false', () => {
+    const schema = eventFormSchema({ requireFuture: false, now: NOW })
+    expect(schema.safeParse(past({ title: 'x'.repeat(81) })).success).toBe(false)
+    expect(schema.safeParse(past({ date: '2028-01-01', time: '19:30' })).success).toBe(false)
+  })
+})
+
+describe('toEventUpdate (S4.2)', () => {
+  it('carries only the six editable columns, no team_id/created_by/series_id/status', () => {
+    const row = toEventUpdate(
+      goodValues({ title: '  Cup final  ', location: '  Tolka Park  ', type: 'match' }),
+    )
+    expect(row).toEqual({
+      type: 'match',
+      title: 'Cup final',
+      location: 'Tolka Park',
+      notes: null,
+      starts_at: '2026-03-14T19:30:00.000Z',
+    })
+    expect(row).not.toHaveProperty('team_id')
+    expect(row).not.toHaveProperty('created_by')
+    expect(row).not.toHaveProperty('series_id')
+    expect(row).not.toHaveProperty('status')
+  })
+
+  it('blank notes become null, not an empty string (AC7)', () => {
+    expect(toEventUpdate(goodValues({ notes: '   ' })).notes).toBeNull()
   })
 })

@@ -1,6 +1,6 @@
-import { useMemo } from 'react'
+import { useMemo, useRef } from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Controller, useForm } from 'react-hook-form'
+import { Controller, useForm, type Resolver } from 'react-hook-form'
 import { Button } from '@/components/ui/button'
 import { Field, FieldError, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
@@ -62,8 +62,21 @@ export function EventForm({
 }: EventFormProps): React.JSX.Element {
   // Captured once at mount: the resolver's `now` and the date input's `min` share one instant.
   const now = useMemo(() => serverNow(), [])
-  const resolver = useMemo(
-    () => zodResolver(eventFormSchema({ requireFuture: mode === 'create', now })),
+  // The event's start as opened, captured once, so an edit that leaves date and time untouched is
+  // held to the length and 365-day rules but not the future-only one — last night's location typo
+  // stays fixable (AC5). Create has no original instant, so it is always future-only.
+  const original = useRef({ date: defaultValues.date, time: defaultValues.time })
+  // A per-validation resolver, not a memoised one: `requireFuture` is recomputed from the current
+  // date/time each time the form validates, so a manager who opens a past event and moves it
+  // forward is held to a future instant, while `now` stays the one server instant (AC5, D48).
+  const resolver = useMemo<Resolver<EventFormValues>>(
+    () => (values, context, options) => {
+      const moved =
+        mode === 'create' ||
+        values.date !== original.current.date ||
+        values.time !== original.current.time
+      return zodResolver(eventFormSchema({ requireFuture: moved, now }))(values, context, options)
+    },
     [mode, now],
   )
   const minDate = utcIsoToDublinParts(now.toISOString()).date

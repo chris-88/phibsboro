@@ -102,14 +102,14 @@ function ManageList({ teams }: { teams: readonly TeamRef[] }): React.JSX.Element
         </Select>
       )}
 
-      <TeamEvents teamId={teamId} />
+      <TeamEvents teamId={teamId} teamName={team?.teamName ?? ''} />
     </div>
   )
 }
 
 /** Splits one team's events into Upcoming (ascending) and Past (reverse-chronological) against a
  *  server timestamp. Cancelled events keep their slot, badged by `EventListRow` (D60). */
-function TeamEvents({ teamId }: { teamId: string }): React.JSX.Element {
+function TeamEvents({ teamId, teamName }: { teamId: string; teamName: string }): React.JSX.Element {
   const events = useTeamEvents(teamId)
 
   if (events.isPending) {
@@ -145,8 +145,13 @@ function TeamEvents({ teamId }: { teamId: string }): React.JSX.Element {
 
   return (
     <div className="flex flex-col gap-6">
-      <EventSection title="Upcoming" events={upcoming} emptyHint="Nothing coming up." />
-      {past.length > 0 && <EventSection title="Past" events={past} />}
+      <EventSection
+        title="Upcoming"
+        events={upcoming}
+        teamName={teamName}
+        emptyHint="Nothing coming up."
+      />
+      {past.length > 0 && <EventSection title="Past" events={past} teamName={teamName} />}
     </div>
   )
 }
@@ -154,10 +159,12 @@ function TeamEvents({ teamId }: { teamId: string }): React.JSX.Element {
 function EventSection({
   title,
   events,
+  teamName,
   emptyHint,
 }: {
   title: string
   events: EventRow[]
+  teamName: string
   emptyHint?: string
 }): React.JSX.Element {
   return (
@@ -171,7 +178,7 @@ function EventSection({
         <ul className="flex flex-col gap-2">
           {events.map((event) => (
             <li key={event.id}>
-              <EventListRow event={event} />
+              <EventListRow event={event} teamName={teamName} />
             </li>
           ))}
         </ul>

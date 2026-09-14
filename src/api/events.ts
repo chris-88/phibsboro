@@ -18,6 +18,7 @@ import {
   eventRowSchema,
   eventWithResponseSchema,
   toEventInsert,
+  toEventUpdate,
   upcomingEventRowSchema,
   type EventFormValues,
   type EventPreview,
@@ -256,12 +257,99 @@ export function useCreateEvent(): UseMutationResult<EventRow, PostgrestError, Ev
 }
 
 /**
+ * The one update write (S4.2). Writes only the six editable columns (toEventUpdate); `.single()`
+ * raises `PGRST116` when RLS filters the row out — a refusal returns zero rows, not an error
+ * (S1.3) — which `eventWriteErrorMessage` maps to AC12's "That event no longer exists." Every
+ * write, success or failure, re-syncs `eventKeys.all` in `onSettled` (AC11).
+ */
+export function useUpdateEvent(): UseMutationResult<
+  EventRow,
+  PostgrestError,
+  { id: string; values: EventFormValues }
+> {
+  const qc = useQueryClient()
+  return useMutation<EventRow, PostgrestError, { id: string; values: EventFormValues }>({
+    mutationFn: async ({ id, values }) => {
+      const { data, error } = await supabase
+        .from('events')
+        .update(toEventUpdate(values))
+        .eq('id', id)
+        .select()
+        .single()
+      if (error) throw error
+      return eventRowSchema.parse(data)
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: eventKeys.all }),
+  })
+}
+
+/**
+ * Cancel and reinstate (S4.2). One status update, both directions: cancel sets `'cancelled'`,
+ * reinstate sets `'scheduled'`. It never touches `event_responses` or `attendance` — a cancelled
+ * event keeps every answer (D31, AC7). Same refusal-to-copy path as the update.
+ */
+export function useSetEventStatus(): UseMutationResult<
+  EventRow,
+  PostgrestError,
+  { id: string; status: EventStatus }
+> {
+  const qc = useQueryClient()
+  return useMutation<EventRow, PostgrestError, { id: string; status: EventStatus }>({
+    mutationFn: async ({ id, status }) => {
+      const { data, error } = await supabase
+        .from('events')
+        .update({ status })
+        .eq('id', id)
+        .select()
+        .single()
+      if (error) throw error
+      return eventRowSchema.parse(data)
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: eventKeys.all }),
+  })
+}
+
+/**
+ * The admin hard delete (S4.2, D31). Cascades to `event_responses` and `attendance` in the DB.
+ * RLS refuses a non-admin by returning zero rows, not an error, so the mutation rejects on an
+ * empty array — refused, or already gone. Both leave the admin the same next step, so the dialog
+ * never branches on which it was (AC9). Resolves with the deleted id for the caller's navigate.
+ */
+export function useDeleteEvent(): UseMutationResult<
+  { id: string },
+  PostgrestError,
+  { id: string }
+> {
+  const qc = useQueryClient()
+  return useMutation<{ id: string }, PostgrestError, { id: string }>({
+    mutationFn: async ({ id }) => {
+      const { data, error } = await supabase.from('events').delete().eq('id', id).select('id')
+      if (error) throw error
+      if (data.length === 0) {
+        throw {
+          name: 'PostgrestError',
+          message: 'no rows deleted',
+          details: '',
+          hint: '',
+          code: 'PGRST116',
+        } as PostgrestError
+      }
+      return { id }
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: eventKeys.all }),
+  })
+}
+
+/**
  * A PostgREST refusal → one line of copy, reused by S4.2. `42501` is RLS refusing the insert,
  * which covers both an unmanaged team and an inactive one (D50); the manager's fix is the same
- * either way, so the message does not distinguish them.
+ * either way, so the message does not distinguish them. `PGRST116` is an update whose `.single()`
+ * found no row — the event was deleted or moved out of reach in the meantime (AC12).
  */
 export function eventWriteErrorMessage(error: PostgrestError): string {
   switch (error.code) {
+    case 'PGRST116':
+      return 'That event no longer exists.'
     case '42501':
       return "You can't add events to that team."
     case '23514':

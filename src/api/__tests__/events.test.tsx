@@ -111,4 +111,8 @@ describe('eventWriteErrorMessage — PostgREST refusal to copy (S4.1 AC9)', () =
   it('falls back to a generic retry line for anything else', () => {
     expect(eventWriteErrorMessage(err('XXXXX'))).toBe("Couldn't save. Try again.")
   })
+
+  it('maps a PGRST116 (single() found no row) to the gone line (S4.2 AC12)', () => {
+    expect(eventWriteErrorMessage(err('PGRST116'))).toBe('That event no longer exists.')
+  })
 })
