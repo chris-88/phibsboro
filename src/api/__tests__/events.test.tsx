@@ -2,11 +2,12 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { renderHook, waitFor } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import type { PostgrestError } from '@supabase/supabase-js'
 
 const rpc = vi.fn<(...args: unknown[]) => Promise<unknown>>()
 vi.mock('@/lib/supabase', () => ({ supabase: { rpc: (...args: unknown[]) => rpc(...args) } }))
 
-const { useEventPreview } = await import('@/api/events')
+const { useEventPreview, eventWriteErrorMessage } = await import('@/api/events')
 const { eventKeys } = await import('@/api/queryKeys')
 const { AppError } = await import('@/lib/errors')
 
@@ -85,5 +86,29 @@ describe('useEventPreview — the worked hook (AC16)', () => {
     })
     expect(result.current.fetchStatus).toBe('idle')
     expect(rpc).not.toHaveBeenCalled()
+  })
+})
+
+describe('eventWriteErrorMessage — PostgREST refusal to copy (S4.1 AC9)', () => {
+  // eventWriteErrorMessage reads only `.code`; a minimal stand-in keeps the test honest.
+  const err = (code: string): PostgrestError =>
+    ({ code, message: 'raw postgres text', details: '', hint: '' }) as unknown as PostgrestError
+
+  it('maps a 42501 RLS refusal to the unmanaged/inactive team line', () => {
+    expect(eventWriteErrorMessage(err('42501'))).toBe("You can't add events to that team.")
+  })
+
+  it('maps a 23514 check violation to the length line', () => {
+    expect(eventWriteErrorMessage(err('23514'))).toBe(
+      "That doesn't fit. Check the title and location lengths.",
+    )
+  })
+
+  it('maps a 23503 FK violation to the missing-team line', () => {
+    expect(eventWriteErrorMessage(err('23503'))).toBe('That team no longer exists.')
+  })
+
+  it('falls back to a generic retry line for anything else', () => {
+    expect(eventWriteErrorMessage(err('XXXXX'))).toBe("Couldn't save. Try again.")
   })
 })

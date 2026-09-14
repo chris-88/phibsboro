@@ -1,7 +1,8 @@
 import { z } from 'zod'
 import { availabilityResponseSchema } from '@/features/availability/schema'
-import type { Enums, FnRow, Tables } from '@/lib/db'
+import type { Enums, FnRow, Insert, Tables } from '@/lib/db'
 import type { Equal, Expect } from '@/lib/type-assert'
+import { dublinLocalToUtcIso } from '@/lib/time'
 import { timestampSchema, uuidSchema } from '@/lib/zod'
 
 export const eventTypeSchema = z.enum(['training', 'match'])
@@ -76,3 +77,82 @@ export type Parity = [
   Expect<Equal<EventRow, Tables<'events'>>>,
   Expect<Equal<EventPreview, FnRow<'get_event_preview'>>>,
 ]
+
+// —— The create/edit form (S4.1) ————————————————————————————————————————————
+// Derived from eventRowSchema, never written as a second literal (S1.5 AC18): the four shared
+// columns are picked off the row, and `date` + `time` replace the composed `starts_at`. S4.6
+// adds its series schema to this same file.
+
+/** True when switching type should overwrite the title: only when the field is empty or still
+ *  holds the other type's default label. A manager who typed "Kilbarrack away" keeps it (AC2). */
+export function shouldRewriteTitle(current: string, nextType: EventType): boolean {
+  const trimmed = current.trim()
+  if (trimmed === '') return true
+  const otherType: EventType = nextType === 'training' ? 'match' : 'training'
+  return trimmed === DEFAULT_TITLES[otherType]
+}
+
+/** The default title per type. "Training" for training (AC2). */
+export const DEFAULT_TITLES: Record<EventType, string> = {
+  training: 'Training',
+  match: 'Match',
+} as const
+
+/** One year, the typo guard that catches `2206` for `2026` (AC6). Not a product rule. */
+const HORIZON_MS = 365 * 24 * 60 * 60 * 1000
+
+/**
+ * A factory, not a bare schema, for two reasons the ACs pin. `requireFuture` is off when S4.2
+ * edits an event whose start is not moving; `now` is injected — `serverNow()` in the app (D48),
+ * a fixed instant in the unit tests — so the horizon rules never read the device clock. Create
+ * always calls `{ requireFuture: true, now: serverNow() }`. One schema, two callers, one flag.
+ */
+export function eventFormSchema(opts: { requireFuture: boolean; now: Date }) {
+  return eventRowSchema
+    .pick({ type: true, title: true, location: true })
+    .extend({
+      teamId: uuidSchema,
+      // notes stays a non-optional string here — an uncontrolled textarea dislikes undefined —
+      // and becomes null in toEventInsert, where AC7 is enforced.
+      notes: z.string().trim().max(500, 'Keep notes under 500 characters.'),
+      date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Pick a date.'),
+      time: z.string().regex(/^\d{2}:\d{2}$/, 'Pick a start time.'),
+    })
+    .superRefine((v, ctx) => {
+      // The field regexes above already flag a missing or malformed date or time; without them a
+      // valid instant cannot be composed, so the horizon checks have nothing to judge.
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(v.date) || !/^\d{2}:\d{2}$/.test(v.time)) return
+      const instant = new Date(dublinLocalToUtcIso(v.date, v.time)).getTime()
+      if (opts.requireFuture && instant <= opts.now.getTime()) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['time'],
+          message: 'Pick a time in the future.',
+        })
+      }
+      if (instant > opts.now.getTime() + HORIZON_MS) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['date'],
+          message: "That's more than a year away.",
+        })
+      }
+    })
+}
+
+export type EventFormValues = z.infer<ReturnType<typeof eventFormSchema>>
+
+/** Form values → the insert row. Blank notes become SQL NULL, never '' (AC7). `starts_at` is the
+ *  one Dublin-wall-clock-to-UTC conversion in the write path (AC3). */
+export function toEventInsert(v: EventFormValues, createdBy: string): Insert<'events'> {
+  const notes = v.notes.trim()
+  return {
+    team_id: v.teamId,
+    type: v.type,
+    title: v.title.trim(),
+    location: v.location.trim(),
+    notes: notes === '' ? null : notes,
+    starts_at: dublinLocalToUtcIso(v.date, v.time),
+    created_by: createdBy,
+  }
+}

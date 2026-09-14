@@ -1,15 +1,29 @@
-import { queryOptions, useQuery, type UseQueryResult } from '@tanstack/react-query'
+import {
+  queryOptions,
+  useMutation,
+  useQuery,
+  useQueryClient,
+  type UseMutationResult,
+  type UseQueryResult,
+} from '@tanstack/react-query'
+import type { PostgrestError } from '@supabase/supabase-js'
+import { z } from 'zod'
 import { eventKeys } from '@/api/queryKeys'
 import { callRpc } from '@/api/rpc'
 import type { AvailabilityResponse } from '@/features/availability/schema'
 import { useSession } from '@/features/auth/session-context'
 import {
   eventPreviewSchema,
+  eventRowSchema,
   eventWithResponseSchema,
+  toEventInsert,
+  type EventFormValues,
   type EventPreview,
+  type EventRow,
   type EventStatus,
   type EventType,
 } from '@/features/events/schema'
+import { serverNow } from '@/lib/serverClock'
 import { supabase } from '@/lib/supabase'
 
 /**
@@ -105,4 +119,79 @@ export function useEventDetail(eventId: string | undefined): UseQueryResult<Even
   const session = useSession()
   const userId = session.status === 'signedIn' ? session.session.user.id : undefined
   return useQuery(eventDetailOptions(eventId, userId))
+}
+
+// —— The manager list and the create write (S4.1) ——————————————————————————————
+
+/**
+ * Every event for one team from a cut-off sixty days back, ascending, so one query feeds both the
+ * Upcoming and Past sections and the list stays bounded without pagination. PostgREST compares
+ * against a literal, so the cut-off is computed here and sent as an ISO string — there is no
+ * `now() - interval` to send. The window uses `serverNow()`, never the device clock (D48).
+ */
+export function teamEventsOptions(teamId: string | undefined) {
+  return queryOptions({
+    queryKey: eventKeys.list(teamId ?? ''),
+    enabled: Boolean(teamId),
+    queryFn: async (): Promise<EventRow[]> => {
+      if (!teamId) return []
+      const cutoff = new Date(serverNow().getTime() - 60 * 24 * 60 * 60 * 1000).toISOString()
+      const { data, error } = await supabase
+        .from('events')
+        .select('*')
+        .eq('team_id', teamId)
+        .gte('starts_at', cutoff)
+        .order('starts_at', { ascending: true })
+      if (error) throw error
+      return z.array(eventRowSchema).parse(data)
+    },
+  })
+}
+
+export function useTeamEvents(teamId: string | undefined): UseQueryResult<EventRow[]> {
+  return useQuery(teamEventsOptions(teamId))
+}
+
+/**
+ * The one create write (S4.1). `created_by` is set client-side from the session uuid; the RLS
+ * insert policy does not check it, so it is audit, not authorisation. The whole `eventKeys.all`
+ * subtree is invalidated on success — at a squad's size, precision buys nothing and risks a stale
+ * count — and the screen owns the navigate and the toast. A refusal surfaces as a raw
+ * `PostgrestError`, which `eventWriteErrorMessage` maps to copy (AC9).
+ */
+export function useCreateEvent(): UseMutationResult<EventRow, PostgrestError, EventFormValues> {
+  const qc = useQueryClient()
+  const session = useSession()
+  const userId = session.status === 'signedIn' ? session.session.user.id : undefined
+  return useMutation<EventRow, PostgrestError, EventFormValues>({
+    mutationFn: async (values) => {
+      if (userId === undefined) throw new Error('not signed in')
+      const { data, error } = await supabase
+        .from('events')
+        .insert(toEventInsert(values, userId))
+        .select()
+        .single()
+      if (error) throw error
+      return eventRowSchema.parse(data)
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: eventKeys.all }),
+  })
+}
+
+/**
+ * A PostgREST refusal → one line of copy, reused by S4.2. `42501` is RLS refusing the insert,
+ * which covers both an unmanaged team and an inactive one (D50); the manager's fix is the same
+ * either way, so the message does not distinguish them.
+ */
+export function eventWriteErrorMessage(error: PostgrestError): string {
+  switch (error.code) {
+    case '42501':
+      return "You can't add events to that team."
+    case '23514':
+      return "That doesn't fit. Check the title and location lengths."
+    case '23503':
+      return 'That team no longer exists.'
+    default:
+      return "Couldn't save. Try again."
+  }
 }

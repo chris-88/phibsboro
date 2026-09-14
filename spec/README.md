@@ -47,7 +47,7 @@ shell, routing and PWA are exempt because they touch no data.
 | 26 | [S3.2](stories/S3.2-upcoming-events-list.md) | Upcoming events list | 3 Player | S0.2, S1.4, S1.5, S2.9, S3.1, S3.3 | S | Not started |
 | 27 | [S2.7](stories/S2.7-escape-the-whatsapp-browser.md) | Escape the WhatsApp browser | 2 Auth and install | S0.2, S0.4, S2.9, S3.1, S3.3 | M | Not started |
 | 28 | [S2.8](stories/S2.8-add-to-home-screen-guide.md) | Add to home screen guide | 2 Auth and install | S0.2, S0.4, S2.7, S2.9, S3.1, S3.3 | M | Not started |
-| 29 | [S4.1](stories/S4.1-create-event.md) | Create event | 4 Manager | S0.2, S0.3, S1.3, S1.4, S1.5, S2.9, S3.3, S6.1 | M | Not started |
+| 29 | [S4.1](stories/S4.1-create-event.md) | Create event | 4 Manager | S0.2, S0.3, S1.3, S1.4, S1.5, S2.9, S3.3, S6.1 | M | **Done** |
 | 30 | [S4.2](stories/S4.2-edit-and-cancel-event.md) | Edit and cancel event | 4 Manager | S1.3, S1.4, S1.5, S2.9, S3.3, S4.1 | M | Not started |
 | 31 | [S4.3](stories/S4.3-manager-event-view.md) | Manager event view | 4 Manager | S1.3, S1.4, S1.5, S2.9, S3.3, S4.1, S4.2, S6.2, S6.4 | M | Not started |
 | 32 | [S4.4](stories/S4.4-player-response-list.md) | Player response list | 4 Manager | S1.3, S1.4, S1.5, S2.9, S3.2, S4.3 | M | Not started |

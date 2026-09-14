@@ -109,12 +109,11 @@ describe('resolving routes (AC1, AC15)', () => {
     // /event/:id is a real screen from S3.3 and /join/:token from S2.4 — no longer placeholders;
     // EventDetailScreen, JoinByTokenScreen and the routes coverage below assert them directly.
     ['/history', 'S3.5'],
-    ['/manage', 'S4.1'],
-    ['/manage/event/new', 'S4.1'],
     [`/manage/event/${UUID}`, 'S4.3'],
-    // /login is a real screen from S2.2, /register from S2.1, /admin from S6.1 and
-    // /manage/team/:teamId/members from S6.2 — no longer placeholders; login-screen.test.tsx,
-    // register-screen.test.tsx, admin-screen.test.tsx and team-members-screen.test.tsx cover them.
+    // /manage and /manage/event/new are real screens from S4.1 — no longer placeholders; the
+    // new-event and admit tests below and manage-screen behaviour cover them. /login is a real
+    // screen from S2.2, /register from S2.1, /admin from S6.1 and /manage/team/:teamId/members
+    // from S6.2 — no longer placeholders; their own suites cover them.
   ]
 
   it.each(cases)('%s renders a placeholder naming its owning story %s', async (path, story) => {
@@ -131,10 +130,10 @@ describe('resolving routes (AC1, AC15)', () => {
 
   it('renders the new-event screen for /manage/event/new, not the edit screen with id "new" (AC2)', async () => {
     mount('/manage/event/new')
-    const card = await placeholder()
-    expect(card).toHaveTextContent('New event')
-    expect(card).not.toHaveTextContent('Manage event')
-    expect(card).not.toHaveTextContent('id: new')
+    // The real S4.1 new-event screen renders (its empty state, since the admin fixture manages no
+    // team) — not the S4.3 manage-event placeholder a literal ":id" of "new" would resolve to.
+    await screen.findByText("You don't manage a team yet.")
+    expect(screen.queryByTestId('route-placeholder')).not.toBeInTheDocument()
   })
 
   it('still routes a real id to the manage-event screen (AC2)', async () => {
@@ -156,7 +155,9 @@ describe('chrome per route (AC3, AC4)', () => {
 
   it('shows the bottom nav on a lazy manager route', async () => {
     mount('/manage')
-    await placeholder()
+    // The real S4.1 manage screen (its empty state for the team-less admin fixture) confirms the
+    // lazy chunk resolved before asserting the nav.
+    await screen.findByText("You don't manage a team yet.")
     expect(nav()).toBeInTheDocument()
   })
 

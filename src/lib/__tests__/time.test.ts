@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { formatEventTime } from '@/lib/time'
+import { dublinLocalToUtcIso, formatEventTime, utcIsoToDublinParts } from '@/lib/time'
 
 // Every instant below is a fixed UTC string, exactly as PostgREST returns a timestamptz, and
 // vitest.config.ts pins TZ=UTC (D53). The assertions are Dublin wall-clock, so they must also
@@ -94,5 +94,58 @@ describe('formatEventTime — DST (AC12, D53)', () => {
   it('an evening kick-off crossing midnight UTC lands on the right Dublin day', () => {
     // 23:30Z in July is 00:30 IST the next day.
     expect(formatEventTime('2026-07-10T23:30:00Z', 'short')).toBe('Sat 11 Jul, 12.30am')
+  })
+})
+
+// —— Dublin wall clock ⇄ UTC instant (S4.1) ——————————————————————————————————
+// TZ=UTC is pinned in vitest.config.ts (D53); every assertion is a fixed UTC instant, so it also
+// holds with the runner in any zone.
+describe('dublinLocalToUtcIso — Dublin wall clock to a UTC instant (AC3)', () => {
+  it('January is GMT: the wall clock equals UTC', () => {
+    expect(dublinLocalToUtcIso('2026-01-10', '19:30')).toBe('2026-01-10T19:30:00.000Z')
+  })
+
+  it('14 March is still GMT: 19:30 stores 19:30Z', () => {
+    expect(dublinLocalToUtcIso('2026-03-14', '19:30')).toBe('2026-03-14T19:30:00.000Z')
+  })
+
+  it('14 July is IST: 19:30 stores 18:30Z', () => {
+    expect(dublinLocalToUtcIso('2026-07-14', '19:30')).toBe('2026-07-14T18:30:00.000Z')
+  })
+
+  it('spring gap: 01:30 on 29 March does not exist, resolves forward to 02:30 IST', () => {
+    // 02:30 IST is 01:30Z.
+    expect(dublinLocalToUtcIso('2026-03-29', '01:30')).toBe('2026-03-29T01:30:00.000Z')
+  })
+
+  it('autumn overlap: 01:30 on 25 October happens twice, resolves to the first, summer one', () => {
+    // The first, IST occurrence of 01:30 is 00:30Z.
+    expect(dublinLocalToUtcIso('2026-10-25', '01:30')).toBe('2026-10-25T00:30:00.000Z')
+  })
+})
+
+describe('utcIsoToDublinParts — the inverse (S4.2 edit form)', () => {
+  it('splits a GMT instant into Dublin date and time', () => {
+    expect(utcIsoToDublinParts('2026-03-14T19:30:00.000Z')).toEqual({
+      date: '2026-03-14',
+      time: '19:30',
+    })
+  })
+
+  it('splits an IST instant, shifting the wall clock forward an hour', () => {
+    expect(utcIsoToDublinParts('2026-07-14T18:30:00.000Z')).toEqual({
+      date: '2026-07-14',
+      time: '19:30',
+    })
+  })
+
+  it('round-trips each of the conversion cases', () => {
+    for (const [date, time] of [
+      ['2026-01-10', '19:30'],
+      ['2026-07-14', '19:30'],
+      ['2026-12-31', '23:00'],
+    ] as const) {
+      expect(utcIsoToDublinParts(dublinLocalToUtcIso(date, time))).toEqual({ date, time })
+    }
   })
 })

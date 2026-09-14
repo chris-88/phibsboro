@@ -117,8 +117,10 @@ describe('RequireManager (AC4)', () => {
   it('admits a manager to /manage', async () => {
     hoisted.account.value = ready({ isManagerOfAny: true })
     const router = mount('/manage')
+    // The real S4.1 manage screen renders — its empty state here, since this fixture manages no
+    // team — rather than the guard redirecting home.
     await waitFor(() => {
-      expect(screen.getByTestId('route-placeholder')).toHaveAttribute('data-story', 'S4.1')
+      expect(screen.getByText("You don't manage a team yet.")).toBeInTheDocument()
     })
     expect(router.state.location.pathname).toBe('/manage')
   })

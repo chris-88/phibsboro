@@ -107,3 +107,55 @@ export function formatEventTime(iso: string, style: EventTimeStyle): string {
     }
   }
 }
+
+// —— Dublin wall clock ⇄ UTC instant (S4.1) ——————————————————————————————————
+// The inverse of formatEventTime, for the one place in the app that turns a manager's typed
+// local date and time back into a UTC instant. Same Dublin calendar as above, so the two never
+// disagree. Nothing else under src/ parses a naive date string or reaches for the device zone.
+
+function pad2(n: number): string {
+  return String(n).padStart(2, '0')
+}
+
+/** Offset of Europe/Dublin at a given UTC instant, in milliseconds. Whole hours in practice
+ *  (0 for GMT, +3_600_000 for IST); computed by reading the Dublin wall clock at the instant and
+ *  measuring it against the instant itself, both floored to the minute so the result is exact. */
+function dublinOffsetMs(utcMs: number): number {
+  const w = dublinWallClock(new Date(utcMs))
+  const wallMs = Date.UTC(w.year, w.month - 1, w.day, w.hour, w.minute)
+  const flooredUtc = Math.floor(utcMs / 60_000) * 60_000
+  return wallMs - flooredUtc
+}
+
+/**
+ * `"2026-03-14"` + `"19:30"` (Dublin wall clock) → `"2026-03-14T19:30:00.000Z"`.
+ *
+ * The naive `${date}T${time}` is parsed as if it were UTC, then shifted by the Dublin offset an
+ * hour either side settles the two DST edges deterministically: a spring-gap time that does not
+ * exist (01:30 on the last Sunday in March) resolves forward to 02:30 IST, and an autumn-overlap
+ * time that happens twice (01:30 on the last Sunday in October) resolves to the first, summer
+ * occurrence. Neither is a real training time; both are pinned so the function is testable.
+ */
+export function dublinLocalToUtcIso(date: string, time: string): string {
+  const naive = Date.parse(`${date}T${time}:00.000Z`)
+  if (Number.isNaN(naive)) throw new RangeError(`dublinLocalToUtcIso: bad input: ${date} ${time}`)
+  const before = dublinOffsetMs(naive - 3_600_000)
+  const after = dublinOffsetMs(naive + 3_600_000)
+  // Equal offsets (the common case) collapse min and max to the one offset. A gap (offset rising
+  // across the instant) takes the smaller offset and lands forward; an overlap (offset falling)
+  // takes the larger and lands on the earlier, summer occurrence.
+  const offset = before <= after ? Math.min(before, after) : Math.max(before, after)
+  return new Date(naive - offset).toISOString()
+}
+
+/** The inverse, for populating the S4.2 edit form from a stored `starts_at`. */
+export function utcIsoToDublinParts(iso: string): { date: string; time: string } {
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime()))
+    throw new RangeError(`utcIsoToDublinParts: not a timestamp: ${iso}`)
+  const w = dublinWallClock(d)
+  return {
+    date: `${String(w.year)}-${pad2(w.month)}-${pad2(w.day)}`,
+    time: `${pad2(w.hour)}:${pad2(w.minute)}`,
+  }
+}
