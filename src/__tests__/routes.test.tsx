@@ -57,8 +57,6 @@ const mount = (initial: string) => {
 // The team-less admin fixture lands the real home screen on its no-team empty state.
 const HOME_NO_TEAM = "You're not on a team yet."
 
-const placeholder = () => screen.findByTestId('route-placeholder')
-
 describe('route table (D34)', () => {
   it('lists every D34 route exactly once, plus the catch-all', () => {
     const paths = routeTable.map((r) => r.path)
@@ -115,27 +113,17 @@ describe('route table (D34)', () => {
 })
 
 describe('resolving routes (AC1, AC15)', () => {
-  const cases: [string, string][] = [
-    // `/` is a real screen from S3.1 — no longer a placeholder; the home-screen suite and the
-    // chrome and title cases below assert it directly.
-    // /reset/:token is a real screen from S2.3 — no longer a placeholder; the real-screen case
-    // below asserts it directly.
-    // /event/:id is a real screen from S3.3 and /join/:token from S2.4 — no longer placeholders;
-    // EventDetailScreen, JoinByTokenScreen and the routes coverage below assert them directly.
-    ['/history', 'S3.5'],
-    // /manage/event/:id is a real screen from S4.3 — no longer a placeholder; the real-screen
-    // case below asserts it directly.
-    // /manage and /manage/event/new are real screens from S4.1 — no longer placeholders; the
-    // new-event and admit tests below and manage-screen behaviour cover them. /login is a real
-    // screen from S2.2, /register from S2.1, /admin from S6.1 and /manage/team/:teamId/members
-    // from S6.2 — no longer placeholders; their own suites cover them.
-  ]
+  // Every D34 route now resolves to a real screen — no placeholder survives. Each real-screen
+  // case below asserts its own; the home, reset, manage and event screens are covered by their
+  // own suites and the chrome/title cases in this file.
 
-  it.each(cases)('%s renders a placeholder naming its owning story %s', async (path, story) => {
-    mount(path)
-    const card = await placeholder()
-    expect(card).toHaveAttribute('data-story', story)
-    expect(card).toHaveTextContent(`Story ${story} builds this screen`)
+  it('renders the real S3.5 history screen for /history, not a placeholder', () => {
+    mount('/history')
+    // The admin fixture has a real id, so the infinite query is enabled and starts fetching:
+    // its initial state is `pending`, which the screen renders as the "Loading history" skeleton
+    // synchronously on first commit — before the fetch can settle in this backend-less harness.
+    expect(screen.getByLabelText('Loading history')).toBeInTheDocument()
+    expect(screen.queryByTestId('route-placeholder')).not.toBeInTheDocument()
   })
 
   it('renders the real S2.3 set-password screen for /reset/:token, not a placeholder', async () => {
@@ -210,7 +198,9 @@ describe('document title (AC13)', () => {
     expect(document.title).toBe(`Home${TITLE_SUFFIX}`)
 
     await act(() => router.navigate('/history'))
-    expect(await placeholder()).toHaveAttribute('data-story', 'S3.5')
+    // The real S3.5 screen mounts on its loading skeleton (backend-less harness); the title is
+    // what this case asserts.
+    expect(screen.getByLabelText('Loading history')).toBeInTheDocument()
     expect(document.title).toBe(`History${TITLE_SUFFIX}`)
 
     await act(() => router.navigate('/nope'))

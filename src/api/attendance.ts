@@ -1,8 +1,19 @@
-import { useMutation, useQueryClient, type UseMutationResult } from '@tanstack/react-query'
+import { useMemo } from 'react'
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQueryClient,
+  type UseMutationResult,
+} from '@tanstack/react-query'
 import type { PostgrestError } from '@supabase/supabase-js'
-import { eventKeys } from '@/api/queryKeys'
+import { z } from 'zod'
+import { eventKeys, userKeys } from '@/api/queryKeys'
+import { filterHistory } from '@/features/attendance/history-filter'
+import { historyRowSchema, type HistoryRow } from '@/features/attendance/schema'
 import { useSession } from '@/features/auth/session-context'
+import { useSignedInUser } from '@/features/auth/use-current-user'
 import type { RosterAttendance } from '@/lib/roster'
+import { serverNow } from '@/lib/serverClock'
 import { supabase } from '@/lib/supabase'
 
 /** A single attendance edit. `attended === null` clears the row (D25). */
@@ -144,4 +155,90 @@ export function useBulkMarkAttended(
     })
 
   return mutation
+}
+
+// —— The history read (S3.5) —————————————————————————————————————————————————
+// One select against `events` with the caller's own attendance embedded, newest first, 25 rows a
+// page behind "Show more". RLS does the narrowing: the player select policy on `attendance` is
+// `user_id = auth.uid()`, so the embed holds at most the caller's own row and AC6 holds with no
+// client-side user filter. The FK hint is named so an ambiguous embed fails at build-review, not
+// silently at runtime if a second FK is added later. No INSERT, UPDATE, UPSERT or DELETE lives in
+// this read — attendance is manager-written (S4.5) and the player grant is select-only (AC5).
+
+/** `attendance!attendance_event_id_fkey` names Postgres's default FK, so the embed never resolves
+ *  ambiguously. Do NOT add a `user_id` filter — RLS already restricts it to the caller, and a
+ *  parameterised filter would invite reuse for a manager view the policy would refuse anyway. */
+export const HISTORY_SELECT =
+  'id, team_id, type, title, starts_at, status, attendance!attendance_event_id_fkey(attended)' as const
+
+const PAGE_SIZE = 25
+
+// The cutoff is pinned into the first page param and carried through every later page, never
+// recomputed: offset paging against a moving `lt` boundary would skip or duplicate a row whenever
+// an event crossed into the past between pages. It never enters the query key, which would churn.
+
+/** The one shape S3.5's screen sees: pages already flattened and run through `filterHistory`, plus
+ *  the paging flags it renders "Show more" and the page-two error from. It holds no paging logic. */
+export interface AttendanceHistory {
+  rows: HistoryRow[]
+  status: 'pending' | 'error' | 'success'
+  /** Drives "Show more"; the raw page length, never the filtered length. */
+  hasNextPage: boolean
+  isFetchingNextPage: boolean
+  /** A page-two failure keeps the rows already on screen and offers a retry where "Show more" was. */
+  isFetchNextPageError: boolean
+  fetchNextPage: () => void
+  refetch: () => void
+}
+
+/**
+ * The player's own past events, own attendance embedded (S3.5). `userId` scopes the query key so a
+ * response (S3.4) or attendance (S4.5) invalidation never churns this infinite query — the key sits
+ * under its own `history` prefix, outside `eventKeys.all`. A manager correcting attendance is picked
+ * up on this player's next visit or focus refetch, which is soon enough. Memberships come from
+ * `useSignedInUser()` (S2.9) and drive the pre-join filter; the screen is guarded `authed`, so a
+ * signed-in user is guaranteed here.
+ */
+export function useAttendanceHistory(userId: string): AttendanceHistory {
+  const { memberships } = useSignedInUser()
+
+  const query = useInfiniteQuery({
+    queryKey: userKeys.history(userId),
+    // serverNow() is the device clock until the first response records the skew; either is fine —
+    // the boundary only decides whether a just-started event lands in this list or S3.2's, and no
+    // write is gated on it (S3.4, by contrast, forbids the device clock). Read once, then pinned.
+    initialPageParam: { page: 0, cutoffIso: serverNow().toISOString() },
+    queryFn: async ({ pageParam }): Promise<HistoryRow[]> => {
+      const { data, error } = await supabase
+        .from('events')
+        .select(HISTORY_SELECT)
+        .lt('starts_at', pageParam.cutoffIso)
+        .order('starts_at', { ascending: false })
+        .range(pageParam.page * PAGE_SIZE, pageParam.page * PAGE_SIZE + PAGE_SIZE - 1)
+      if (error) throw error
+      // Parse at the boundary, so a PostgREST shape change fails here, not three components deep.
+      return z.array(historyRowSchema).parse(data)
+    },
+    getNextPageParam: (last, _pages, lastParam) =>
+      last.length === PAGE_SIZE
+        ? { page: lastParam.page + 1, cutoffIso: lastParam.cutoffIso }
+        : undefined,
+  })
+
+  // Flatten every page, then filter — never per page — so a membership boundary straddling a page
+  // edge behaves the same on both sides.
+  const rows = useMemo(
+    () => filterHistory((query.data?.pages ?? []).flat(), memberships),
+    [query.data, memberships],
+  )
+
+  return {
+    rows,
+    status: query.status,
+    hasNextPage: query.hasNextPage,
+    isFetchingNextPage: query.isFetchingNextPage,
+    isFetchNextPageError: query.isFetchNextPageError,
+    fetchNextPage: () => void query.fetchNextPage(),
+    refetch: () => void query.refetch(),
+  }
 }
