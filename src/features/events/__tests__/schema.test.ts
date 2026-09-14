@@ -22,6 +22,8 @@ function goodValues(overrides: Partial<EventFormValues> = {}): EventFormValues {
     time: '19:30',
     location: 'Dalymount Park',
     notes: '',
+    opponent: '',
+    homeAway: 'home',
     ...overrides,
   }
 }
@@ -214,13 +216,21 @@ describe('eventFormSchema — the edit flag (S4.2 AC5)', () => {
 describe('toEventUpdate (S4.2)', () => {
   it('carries only the six editable columns, no team_id/created_by/series_id/status', () => {
     const row = toEventUpdate(
-      goodValues({ title: '  Cup final  ', location: '  Tolka Park  ', type: 'match' }),
+      goodValues({
+        title: '  Firsts v Kilbarrack  ',
+        location: '  Tolka Park  ',
+        type: 'match',
+        opponent: '  Kilbarrack  ',
+        homeAway: 'home',
+      }),
     )
     expect(row).toEqual({
       type: 'match',
-      title: 'Cup final',
+      title: 'Firsts v Kilbarrack',
       location: 'Tolka Park',
       notes: null,
+      opponent: 'Kilbarrack',
+      home_away: 'home',
       starts_at: '2026-03-14T19:30:00.000Z',
     })
     expect(row).not.toHaveProperty('team_id')
@@ -231,5 +241,65 @@ describe('toEventUpdate (S4.2)', () => {
 
   it('blank notes become null, not an empty string (AC7)', () => {
     expect(toEventUpdate(goodValues({ notes: '   ' })).notes).toBeNull()
+  })
+})
+
+describe('match opponent + home/away (S8.2)', () => {
+  const schema = eventFormSchema({ requireFuture: true, now: NOW })
+  const messageFor = (values: EventFormValues, path: string): string | undefined => {
+    const result = schema.safeParse(values)
+    if (result.success) return undefined
+    return result.error.issues.find((i) => i.path.join('.') === path)?.message
+  }
+
+  it('accepts a match with an opponent and a side', () => {
+    const values = goodValues({
+      type: 'match',
+      opponent: 'Kilbarrack',
+      homeAway: 'home',
+      title: 'Firsts v Kilbarrack',
+    })
+    expect(schema.safeParse(values).success).toBe(true)
+  })
+
+  it('rejects a match with no opponent (AC3)', () => {
+    const values = goodValues({ type: 'match', opponent: '   ', title: 'Firsts v' })
+    expect(messageFor(values, 'opponent')).toBe('Enter the opponent.')
+  })
+
+  it('rejects a non-match that still carries an opponent — forbidden otherwise (AC3)', () => {
+    const values = goodValues({ type: 'training', opponent: 'Kilbarrack' })
+    expect(messageFor(values, 'opponent')).toBe('Opponent is only for matches.')
+  })
+
+  it('rejects a generated match title over 80 characters through the title bound', () => {
+    const values = goodValues({
+      type: 'match',
+      opponent: 'x'.repeat(50),
+      title: 'Firsts v ' + 'x'.repeat(80),
+    })
+    expect(schema.safeParse(values).success).toBe(false)
+  })
+
+  it('nulls opponent and home_away off a non-match on insert and update', () => {
+    const training = goodValues({ type: 'training', opponent: '', homeAway: 'home' })
+    const inserted = toEventInsert(training, 'creator-uuid')
+    expect(inserted.opponent).toBeNull()
+    expect(inserted.home_away).toBeNull()
+    const updated = toEventUpdate(training)
+    expect(updated.opponent).toBeNull()
+    expect(updated.home_away).toBeNull()
+  })
+
+  it('stores opponent and home_away on a match insert', () => {
+    const match = goodValues({
+      type: 'match',
+      opponent: '  Kilbarrack  ',
+      homeAway: 'away',
+      title: 'Kilbarrack v Firsts',
+    })
+    const inserted = toEventInsert(match, 'creator-uuid')
+    expect(inserted.opponent).toBe('Kilbarrack')
+    expect(inserted.home_away).toBe('away')
   })
 })

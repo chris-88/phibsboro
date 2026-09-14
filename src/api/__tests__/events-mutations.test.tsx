@@ -48,6 +48,8 @@ const ROW = {
   title: 'Training',
   location: 'Fairview Park',
   notes: null,
+  opponent: null,
+  home_away: null,
   starts_at: '2026-09-20T18:30:00+00:00',
   status: 'scheduled',
   series_id: null,
@@ -59,11 +61,13 @@ const ROW = {
 const VALUES: EventFormValues = {
   teamId: TEAM,
   type: 'match',
-  title: 'Kilbarrack away',
+  title: 'Kilbarrack v Firsts',
   date: '2026-09-21',
   time: '19:30',
   location: 'Fairview Park pitch 3',
   notes: '',
+  opponent: 'Kilbarrack',
+  homeAway: 'away',
 }
 
 function wrapperFor(client: QueryClient) {
@@ -85,7 +89,7 @@ beforeEach(() => {
 })
 
 describe('useUpdateEvent (S4.2)', () => {
-  it('writes only the six editable columns and invalidates eventKeys.all', async () => {
+  it('writes the editable columns plus a match opponent + home_away and invalidates eventKeys.all', async () => {
     const client = freshClient()
     results.push({ data: ROW, error: null })
     const invalidate = vi.spyOn(client, 'invalidateQueries')
@@ -95,15 +99,26 @@ describe('useUpdateEvent (S4.2)', () => {
     await waitFor(() => {
       expect(result.current.isSuccess).toBe(true)
     })
-    // team_id, created_by, created_at, series_id, status never in the payload (D30).
+    // team_id, created_by, created_at, series_id, status never in the payload (D30). A match now
+    // also carries the derived title's raw fields opponent + home_away (S8.2).
     const payload = lastUpdate as Record<string, unknown>
     expect(payload).toMatchObject({
       type: 'match',
-      title: 'Kilbarrack away',
+      title: 'Kilbarrack v Firsts',
       location: 'Fairview Park pitch 3',
       notes: null,
+      opponent: 'Kilbarrack',
+      home_away: 'away',
     })
-    expect(Object.keys(payload).sort()).toEqual(['location', 'notes', 'starts_at', 'title', 'type'])
+    expect(Object.keys(payload).sort()).toEqual([
+      'home_away',
+      'location',
+      'notes',
+      'opponent',
+      'starts_at',
+      'title',
+      'type',
+    ])
     expect(payload.starts_at).toContain('2026-09-21')
     expect(invalidate).toHaveBeenCalledWith({ queryKey: eventKeys.all })
   })

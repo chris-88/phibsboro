@@ -7,9 +7,11 @@ import { timestampSchema, uuidSchema } from '@/lib/zod'
 
 export const eventTypeSchema = z.enum(['training', 'match', 'social'])
 export const eventStatusSchema = z.enum(['scheduled', 'cancelled'])
+export const homeAwaySchema = z.enum(['home', 'away'])
 
 export type EventType = z.infer<typeof eventTypeSchema>
 export type EventStatus = z.infer<typeof eventStatusSchema>
+export type HomeAway = z.infer<typeof homeAwaySchema>
 
 /**
  * The `events` row, column for column (data-model.md). The string bounds mirror the SQL checks
@@ -32,6 +34,11 @@ export const eventRowSchema = z.object({
   title: z.string().trim().min(1).max(80),
   location: z.string().trim().min(1).max(120),
   notes: z.string().max(500).nullable(),
+  // Match only (V3, S8.2), both null for training and social. `opponent` feeds the derived title;
+  // `home_away` orders it and labels the event. No DB length check on `opponent`, so the row bound
+  // here is generous — the form caps what it writes, the stored `title` carries the real 80 limit.
+  opponent: z.string().max(80).nullable(),
+  home_away: homeAwaySchema.nullable(),
   starts_at: timestampSchema,
   status: eventStatusSchema,
   series_id: uuidSchema.nullable(),
@@ -50,7 +57,16 @@ export type EventRow = z.infer<typeof eventRowSchema>
  */
 export type EventActionData = Pick<
   EventRow,
-  'id' | 'team_id' | 'type' | 'title' | 'location' | 'notes' | 'starts_at' | 'status'
+  | 'id'
+  | 'team_id'
+  | 'type'
+  | 'title'
+  | 'location'
+  | 'notes'
+  | 'opponent'
+  | 'home_away'
+  | 'starts_at'
+  | 'status'
 >
 
 /**
@@ -67,6 +83,8 @@ export const eventWithResponseSchema = eventRowSchema
     title: true,
     location: true,
     notes: true,
+    opponent: true,
+    home_away: true,
     starts_at: true,
     status: true,
   })
@@ -109,6 +127,7 @@ export type EventPreview = z.infer<typeof eventPreviewSchema>
 export type Parity = [
   Expect<Equal<EventType, Enums<'event_type'>>>,
   Expect<Equal<EventStatus, Enums<'event_status'>>>,
+  Expect<Equal<HomeAway, Enums<'home_away'>>>,
   Expect<Equal<EventRow, Tables<'events'>>>,
   Expect<Equal<EventPreview, FnRow<'get_event_preview'>>>,
 ]
@@ -153,8 +172,31 @@ export function eventFormSchema(opts: { requireFuture: boolean; now: Date }) {
       notes: z.string().trim().max(500, 'Keep notes under 500 characters.'),
       date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Pick a date.'),
       time: z.string().regex(/^\d{2}:\d{2}$/, 'Pick a start time.'),
+      // Match only (S8.2). Always present in the form values — the fields are simply hidden for
+      // training and social — and reconciled to null in toEventInsert/Update for a non-match. The
+      // title is derived from these, not typed, so it is not a user field for a match (V3, AC2).
+      opponent: z.string().trim().max(80, 'Keep the opponent name short.'),
+      homeAway: homeAwaySchema,
     })
     .superRefine((v, ctx) => {
+      // Opponent is required for a match and forbidden otherwise (V3, AC3). The generated title
+      // carries its own 1–80 bound through the picked `title` field, so an over-long match title
+      // is already blocked; here we only guard the raw opponent.
+      if (v.type === 'match') {
+        if (v.opponent.trim() === '') {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ['opponent'],
+            message: 'Enter the opponent.',
+          })
+        }
+      } else if (v.opponent.trim() !== '') {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['opponent'],
+          message: 'Opponent is only for matches.',
+        })
+      }
       // The field regexes above already flag a missing or malformed date or time; without them a
       // valid instant cannot be composed, so the horizon checks have nothing to judge.
       if (!/^\d{4}-\d{2}-\d{2}$/.test(v.date) || !/^\d{2}:\d{2}$/.test(v.time)) return
@@ -182,12 +224,18 @@ export type EventFormValues = z.infer<ReturnType<typeof eventFormSchema>>
  *  one Dublin-wall-clock-to-UTC conversion in the write path (AC3). */
 export function toEventInsert(v: EventFormValues, createdBy: string): Insert<'events'> {
   const notes = v.notes.trim()
+  const isMatch = v.type === 'match'
   return {
     team_id: v.teamId,
     type: v.type,
+    // For a match the title is the derived value the form kept in sync; for training/social it is
+    // the typed/defaulted title (V3, AC6). The raw match fields are null off a match, matching the
+    // DB check.
     title: v.title.trim(),
     location: v.location.trim(),
     notes: notes === '' ? null : notes,
+    opponent: isMatch ? v.opponent.trim() : null,
+    home_away: isMatch ? v.homeAway : null,
     starts_at: dublinLocalToUtcIso(v.date, v.time),
     created_by: createdBy,
   }
@@ -201,11 +249,17 @@ export function toEventInsert(v: EventFormValues, createdBy: string): Insert<'ev
  */
 export function toEventUpdate(v: EventFormValues): Update<'events'> {
   const notes = v.notes.trim()
+  const isMatch = v.type === 'match'
   return {
     type: v.type,
     title: v.title.trim(),
     location: v.location.trim(),
     notes: notes === '' ? null : notes,
+    // Switching a match to another type clears the raw fields (and the DB check would refuse them
+    // otherwise); editing a match's opponent or home/away re-stores them and the regenerated title
+    // (AC5).
+    opponent: isMatch ? v.opponent.trim() : null,
+    home_away: isMatch ? v.homeAway : null,
     starts_at: dublinLocalToUtcIso(v.date, v.time),
   }
 }

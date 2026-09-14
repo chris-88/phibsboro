@@ -81,6 +81,8 @@ const detail = (over: Partial<EventDetail> = {}): EventDetail => ({
   title: 'Evening session',
   location: 'Dalymount Park',
   notes: 'Bring both kits.',
+  opponent: null,
+  homeAway: null,
   startsAt: '2026-09-15T07:35:08.303+00:00',
   status: 'scheduled',
   myResponse: null,

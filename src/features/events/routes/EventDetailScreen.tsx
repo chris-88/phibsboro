@@ -14,6 +14,7 @@ import { CancelledBanner } from '@/features/events/components/CancelledBanner'
 import { EventMeta } from '@/features/events/components/EventMeta'
 import { EventPreviewCard } from '@/features/events/components/EventPreviewCard'
 import { EventTypeBadge } from '@/features/events/components/EventTypeBadge'
+import { MatchIndicator } from '@/features/events/components/MatchIndicator'
 import { PostResponsePrompts } from '@/features/events/components/PostResponsePrompts'
 import type { EventPreview } from '@/features/events/schema'
 import { JoinTeamPanel } from '@/features/teams/components/JoinTeamPanel'
@@ -69,7 +70,10 @@ function MemberView({ detail }: { detail: EventDetail }): React.JSX.Element {
           <p className="text-sm text-muted-foreground">{detail.teamName}</p>
           {detail.status === 'cancelled' && <CancelledBanner />}
           <div className="flex flex-col gap-2">
-            <EventTypeBadge type={detail.type} />
+            <div className="flex flex-wrap items-center gap-2">
+              <EventTypeBadge type={detail.type} />
+              <MatchIndicator homeAway={detail.homeAway} />
+            </div>
             <h2 className="text-lg leading-snug font-semibold text-foreground">{detail.title}</h2>
           </div>
           <EventMeta startsAt={detail.startsAt} location={detail.location} notes={detail.notes} />

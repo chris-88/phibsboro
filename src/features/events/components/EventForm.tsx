@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Controller, useForm, useWatch, type Resolver } from 'react-hook-form'
 import { Button } from '@/components/ui/button'
@@ -21,6 +21,7 @@ import {
   type EventFormValues,
 } from '@/features/events/schema'
 import type { EventType } from '@/features/events/schema'
+import { matchTitle } from '@/features/events/match-title'
 import { serverNow } from '@/lib/serverClock'
 import { utcIsoToDublinParts } from '@/lib/time'
 
@@ -113,6 +114,20 @@ export function EventForm({
   const currentType = useWatch({ control, name: 'type' })
   const seriesOn = allowSeries && repeatWeekly && currentType === 'training'
 
+  // The match branch (S8.2, V3): the title is derived from the team, the opponent and the side,
+  // not typed. Watch all three and keep the RHF `title` field in sync so the write path reads it
+  // unchanged. The team name comes from the picked option, so switching team in the multi-team
+  // picker re-derives the title too.
+  const isMatch = currentType === 'match'
+  const teamId = useWatch({ control, name: 'teamId' })
+  const opponent = useWatch({ control, name: 'opponent' })
+  const homeAway = useWatch({ control, name: 'homeAway' })
+  const teamName = teamOptions.find((t) => t.id === teamId)?.name ?? ''
+  const derivedTitle = isMatch ? matchTitle({ teamName, opponent, homeAway }) : ''
+  useEffect(() => {
+    if (isMatch) setValue('title', derivedTitle, { shouldValidate: true })
+  }, [isMatch, derivedTitle, setValue])
+
   const submit = handleSubmit((values) => {
     if (seriesOn && onSubmitSeries) {
       onSubmitSeries(values, weeks)
@@ -183,11 +198,16 @@ export function EventForm({
                 // Radix fires '' when the active item is tapped again; ignore it so a type is
                 // always selected.
                 if (value === '') return
+                const prev = field.value
                 const next = value as EventType
                 field.onChange(next)
                 // A series is training-only, so switching to match or social clears it (AC1).
                 if (next !== 'training') setRepeatWeekly(false)
-                if (shouldRewriteTitle(getValues('title'), next)) {
+                // A match's title is derived: the effect above fills it, so leave `title` alone.
+                if (next === 'match') return
+                // Leaving a match (its derived title is now stale) or an ordinary switch: reset the
+                // title to the type default when it still holds a default label or a match title.
+                if (prev === 'match' || shouldRewriteTitle(getValues('title'), next)) {
                   setValue('title', DEFAULT_TITLES[next], { shouldValidate: true })
                 }
               }}
@@ -255,16 +275,76 @@ export function EventForm({
         </div>
       )}
 
-      <Field data-invalid={errors.title ? true : undefined}>
-        <FieldLabel htmlFor="event-title">Title</FieldLabel>
-        <Input
-          id="event-title"
-          disabled={submitting}
-          aria-invalid={errors.title ? true : undefined}
-          {...register('title')}
-        />
-        <FieldError errors={errors.title ? [errors.title] : undefined} />
-      </Field>
+      {isMatch ? (
+        <>
+          <Field data-invalid={errors.opponent ? true : undefined}>
+            <FieldLabel htmlFor="event-opponent">Opponent</FieldLabel>
+            <Input
+              id="event-opponent"
+              disabled={submitting}
+              aria-invalid={errors.opponent ? true : undefined}
+              {...register('opponent')}
+            />
+            <FieldError errors={errors.opponent ? [errors.opponent] : undefined} />
+          </Field>
+
+          <Field data-invalid={errors.homeAway ? true : undefined}>
+            <FieldLabel htmlFor="event-home-away">Home or away</FieldLabel>
+            <Controller
+              control={control}
+              name="homeAway"
+              render={({ field }) => (
+                <ToggleGroup
+                  type="single"
+                  id="event-home-away"
+                  className="w-full"
+                  value={field.value}
+                  onValueChange={(value) => {
+                    if (value === '') return
+                    field.onChange(value)
+                  }}
+                  disabled={submitting}
+                >
+                  <ToggleGroupItem value="home" variant="outline" className="flex-1">
+                    Home
+                  </ToggleGroupItem>
+                  <ToggleGroupItem value="away" variant="outline" className="flex-1">
+                    Away
+                  </ToggleGroupItem>
+                </ToggleGroup>
+              )}
+            />
+            <FieldError errors={errors.homeAway ? [errors.homeAway] : undefined} />
+          </Field>
+
+          {/* The title is derived for a match (V3, AC2): a live, read-only preview. Its value is
+              carried in a hidden field so the submit path reads `title` exactly as for a typed
+              event, and any length error surfaces here. */}
+          <Field data-invalid={errors.title ? true : undefined}>
+            <FieldLabel htmlFor="event-title-preview">Title</FieldLabel>
+            <p
+              id="event-title-preview"
+              aria-live="polite"
+              className="min-h-tap rounded-md border border-input bg-muted/40 px-3 py-2 text-sm font-medium text-foreground"
+            >
+              {opponent.trim() === '' ? 'Enter the opponent to see the title.' : derivedTitle}
+            </p>
+            <input type="hidden" {...register('title')} />
+            <FieldError errors={errors.title ? [errors.title] : undefined} />
+          </Field>
+        </>
+      ) : (
+        <Field data-invalid={errors.title ? true : undefined}>
+          <FieldLabel htmlFor="event-title">Title</FieldLabel>
+          <Input
+            id="event-title"
+            disabled={submitting}
+            aria-invalid={errors.title ? true : undefined}
+            {...register('title')}
+          />
+          <FieldError errors={errors.title ? [errors.title] : undefined} />
+        </Field>
+      )}
 
       <Field data-invalid={errors.date ? true : undefined}>
         <FieldLabel htmlFor="event-date">Date</FieldLabel>

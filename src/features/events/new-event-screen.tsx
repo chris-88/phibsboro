@@ -98,6 +98,8 @@ function NewEventPanel({ team }: { team: Team }): React.JSX.Element {
     time: '',
     location: '',
     notes: '',
+    opponent: '',
+    homeAway: 'home',
   }
 
   const onSubmit = (values: EventFormValues): void => {

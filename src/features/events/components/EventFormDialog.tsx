@@ -46,6 +46,10 @@ export function EventFormDialog({
     notes: event.notes ?? '',
     date: parts.date,
     time: parts.time,
+    // Prefilled for a match; a legacy match row from before S8.2 has null home/away, so default
+    // the toggle to home. Editing then re-derives and re-stores the title (AC5).
+    opponent: event.opponent ?? '',
+    homeAway: event.home_away ?? 'home',
   }
 
   const onSubmit = (values: EventFormValues): void => {

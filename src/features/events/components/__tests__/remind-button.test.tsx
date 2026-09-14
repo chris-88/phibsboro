@@ -16,6 +16,8 @@ const base: EventActionData = {
   title: 'Training',
   location: 'Dalymount Park',
   notes: null,
+  opponent: null,
+  home_away: null,
   starts_at: '2026-09-15T18:30:00+00:00', // future relative to the fixed serverNow
   status: 'scheduled',
 }

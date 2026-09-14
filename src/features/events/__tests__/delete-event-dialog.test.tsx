@@ -19,6 +19,8 @@ function eventRow(title: string): EventRow {
     title,
     location: 'Tolka Park',
     notes: null,
+    opponent: null,
+    home_away: null,
     starts_at: '2026-03-14T19:30:00+00:00',
     status: 'scheduled',
     series_id: null,

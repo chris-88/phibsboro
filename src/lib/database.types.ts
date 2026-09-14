@@ -94,9 +94,11 @@ export type Database = {
         Row: {
           created_at: string
           created_by: string | null
+          home_away: Database['public']['Enums']['home_away'] | null
           id: string
           location: string
           notes: string | null
+          opponent: string | null
           series_id: string | null
           starts_at: string
           status: Database['public']['Enums']['event_status']
@@ -108,9 +110,11 @@ export type Database = {
         Insert: {
           created_at?: string
           created_by?: string | null
+          home_away?: Database['public']['Enums']['home_away'] | null
           id?: string
           location: string
           notes?: string | null
+          opponent?: string | null
           series_id?: string | null
           starts_at: string
           status?: Database['public']['Enums']['event_status']
@@ -122,9 +126,11 @@ export type Database = {
         Update: {
           created_at?: string
           created_by?: string | null
+          home_away?: Database['public']['Enums']['home_away'] | null
           id?: string
           location?: string
           notes?: string | null
+          opponent?: string | null
           series_id?: string | null
           starts_at?: string
           status?: Database['public']['Enums']['event_status']
@@ -457,6 +463,7 @@ export type Database = {
       availability_response: 'available' | 'unavailable'
       event_status: 'scheduled' | 'cancelled'
       event_type: 'training' | 'match' | 'social'
+      home_away: 'home' | 'away'
       member_role: 'player' | 'manager'
     }
     CompositeTypes: {
@@ -582,6 +589,7 @@ export const Constants = {
       availability_response: ['available', 'unavailable'],
       event_status: ['scheduled', 'cancelled'],
       event_type: ['training', 'match', 'social'],
+      home_away: ['home', 'away'],
       member_role: ['player', 'manager'],
     },
   },

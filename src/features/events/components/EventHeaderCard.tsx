@@ -4,6 +4,7 @@ import { EventMeta } from '@/features/events/components/EventMeta'
 import { EventRowMenu } from '@/features/events/components/EventRowMenu'
 import { EventShareControl } from '@/features/events/components/EventShareControl'
 import { EventTypeBadge } from '@/features/events/components/EventTypeBadge'
+import { MatchIndicator } from '@/features/events/components/MatchIndicator'
 import type { EventActionData } from '@/features/events/schema'
 import type { Counts } from '@/lib/counts'
 
@@ -40,7 +41,10 @@ export function EventHeaderCard({
         {event.status === 'cancelled' && <CancelledBanner />}
 
         <div className="flex flex-col gap-2">
-          <EventTypeBadge type={event.type} />
+          <div className="flex flex-wrap items-center gap-2">
+            <EventTypeBadge type={event.type} />
+            <MatchIndicator homeAway={event.home_away} />
+          </div>
           <h2 className="text-lg leading-snug font-semibold text-foreground">{event.title}</h2>
         </div>
 

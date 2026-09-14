@@ -31,6 +31,7 @@ import {
   type EventRow,
   type EventStatus,
   type EventType,
+  type HomeAway,
   type UpcomingEventRow,
 } from '@/features/events/schema'
 import type { RosterAttendance } from '@/lib/roster'
@@ -71,6 +72,10 @@ export interface EventDetail {
   title: string
   location: string
   notes: string | null
+  /** Match only, both null otherwise (S8.2). `opponent` drove the derived `title`; `homeAway`
+   *  labels the event Home or Away. */
+  opponent: string | null
+  homeAway: HomeAway | null
   startsAt: string
   status: EventStatus
   /** The caller's own answer, or null while awaiting. Never a teammate's (D32, AC15). */
@@ -86,7 +91,7 @@ export interface EventDetail {
  * out, which is exactly the "not a member" signal S3.3 falls through to the preview on.
  */
 export const EVENT_SELECT =
-  'id, team_id, type, title, location, notes, starts_at, status, teams!inner(name), event_responses(response, user_id)'
+  'id, team_id, type, title, location, notes, opponent, home_away, starts_at, status, teams!inner(name), event_responses(response, user_id)'
 
 export function eventDetailOptions(eventId: string | undefined, userId: string | undefined) {
   return queryOptions({
@@ -113,6 +118,8 @@ export function eventDetailOptions(eventId: string | undefined, userId: string |
         title: row.title,
         location: row.location,
         notes: row.notes,
+        opponent: row.opponent,
+        homeAway: row.home_away,
         startsAt: row.starts_at,
         status: row.status,
         myResponse: row.event_responses[0]?.response ?? null,
