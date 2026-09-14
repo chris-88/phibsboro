@@ -2,6 +2,7 @@
 // assertion, never imported under src/ (D15, D38). The local key comes from `supabase status`
 // via target.ts; the hosted one from .env.local only under the explicit hosted target.
 import { createClient } from '@supabase/supabase-js'
+import { retryingFetch } from './retrying-fetch.ts'
 
 import type { Database } from '../../src/lib/database.types.ts'
 import { LOCAL, TARGET, hostedValue } from './target.ts'
@@ -27,6 +28,7 @@ export function seedChildEnv(): Record<string, string> {
 /** Bypasses RLS. Setup and teardown only. */
 export function adminClient() {
   return createClient<Database>(TARGET.url, serviceRoleKey(), {
+    global: { fetch: retryingFetch() },
     auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
   })
 }

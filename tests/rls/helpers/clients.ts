@@ -7,6 +7,7 @@ import { createClient, type Session, type SupabaseClient } from '@supabase/supab
 import { inject } from 'vitest'
 
 import type { Database } from '../../../src/lib/database.types.ts'
+import { retryingFetch } from '../../helpers/retrying-fetch.ts'
 import { TARGET } from '../../helpers/target.ts'
 import { FIXTURES, type Fixture } from './fixtures.ts'
 
@@ -26,6 +27,7 @@ declare module 'vitest' {
 export function anonClient(): Client {
   return createClient<Database>(TARGET.url, TARGET.anonKey, {
     auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+    global: { fetch: retryingFetch() },
   })
 }
 
