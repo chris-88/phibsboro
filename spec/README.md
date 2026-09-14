@@ -1,5 +1,7 @@
 # Phibsboro FC — specification
 
+> **v1.1.0** is being scoped in [`README-v1.1.0.md`](README-v1.1.0.md) — richer events, matchday squad, calendar Home. This file remains the v1.0.0 (MVP) record.
+
 This directory is the build plan. [`../CLAUDE.md`](../CLAUDE.md) is the product statement; everything here
 expands it into stories an engineer can pick up one at a time. One story per PR. Build in the order
 below, not in epic order: the epics are documentation groupings, the numbered sequence is the build order
