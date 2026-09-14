@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import type { Enums, FnRow, Tables } from '@/lib/db'
+import { toE164 } from '@/lib/phone'
 import type { Equal, Expect } from '@/lib/type-assert'
 import { timestampSchema, uuidSchema } from '@/lib/zod'
 
@@ -52,6 +53,56 @@ export const teamMemberRowSchema = z.object({
   joined_at: timestampSchema,
 })
 export type TeamMemberRow = z.infer<typeof teamMemberRowSchema>
+
+/**
+ * One row of `team_member_directory` (S6.4, D8) — the only route to another user's name. `phone`
+ * is nullable because the RPC returns it as null to anyone who is not a manager of this team or an
+ * admin: a component must handle null rather than assume the caller's role, so a future reuse on a
+ * player-facing screen (S4.4 shares this schema) cannot leak a number by accident. `role` is the
+ * role on *this* team; the same user may hold another role elsewhere (AC12). The generated row
+ * types `phone` as non-null, so parity is not asserted for this projection.
+ */
+export const memberDirectoryRowSchema = z.object({
+  user_id: uuidSchema,
+  name: z.string().min(1),
+  role: memberRoleSchema,
+  joined_at: timestampSchema,
+  phone: z.string().nullable(),
+})
+export type MemberDirectoryRow = z.infer<typeof memberDirectoryRowSchema>
+
+/**
+ * Managers first, then players, each group by name case-insensitively (AC1). `useTeamMembers`
+ * sorts in its `select` so the list and every dialog share one order and nothing re-sorts.
+ */
+export function byRoleThenName(
+  a: Pick<MemberDirectoryRow, 'role' | 'name'>,
+  b: Pick<MemberDirectoryRow, 'role' | 'name'>,
+): number {
+  if (a.role !== b.role) return a.role === 'manager' ? -1 : 1
+  return nameCollator.compare(a.name, b.name)
+}
+
+/**
+ * The admin-only phone correction (AC9, D51). One field, normalised through the single `toE164`
+ * (D35) before submit; a value it cannot parse is rejected inline with the exact AC9 copy and
+ * nothing is sent. Input is whatever the admin typed, output is E.164, so the two types differ.
+ */
+export const correctPhoneSchema = z.object({
+  phone: z.string().transform((raw, ctx) => {
+    const e164 = toE164(raw)
+    if (e164 === null) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "That doesn't look like a mobile number.",
+      })
+      return z.NEVER
+    }
+    return e164
+  }),
+})
+export type CorrectPhoneInput = z.input<typeof correctPhoneSchema>
+export type CorrectPhoneValues = z.output<typeof correctPhoneSchema>
 
 /**
  * Not selectable by any client (S1.3); reachable only through the invite RPCs. The schema

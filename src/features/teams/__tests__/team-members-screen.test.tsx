@@ -37,6 +37,9 @@ vi.mock('@/features/teams/join-link-panel', () => ({
     <div data-testid={`panel-${role}`}>{teamActive ? 'active' : 'inactive'}</div>
   ),
 }))
+vi.mock('@/features/teams/member-list', () => ({
+  MemberList: ({ teamId }: { teamId: string }) => <div data-testid="member-list">{teamId}</div>,
+}))
 
 const TeamMembersScreen = (await import('@/features/teams/team-members-screen')).default
 
