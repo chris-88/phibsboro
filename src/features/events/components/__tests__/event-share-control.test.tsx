@@ -7,6 +7,9 @@ import type { EventActionData } from '@/features/events/schema'
 const hoisted = vi.hoisted(() => ({
   isManagerOf: vi.fn<(teamId: string) => boolean>(() => true),
   status: 'ready',
+  // Drives the match branch's squad/members reads; training tests never touch these.
+  squad: [] as { user_id: string; shirt_number: number; is_captain: boolean }[],
+  members: [] as { user_id: string; name: string }[],
 }))
 
 vi.mock('@/lib/serverClock', () => ({ serverNow: () => new Date('2026-09-10T00:00:00Z') }))
@@ -16,6 +19,8 @@ vi.mock('@/features/auth/use-current-user', () => ({
       ? { status: 'ready', user: { isAdmin: false, isManagerOf: hoisted.isManagerOf } }
       : { status: 'signedOut' },
 }))
+vi.mock('@/api/squad', () => ({ useEventSquad: () => ({ data: hoisted.squad }) }))
+vi.mock('@/api/members', () => ({ useTeamMembers: () => ({ data: hoisted.members }) }))
 
 const { EventShareControl } = await import('@/features/events/components/EventShareControl')
 
@@ -37,38 +42,82 @@ const base: EventActionData = {
 afterEach(() => {
   hoisted.status = 'ready'
   hoisted.isManagerOf.mockReturnValue(true)
+  hoisted.squad = []
+  hoisted.members = []
   vi.clearAllMocks()
 })
 
 describe('EventShareControl', () => {
   it('renders the share control for a manager of a future scheduled event (AC1, AC9)', () => {
-    render(<EventShareControl event={base} />)
+    render(<EventShareControl event={base} teamName="Firsts" />)
     expect(screen.getByRole('link', { name: 'Share to WhatsApp' })).toBeInTheDocument()
   })
 
   it('renders nothing for a player (AC9)', () => {
     hoisted.isManagerOf.mockReturnValue(false)
-    render(<EventShareControl event={base} />)
+    render(<EventShareControl event={base} teamName="Firsts" />)
     expect(screen.queryByRole('link', { name: 'Share to WhatsApp' })).not.toBeInTheDocument()
   })
 
   it('renders nothing for a cancelled event (AC8)', () => {
-    render(<EventShareControl event={{ ...base, status: 'cancelled' }} />)
+    render(<EventShareControl event={{ ...base, status: 'cancelled' }} teamName="Firsts" />)
     expect(screen.queryByRole('link', { name: 'Share to WhatsApp' })).not.toBeInTheDocument()
   })
 
   it('renders nothing once starts_at has passed, judged by serverNow (AC8)', () => {
-    render(<EventShareControl event={{ ...base, starts_at: '2026-09-01T18:30:00+00:00' }} />)
+    render(
+      <EventShareControl
+        event={{ ...base, starts_at: '2026-09-01T18:30:00+00:00' }}
+        teamName="Firsts"
+      />,
+    )
     expect(screen.queryByRole('link', { name: 'Share to WhatsApp' })).not.toBeInTheDocument()
   })
 
   it('passes the built message to the control, link intact past the hash (AC2, AC3)', () => {
-    render(<EventShareControl event={base} />)
+    render(<EventShareControl event={base} teamName="Firsts" />)
     const href = screen.getByRole('link', { name: 'Share to WhatsApp' }).getAttribute('href') ?? ''
     expect(href.startsWith('https://wa.me/?text=')).toBe(true)
     expect(href).toContain('%23%2Fevent%2F') // the hash route survived encoding
     const body = decodeURIComponent(href.slice('https://wa.me/?text='.length))
     expect(body).toContain('🏃 Training')
     expect(body).toContain('Are you available?')
+  })
+
+  // S9.3 AC7 — a match shares the club teamsheet (team name + picked squad), not the availability
+  // request, and carries no availability link. Names are resolved from the mocked team directory.
+  it('shares the match teamsheet with the picked squad (AC7)', () => {
+    hoisted.members = [
+      { user_id: 'u1', name: 'John Smith' },
+      { user_id: 'u2', name: 'Jane Doe' },
+    ]
+    hoisted.squad = [
+      { user_id: 'u2', shirt_number: 7, is_captain: true },
+      { user_id: 'u1', shirt_number: 1, is_captain: false },
+    ]
+    const match: EventActionData = {
+      ...base,
+      type: 'match',
+      title: 'Firsts v Kilbarrack',
+      opponent: 'Kilbarrack',
+      home_away: 'home',
+      location: 'https://maps.app.goo.gl/SD1NJmBYwLqz8Z7M6',
+    }
+    render(<EventShareControl event={match} teamName="Firsts" />)
+    const href = screen.getByRole('link', { name: 'Share to WhatsApp' }).getAttribute('href') ?? ''
+    const body = decodeURIComponent(href.slice('https://wa.me/?text='.length))
+    expect(body).toBe(
+      [
+        'Firsts vs Kilbarrack',
+        'KO: 7.30pm',
+        'Home Game: Bogies',
+        '',
+        'Squad:',
+        ' 1. John Smith',
+        ' 7. Jane Doe (C)',
+      ].join('\n'),
+    )
+    expect(body).not.toContain('Are you available?')
+    expect(body).not.toContain('wa.me')
   })
 })

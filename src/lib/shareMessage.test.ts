@@ -1,9 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { HOME_VENUE } from '@/lib/home-venue'
 import { eventUrl } from '@/lib/paths'
 import {
+  buildMatchShareMessage,
   buildReminderMessage,
   buildShareMessage,
   EVENT_EMOJI,
+  type MatchShareEvent,
+  type MatchShareSquadMember,
   type ShareEvent,
   waMeUrl,
 } from '@/lib/shareMessage'
@@ -226,6 +230,106 @@ describe('buildReminderMessage (S5.3)', () => {
   // No trailing newline (D13), matching the share variant.
   it('has no trailing newline', () => {
     expect(buildReminderMessage(match(), 8).endsWith('\n')).toBe(false)
+  })
+})
+
+describe('buildMatchShareMessage (S9.3)', () => {
+  // A home match kicking off 7.30pm Dublin, meeting 6.45pm. September is IST (+1), so the UTC
+  // instants are 18:30 and 17:45. The `time` variant renders the Dublin wall clock (D35).
+  const matchEvent = (over: Partial<MatchShareEvent> = {}): MatchShareEvent => ({
+    opponent: 'Kilbarrack',
+    home_away: 'home',
+    location: HOME_VENUE.mapsUrl,
+    starts_at: '2026-09-12T18:30:00Z',
+    meet_at: '2026-09-12T17:45:00Z',
+    ...over,
+  })
+
+  // A full squad, deliberately out of shirt order on input so the sort is exercised.
+  const SQUAD: MatchShareSquadMember[] = [
+    { shirtNumber: 3, name: 'Cian Murphy', isCaptain: true },
+    { shirtNumber: 1, name: 'John Smith', isCaptain: false },
+    { shirtNumber: 10, name: 'Paul Byrne', isCaptain: false },
+    { shirtNumber: 2, name: 'Liam Kelly', isCaptain: false },
+  ]
+
+  // AC1, AC5 — home + squad, byte for byte: "vs", KO+Meet, "Home Game: Bogies", blank, "Squad:",
+  // right-aligned numbers, "(C)" on the captain, ordered by shirt number.
+  it('renders a home match with a squad byte for byte', () => {
+    expect(buildMatchShareMessage(matchEvent(), 'Firsts', SQUAD)).toBe(
+      [
+        'Firsts vs Kilbarrack',
+        'KO: 7.30pm | Meet: 6.45pm',
+        'Home Game: Bogies',
+        '',
+        'Squad:',
+        ' 1. John Smith',
+        ' 2. Liam Kelly',
+        ' 3. Cian Murphy (C)',
+        '10. Paul Byrne',
+      ].join('\n'),
+    )
+  })
+
+  // AC2 — an away match: line three is "Away: {location}", the pasted maps link, not "Home Game".
+  it('renders an away match with the location on line three', () => {
+    const msg = buildMatchShareMessage(
+      matchEvent({ home_away: 'away', location: 'https://maps.app.goo.gl/awayGround99' }),
+      'Firsts',
+      SQUAD,
+    )
+    expect(msg.split('\n')[0]).toBe('Firsts vs Kilbarrack')
+    expect(msg.split('\n')[2]).toBe('Away: https://maps.app.goo.gl/awayGround99')
+    expect(msg).not.toContain('Home Game')
+  })
+
+  // AC3 — no squad selected: the message stops after the venue line, no "Squad:" block, no link.
+  it('stops after the venue line when no squad is picked', () => {
+    const msg = buildMatchShareMessage(matchEvent(), 'Firsts', [])
+    expect(msg).toBe(
+      ['Firsts vs Kilbarrack', 'KO: 7.30pm | Meet: 6.45pm', 'Home Game: Bogies'].join('\n'),
+    )
+    expect(msg).not.toContain('Squad:')
+    expect(msg).not.toContain('http')
+    expect(msg.endsWith('\n')).toBe(false)
+  })
+
+  // AC4 — meet_at null: the second line is just "KO: …" with no "| Meet:".
+  it('omits the Meet clause when meet_at is null', () => {
+    const msg = buildMatchShareMessage(matchEvent({ meet_at: null }), 'Firsts', SQUAD)
+    expect(msg.split('\n')[1]).toBe('KO: 7.30pm')
+    expect(msg).not.toContain('Meet:')
+  })
+
+  // AC6 — a summer (IST) and a winter (GMT) example both render the correct Dublin wall clock
+  // under TZ=UTC. A naive formatter would render the summer time an hour early.
+  it('renders both Dublin offsets correctly (DST)', () => {
+    // Winter: 19:30 UTC in January is 7.30pm GMT.
+    const winter = buildMatchShareMessage(
+      matchEvent({ starts_at: '2026-01-17T19:30:00Z', meet_at: '2026-01-17T18:45:00Z' }),
+      'Firsts',
+      [],
+    )
+    expect(winter.split('\n')[1]).toBe('KO: 7.30pm | Meet: 6.45pm')
+    // Summer: 18:30 UTC in July is 7.30pm IST (+1).
+    const summer = buildMatchShareMessage(
+      matchEvent({ starts_at: '2026-07-18T18:30:00Z', meet_at: '2026-07-18T17:45:00Z' }),
+      'Firsts',
+      [],
+    )
+    expect(summer.split('\n')[1]).toBe('KO: 7.30pm | Meet: 6.45pm')
+  })
+
+  // The home label comes from the one HOME_VENUE constant, and team/opponent are trimmed.
+  it('labels home from HOME_VENUE and trims team and opponent', () => {
+    const msg = buildMatchShareMessage(matchEvent({ opponent: '  Kilbarrack  ' }), '  Firsts  ', [])
+    expect(msg.split('\n')[0]).toBe('Firsts vs Kilbarrack')
+    expect(msg.split('\n')[2]).toBe('Home Game: Bogies')
+  })
+
+  // The match teamsheet carries no availability link, unlike buildShareMessage.
+  it('carries no event link', () => {
+    expect(buildMatchShareMessage(matchEvent(), 'Firsts', SQUAD)).not.toContain('http')
   })
 })
 

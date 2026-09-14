@@ -6,6 +6,7 @@
  * no hash-route literal, does no date formatting, and never reads `import.meta.env`.
  */
 import type { Tables } from '@/lib/db'
+import { HOME_VENUE } from '@/lib/home-venue'
 import { eventUrl } from '@/lib/paths'
 import { formatEventTime } from '@/lib/time'
 
@@ -68,6 +69,68 @@ export function buildReminderMessage(event: ShareEvent, outstanding: number): st
     ...eventHeader(event),
     `${String(outstanding)} still to answer. Yes or no: ${eventUrl(event.id)}`,
   ].join('\n')
+}
+
+/** One picked player as the teamsheet renders them: shirt number, name, and the armband. Names are
+ *  resolved from the team directory at the call site, so this generator stays pure and never
+ *  reaches for a profile — the same rule the header block follows. */
+export interface MatchShareSquadMember {
+  shirtNumber: number
+  name: string
+  isCaptain: boolean
+}
+
+/** The match fields the teamsheet reads. Narrower than the row; `opponent`/`home_away` are non-null
+ *  for a real match but typed nullable on the row, so the generator coalesces defensively. */
+export type MatchShareEvent = Pick<
+  EventRow,
+  'opponent' | 'home_away' | 'location' | 'starts_at' | 'meet_at'
+>
+
+/**
+ * The match teamsheet (V8, amending D13's match variant). The club's real WhatsApp format:
+ *
+ *   {team} vs {opponent}
+ *   KO: {kickoff} | Meet: {meet}     ← "| Meet: …" dropped when meet_at is null
+ *   Home Game: Bogies                ← home; away → "Away: {location}"
+ *                                    ← blank line, then the squad, only when one is picked
+ *   Squad:
+ *    1. {name}
+ *    2. {name}
+ *    3. {name} (C)                   ← the captain
+ *   ...
+ *   20. {name}
+ *
+ * Numbers are right-aligned to two columns as in the club message. No squad → the message ends
+ * after the venue line, so a manager shares the fixture first and the picked side later. Unlike the
+ * availability share this carries no link: it is the published teamsheet, not a call to respond.
+ * Pure: times come from `formatEventTime`'s 'time' variant (D35, Dublin), the home label from the
+ * one `HOME_VENUE` constant (S8.4). Byte-for-byte in Vitest, so a wording change is a test edit.
+ */
+export function buildMatchShareMessage(
+  event: MatchShareEvent,
+  teamName: string,
+  squad: readonly MatchShareSquadMember[],
+): string {
+  const ko = formatEventTime(event.starts_at, 'time')
+  const koLine =
+    event.meet_at === null
+      ? `KO: ${ko}`
+      : `KO: ${ko} | Meet: ${formatEventTime(event.meet_at, 'time')}`
+  const venueLine =
+    event.home_away === 'home' ? `Home Game: ${HOME_VENUE.label}` : `Away: ${event.location.trim()}`
+
+  const lines = [`${teamName.trim()} vs ${(event.opponent ?? '').trim()}`, koLine, venueLine]
+
+  if (squad.length > 0) {
+    lines.push('', 'Squad:')
+    for (const player of [...squad].sort((a, b) => a.shirtNumber - b.shirtNumber)) {
+      const number = String(player.shirtNumber).padStart(2, ' ')
+      lines.push(`${number}. ${player.name.trim()}${player.isCaptain ? ' (C)' : ''}`)
+    }
+  }
+
+  return lines.join('\n')
 }
 
 /** A `wa.me` link that opens the chat picker with the message prefilled. The body is

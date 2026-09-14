@@ -57,7 +57,7 @@ export function EventHeaderCard({
 
         {/* Fills data-slot="share"; renders nothing for a player, a cancelled event or a past one.
             The reminder button beneath appears only when counts show at least one awaiting (S5.3). */}
-        <EventShareControl event={event} counts={counts} />
+        <EventShareControl event={event} teamName={teamName} counts={counts} />
       </CardContent>
     </Card>
   )

@@ -289,6 +289,29 @@ No club signature, no sender name, no extra emoji. Both variants are asserted by
 
 **Affects** — S5.1, S5.2, S5.3, S7.2, S7.3.
 
+**Amended (v1.1.0, V8 / S9.3)** — The **match** variant above is replaced by the club's real teamsheet
+format. Training and social keep the five/six-line block unchanged. A match now shares:
+
+```
+{team} vs {opponent}
+KO: {kickoff} | Meet: {meet}     ← "| Meet: …" dropped when meet_at is null
+Home Game: Bogies                ← home; away → "Away: {location}"
+                                 ← blank line, then the squad, only when one is picked
+Squad:
+ 1. {name}
+ 2. {name}
+ 3. {name} (C)                   ← the captain
+...
+20. {name}
+```
+
+Times use `formatEventTime(_, 'time')` (Dublin). The home label is the one `HOME_VENUE` constant (S8.4).
+Numbers are right-aligned to two columns. With no squad the message ends after the venue line, so a manager
+can share the fixture first and the picked side later. Unlike the availability share the teamsheet carries
+**no** `/#/event/` link — it is the published side, not a call to respond. Built by `buildMatchShareMessage`
+in the one share generator and asserted byte for byte (home/away, no-squad, no-meet, DST). The S5.3 reminder
+is unchanged (Q1 default: no KO/Meet line for matches in v1.1.0).
+
 ### D14 — New story S0.7, CI pipeline, running on a local Supabase stack
 
 **Issue** — S1.4 says "Runs in CI", S7.3 says "Runs in CI against a seeded Supabase project", and the
