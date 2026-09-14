@@ -25,6 +25,7 @@ const ready = (isAdmin: boolean): CurrentUserState => ({
     isAdmin,
     memberships: [],
     managedTeams: [],
+    administrableTeams: [],
     isManagerOfAny: false,
     roleForTeam: () => null,
     isManagerOf: () => isAdmin,

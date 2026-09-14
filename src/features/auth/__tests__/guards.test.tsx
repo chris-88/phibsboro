@@ -52,6 +52,7 @@ const ready = (over: Partial<CurrentUser>): CurrentUserState => ({
     isAdmin: false,
     memberships: [],
     managedTeams: [],
+    administrableTeams: [],
     isManagerOfAny: false,
     roleForTeam: () => null,
     isManagerOf: () => false,

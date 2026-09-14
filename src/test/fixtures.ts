@@ -1,4 +1,5 @@
 import type { CurrentUser, TeamMembership } from '@/features/auth/use-current-user'
+import type { Team } from '@/features/teams/schema'
 import { TEAM_COLOUR_DEFAULT, TEAM_PALETTE } from '@/features/teams/palette'
 
 /**
@@ -49,6 +50,16 @@ export function fakeUser(role: 'player' | 'manager' | 'admin'): CurrentUser {
   const id = role === 'player' ? PLAYER_ID : role === 'manager' ? MANAGER_ID : ADMIN_ID
   const roleForTeam = (teamId: string): TeamMembership['role'] | null =>
     memberships.find((m) => m.teamId === teamId)?.role ?? null
+  // The active-teams the account may act on (S11.1). Derived from `managed` here so the harness
+  // stays self-contained; the real hook reads it off `useTeams()`.
+  const asTeam = (m: TeamMembership): Team => ({
+    id: m.teamId,
+    name: m.teamName,
+    active: true,
+    colour: TEAM_COLOUR_DEFAULT,
+    created_at: JOINED_AT,
+  })
+  const administrableTeams: Team[] = isAdmin ? memberships.map(asTeam) : managed.map(asTeam)
   return {
     id,
     name: role === 'player' ? 'Pat Player' : role === 'manager' ? 'Mel Manager' : 'Ada Admin',
@@ -56,6 +67,7 @@ export function fakeUser(role: 'player' | 'manager' | 'admin'): CurrentUser {
     isAdmin,
     memberships,
     managedTeams: managed,
+    administrableTeams,
     isManagerOfAny: managed.length > 0,
     roleForTeam,
     isManagerOf: (teamId: string) => roleForTeam(teamId) === 'manager' || isAdmin,

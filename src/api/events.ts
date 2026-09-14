@@ -265,8 +265,12 @@ function toUpcomingEvent(row: UpcomingEventRow): UpcomingEvent {
 }
 
 export function useUpcomingEvents(): UseQueryResult<UpcomingEvent[], PostgrestError> {
-  const { id: userId, memberships } = useSignedInUser()
-  const teamIds = memberships.map((m) => m.teamId)
+  const { id: userId, memberships, isAdmin, administrableTeams } = useSignedInUser()
+  // An admin reads every active team (V14); a player only their own memberships, exactly as
+  // before. `administrableTeams` is active-only, so an inactive team's events never enter the
+  // admin's Home (D50). The `.in` filter narrows the caller's own view; RLS is the enforcement
+  // layer (S1.3) — for an admin it already grants everything, so this only scopes the read.
+  const teamIds = isAdmin ? administrableTeams.map((t) => t.id) : memberships.map((m) => m.teamId)
   return useQuery<UpcomingEvent[], PostgrestError>({
     queryKey: eventKeys.upcoming(userId),
     enabled: teamIds.length > 0,
@@ -300,8 +304,11 @@ export function useUpcomingEvents(): UseQueryResult<UpcomingEvent[], PostgrestEr
  * mutation's invalidation refreshes the visible month exactly as it does the upcoming card.
  */
 export function useMonthEvents(monthKey: string): UseQueryResult<UpcomingEvent[], PostgrestError> {
-  const { id: userId, memberships } = useSignedInUser()
-  const teamIds = memberships.map((m) => m.teamId)
+  const { id: userId, memberships, isAdmin, administrableTeams } = useSignedInUser()
+  // Admin-aware exactly as `useUpcomingEvents`: every active team for an admin (V14), own
+  // memberships for a player (unchanged). Active-only, so a retired team stays out (D50); RLS
+  // remains the enforcement layer (S1.3).
+  const teamIds = isAdmin ? administrableTeams.map((t) => t.id) : memberships.map((m) => m.teamId)
   const { startIso, endIso } = dublinMonthRange(monthKey)
   return useQuery<UpcomingEvent[], PostgrestError>({
     queryKey: eventKeys.month(userId, monthKey),

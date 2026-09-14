@@ -26,6 +26,7 @@ vi.mock('@/features/auth/use-current-user', () => {
     isAdmin: true,
     memberships: [],
     managedTeams: [],
+    administrableTeams: [],
     isManagerOfAny: true,
     roleForTeam: () => null,
     isManagerOf: () => true,
