@@ -144,3 +144,43 @@ describe('row 7 — teams write', () => {
     expectRlsDenied(await anon.from('teams').delete().eq('id', FIRSTS).select())
   })
 })
+
+// S10.1: teams.colour rides the same row-7 update policy — only an admin writes it. A palette hex
+// persists; a manager's or player's write hits zero rows; the teams_colour_hex check refuses a
+// malformed value. '#15803d' (Green) is a palette entry distinct from either team's seed colour.
+describe('S10.1 — teams colour write', () => {
+  it('admin sets a team colour to a palette value; it persists', async () => {
+    const admin = await signInAs('admin')
+    try {
+      const updated = expectRows(
+        await admin.from('teams').update({ colour: '#15803d' }).eq('id', SECONDS).select('colour'),
+        1,
+      )
+      expect(updated[0]).toEqual({ colour: '#15803d' })
+      await expectRowUnchanged('teams', { id: SECONDS }, { colour: '#15803d' })
+    } finally {
+      await admin.from('teams').update({ colour: TEAM_SECONDS.colour }).eq('id', SECONDS)
+    }
+    await expectRowUnchanged('teams', { id: SECONDS }, { colour: TEAM_SECONDS.colour })
+  })
+
+  it('the hex check refuses a malformed colour (23514)', async () => {
+    const admin = await signInAs('admin')
+    const res = await admin.from('teams').update({ colour: 'not-a-hex' }).eq('id', SECONDS).select()
+    expect(res.error).not.toBeNull()
+    expect(res.error?.code).toBe('23514')
+    await expectRowUnchanged('teams', { id: SECONDS }, { colour: TEAM_SECONDS.colour })
+  })
+
+  it('a manager cannot change a team colour (zero rows)', async () => {
+    const declan = await signInAs('managerFirsts')
+    expectEmpty(await declan.from('teams').update({ colour: '#15803d' }).eq('id', FIRSTS).select())
+    await expectRowUnchanged('teams', { id: FIRSTS }, { colour: TEAM_FIRSTS.colour })
+  })
+
+  it('a player cannot change a team colour (zero rows)', async () => {
+    const aaron = await signInAs('playerFirsts')
+    expectEmpty(await aaron.from('teams').update({ colour: '#15803d' }).eq('id', FIRSTS).select())
+    await expectRowUnchanged('teams', { id: FIRSTS }, { colour: TEAM_FIRSTS.colour })
+  })
+})

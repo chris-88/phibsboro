@@ -4,7 +4,7 @@
 // | Check                                                    | Owner | Rule                                      |
 // |----------------------------------------------------------|-------|-------------------------------------------|
 // | SERVICE_ROLE outside .env.example, supabase/, tests/helpers/admin.ts | S0.1, S1.1 | belt and braces alongside the lint rule (D38, D15) |
-// | A hex colour literal under src/ outside the token sheet   | S0.2  | no hardcoded hex in components, AC3       |
+// | A hex colour literal under src/ outside the token sheet   | S0.2  | no hardcoded hex in components, AC3; S10.1 allows teams/palette.ts |
 // | The literal '/#/' outside src/lib/paths.ts                | S0.3  | one URL builder, AC8, D13                 |
 // | useParams() outside src/lib/use-route-param.ts            | S0.3  | typed params, no `!` on a segment, AC10   |
 // | display-mode: standalone / navigator.standalone elsewhere | S0.4  | one isStandalone() helper, AC9, D44       |
@@ -47,7 +47,12 @@ const CHECKS = [
     // The whole allowlist. src/index.css is where every colour in the app is written, and
     // src/pwa/manifest.ts (S0.4) must repeat the two --pwa-* values because a manifest
     // cannot read CSS.
-    allow: (p) => p === join('src', 'index.css') || p === join('src', 'pwa', 'manifest.ts'),
+    // src/features/teams/palette.ts (S10.1) holds the team-colour palette: hexes stored per-row
+    // in the database, which cannot live in index.css.
+    allow: (p) =>
+      p === join('src', 'index.css') ||
+      p === join('src', 'pwa', 'manifest.ts') ||
+      p === join('src', 'features', 'teams', 'palette.ts'),
     message:
       'Colours are semantic tokens from src/index.css, never hex literals. CLAUDE.md section 3, S0.2 AC3.',
   },

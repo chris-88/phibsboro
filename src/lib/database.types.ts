@@ -377,18 +377,21 @@ export type Database = {
       teams: {
         Row: {
           active: boolean
+          colour: string
           created_at: string
           id: string
           name: string
         }
         Insert: {
           active?: boolean
+          colour?: string
           created_at?: string
           id?: string
           name: string
         }
         Update: {
           active?: boolean
+          colour?: string
           created_at?: string
           id?: string
           name?: string

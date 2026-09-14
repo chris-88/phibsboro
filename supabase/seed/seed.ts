@@ -183,7 +183,11 @@ async function main() {
   }
 
   check(
-    (await admin.from('teams').insert(TEAMS.map((t) => ({ id: t.id, name: t.name })))).error,
+    (
+      await admin
+        .from('teams')
+        .insert(TEAMS.map((t) => ({ id: t.id, name: t.name, colour: t.colour })))
+    ).error,
     'insert teams',
   )
 

@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen } from '@testing-library/react'
+import { TEAM_COLOUR_DEFAULT } from '@/features/teams/palette'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { EventRow } from '@/features/events/schema'
@@ -81,7 +82,7 @@ function renderScreen() {
 
 const activeTeam = (over: Partial<ActiveTeam> = {}): ActiveTeam => ({
   teamId: TEAM,
-  team: { id: TEAM, name: 'Firsts', active: true, created_at: '' },
+  team: { id: TEAM, name: 'Firsts', active: true, colour: TEAM_COLOUR_DEFAULT, created_at: '' },
   canManageMany: false,
   isLoading: false,
   isError: false,

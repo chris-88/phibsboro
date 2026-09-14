@@ -1,4 +1,5 @@
 import type { CurrentUser, TeamMembership } from '@/features/auth/use-current-user'
+import { TEAM_COLOUR_DEFAULT, TEAM_PALETTE } from '@/features/teams/palette'
 
 /**
  * Plain fixtures for the state-coverage harness (S7.1). Every row is typed against the S1.5 Zod
@@ -131,8 +132,14 @@ export const teamEventRows = [
 
 /** teamRowSchema — the teams read behind /admin and every manage header. */
 export const teamRows = [
-  { id: TEAM_ID, name: 'Firsts', active: true, created_at: PAST },
-  { id: TEAM_2_ID, name: 'Seconds', active: false, created_at: PAST },
+  { id: TEAM_ID, name: 'Firsts', active: true, colour: TEAM_COLOUR_DEFAULT, created_at: PAST },
+  {
+    id: TEAM_2_ID,
+    name: 'Seconds',
+    active: false,
+    colour: TEAM_PALETTE[1].value,
+    created_at: PAST,
+  },
 ]
 
 /** memberDirectoryRowSchema — team_member_directory RPC. */

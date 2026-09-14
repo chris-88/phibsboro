@@ -4,6 +4,7 @@ import { MemoryRouter, Route, Routes } from 'react-router'
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { CurrentUserState } from '@/features/auth/use-current-user'
 import type { Team } from '@/features/teams/schema'
+import { TEAM_COLOUR_DEFAULT } from '@/features/teams/palette'
 
 interface QueryState {
   isPending: boolean
@@ -36,6 +37,7 @@ const hoisted = vi.hoisted(() => ({
   create: vi.fn(),
   rename: vi.fn(),
   setActive: vi.fn(),
+  setColour: vi.fn(),
 }))
 
 vi.mock('@/features/auth/use-current-user', () => ({
@@ -46,6 +48,7 @@ vi.mock('@/api/teams', () => ({
   useCreateTeam: () => ({ mutate: hoisted.create, isPending: false }),
   useRenameTeam: () => ({ mutate: hoisted.rename, isPending: false }),
   useSetTeamActive: () => ({ mutate: hoisted.setActive, isPending: false }),
+  useSetTeamColour: () => ({ mutate: hoisted.setColour, isPending: false }),
 }))
 
 const AdminScreen = (await import('@/features/teams/admin-screen')).default
@@ -55,6 +58,7 @@ const team = (id: string, name: string, active: boolean): Team => ({
   id,
   name,
   active,
+  colour: TEAM_COLOUR_DEFAULT,
   created_at: '2026-01-01T00:00:00+00:00',
 })
 
@@ -157,7 +161,7 @@ describe('list states (AC10)', () => {
     renderScreen()
     expect(screen.getByRole('heading', { name: 'Active' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Inactive' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /Firsts/ })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Firsts' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Deactivate' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Reactivate' })).toBeInTheDocument()
     expect(screen.getByText(/kept, never deleted/i)).toBeInTheDocument()
@@ -174,7 +178,7 @@ describe('list states (AC10)', () => {
     }
     renderScreen()
     const rows = screen.getAllByRole('listitem')
-    const firstsRow = rows.find((r) => within(r).queryByRole('button', { name: /Firsts/ }))
+    const firstsRow = rows.find((r) => within(r).queryByRole('button', { name: 'Firsts' }))
     if (firstsRow === undefined) throw new Error('Firsts row not found')
     await userEvent.click(within(firstsRow).getByRole('button', { name: 'Manage' }))
     expect(screen.getByText('manage screen')).toBeInTheDocument()
@@ -228,17 +232,17 @@ describe('rename (AC5)', () => {
 
   it('Escape restores the previous name and sends no mutation', async () => {
     renderScreen()
-    await userEvent.click(screen.getByRole('button', { name: /Firsts/ }))
+    await userEvent.click(screen.getByRole('button', { name: 'Firsts' }))
     const input = screen.getByRole('textbox', { name: /rename firsts/i })
     await userEvent.clear(input)
     await userEvent.type(input, 'Changed{Escape}')
     expect(hoisted.rename).not.toHaveBeenCalled()
-    expect(screen.getByRole('button', { name: /Firsts/ })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Firsts' })).toBeInTheDocument()
   })
 
   it('Enter saves a changed name', async () => {
     renderScreen()
-    await userEvent.click(screen.getByRole('button', { name: /Firsts/ }))
+    await userEvent.click(screen.getByRole('button', { name: 'Firsts' }))
     const input = screen.getByRole('textbox', { name: /rename firsts/i })
     await userEvent.clear(input)
     await userEvent.type(input, 'Firsts A{Enter}')
@@ -250,7 +254,7 @@ describe('rename (AC5)', () => {
 
   it('blur saves a changed name', async () => {
     renderScreen()
-    await userEvent.click(screen.getByRole('button', { name: /Firsts/ }))
+    await userEvent.click(screen.getByRole('button', { name: 'Firsts' }))
     const input = screen.getByRole('textbox', { name: /rename firsts/i })
     await userEvent.clear(input)
     await userEvent.type(input, 'Firsts B')
@@ -263,7 +267,7 @@ describe('rename (AC5)', () => {
 
   it('rejects an empty rename inline and sends no mutation (same rule as AC3)', async () => {
     renderScreen()
-    await userEvent.click(screen.getByRole('button', { name: /Firsts/ }))
+    await userEvent.click(screen.getByRole('button', { name: 'Firsts' }))
     const input = screen.getByRole('textbox', { name: /rename firsts/i })
     await userEvent.clear(input)
     await userEvent.type(input, '{Enter}')

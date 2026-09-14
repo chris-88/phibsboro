@@ -3,6 +3,7 @@ import type { Enums, FnRow, Tables } from '@/lib/db'
 import { toE164 } from '@/lib/phone'
 import type { Equal, Expect } from '@/lib/type-assert'
 import { timestampSchema, uuidSchema } from '@/lib/zod'
+import { TEAM_PALETTE_VALUES } from '@/features/teams/palette'
 
 /** No `admin` member: admin is `profiles.is_admin`, club-wide (D2). */
 export const memberRoleSchema = z.enum(['player', 'manager'])
@@ -12,9 +13,18 @@ export const teamRowSchema = z.object({
   id: uuidSchema,
   name: z.string().trim().min(1).max(60),
   active: z.boolean(),
+  colour: z.string(),
   created_at: timestampSchema,
 })
 export type TeamRow = z.infer<typeof teamRowSchema>
+
+/**
+ * The picker's guard (S10.1): a colour must be one of the fixed accessible palette values
+ * (TEAM_PALETTE). The client offers only these, so this only ever fires on a tampered request;
+ * the `teams_colour_hex` column check is the DB half. Off-palette or malformed hex is rejected.
+ */
+export const teamColourSchema = z.enum(TEAM_PALETTE_VALUES)
+export type TeamColourInput = z.infer<typeof teamColourSchema>
 
 /** The generated row type is the source of truth; `teamRowSchema` proves parity below (D24). */
 export type Team = Tables<'teams'>

@@ -3,8 +3,9 @@ import { Link, useNavigate } from 'react-router'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { useRenameTeam, useSetTeamActive } from '@/api/teams'
+import { useRenameTeam, useSetTeamActive, useSetTeamColour } from '@/api/teams'
 import { DeactivateTeamDialog } from '@/features/teams/deactivate-team-dialog'
+import { TeamColourPicker } from '@/features/teams/team-colour-picker'
 import { useManageStore } from '@/features/teams/manageStore'
 import { teamNameSchema, type Team } from '@/features/teams/schema'
 import { isUniqueViolation } from '@/lib/errors'
@@ -24,9 +25,10 @@ export interface TeamRowProps {
 export function TeamRow({ team }: TeamRowProps): React.JSX.Element {
   const rename = useRenameTeam()
   const setActive = useSetTeamActive()
+  const setColour = useSetTeamColour()
   const navigate = useNavigate()
   const setSelectedTeamId = useManageStore((s) => s.setSelectedTeamId)
-  const busy = rename.isPending || setActive.isPending
+  const busy = rename.isPending || setActive.isPending || setColour.isPending
 
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(team.name)
@@ -94,6 +96,23 @@ export function TeamRow({ team }: TeamRowProps): React.JSX.Element {
     runRename(name)
   }
 
+  function runSetColour(colour: string): void {
+    if (colour === team.colour) return
+    setRowError(null)
+    setRetry(null)
+    setColour.mutate(
+      { id: team.id, colour },
+      {
+        onError: () => {
+          setRowError("Couldn't save that.")
+          setRetry(() => () => {
+            runSetColour(colour)
+          })
+        },
+      },
+    )
+  }
+
   function runSetActive(active: boolean): void {
     setRowError(null)
     setRetry(null)
@@ -149,6 +168,17 @@ export function TeamRow({ team }: TeamRowProps): React.JSX.Element {
             <span className="truncate">{team.name}</span>
             {!team.active && <Badge variant="secondary">Inactive</Badge>}
           </Button>
+        )}
+
+        {/* S10.1: admin-only team colour, used as the calendar dot (S10.2). This row only ever
+            renders on the admin-gated /admin screen; RLS refuses a non-admin write regardless. */}
+        {!editing && (
+          <TeamColourPicker
+            colour={team.colour}
+            teamName={team.name}
+            disabled={busy}
+            onPick={runSetColour}
+          />
         )}
 
         {/* S6.3 AC1: open this team's manage view — set the selection and go to /manage, no URL

@@ -96,6 +96,47 @@ export function useRenameTeam(): UseMutationResult<
   })
 }
 
+/**
+ * Optimistic colour change (S10.1), same D48 rollback pattern. Admin-only in practice: the
+ * `teams` update policy (S1.3) lets only an admin write, so a non-admin call affects zero rows —
+ * `.single()` then errors and the optimistic value rolls back. The picker offers only the palette
+ * and `teamColourSchema` guards the value; `teams_colour_hex` is the DB backstop.
+ */
+export function useSetTeamColour(): UseMutationResult<
+  Team,
+  PostgrestError,
+  { id: string; colour: string }
+> {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, colour }): Promise<Team> => {
+      const { data, error } = await supabase
+        .from('teams')
+        .update({ colour })
+        .eq('id', id)
+        .select('*')
+        .single()
+      if (error) throw error
+      return teamRowSchema.parse(data)
+    },
+    onMutate: async ({ id, colour }) => {
+      await qc.cancelQueries({ queryKey: teamKeys.all })
+      const previous = qc.getQueryData<Team[]>(teamKeys.all)
+      if (previous) {
+        qc.setQueryData<Team[]>(
+          teamKeys.all,
+          previous.map((t) => (t.id === id ? { ...t, colour } : t)),
+        )
+      }
+      return { previous }
+    },
+    onError: (_error, _vars, ctx) => {
+      if (ctx?.previous) qc.setQueryData(teamKeys.all, ctx.previous)
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: teamKeys.all }),
+  })
+}
+
 /** Optimistic active toggle, same rollback pattern. Deactivate and reactivate both go through here. */
 export function useSetTeamActive(): UseMutationResult<
   Team,

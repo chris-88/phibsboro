@@ -58,8 +58,18 @@ export const LEAVER: Person = { phone: '+353899999041', name: 'Mark Traynor' }
 /** All 25 accounts, in creation order. */
 export const EVERYONE: readonly Person[] = [ADMIN, ...MANAGERS, ...PLAYERS, NO_TEAM, LEAVER]
 
-export const TEAM_FIRSTS = { id: '00000000-0000-4000-8000-000000000001', name: 'Firsts' } as const
-export const TEAM_SECONDS = { id: '00000000-0000-4000-8000-000000000002', name: 'Seconds' } as const
+// Distinct accessible palette entries (S10.1, TEAM_PALETTE) so the two teams are immediately
+// telling apart on the calendar: Firsts blue (the column default), Seconds red.
+export const TEAM_FIRSTS = {
+  id: '00000000-0000-4000-8000-000000000001',
+  name: 'Firsts',
+  colour: '#1e40af',
+} as const
+export const TEAM_SECONDS = {
+  id: '00000000-0000-4000-8000-000000000002',
+  name: 'Seconds',
+  colour: '#b91c1c',
+} as const
 export const TEAMS = [TEAM_FIRSTS, TEAM_SECONDS] as const
 
 type Role = 'player' | 'manager'

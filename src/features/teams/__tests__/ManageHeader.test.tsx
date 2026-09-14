@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { TEAM_COLOUR_DEFAULT } from '@/features/teams/palette'
 import type { CurrentUserState } from '@/features/auth/use-current-user'
 import type { ActiveTeam } from '@/features/teams/hooks/useActiveTeam'
 import type { ManagedTeams } from '@/features/teams/hooks/useManagedTeams'
@@ -27,6 +28,7 @@ const team = (id: string, name: string, active = true): Team => ({
   id,
   name,
   active,
+  colour: TEAM_COLOUR_DEFAULT,
   created_at: '2026-01-01T00:00:00Z',
 })
 

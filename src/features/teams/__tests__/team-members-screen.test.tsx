@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router'
+import { TEAM_COLOUR_DEFAULT } from '@/features/teams/palette'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { CurrentUserState } from '@/features/auth/use-current-user'
 import type { Team } from '@/features/teams/schema'
@@ -56,7 +57,9 @@ function renderScreen() {
 
 beforeEach(() => {
   hoisted.account.value = ready(true, false)
-  hoisted.teams.value = { data: [{ id: TEAM, name: 'Firsts', active: true, created_at: '' }] }
+  hoisted.teams.value = {
+    data: [{ id: TEAM, name: 'Firsts', active: true, colour: TEAM_COLOUR_DEFAULT, created_at: '' }],
+  }
 })
 
 describe('gate (AC1)', () => {
@@ -87,7 +90,11 @@ describe('gate (AC1)', () => {
   })
 
   it('passes the team active flag through from the teams cache (AC10)', () => {
-    hoisted.teams.value = { data: [{ id: TEAM, name: 'Firsts', active: false, created_at: '' }] }
+    hoisted.teams.value = {
+      data: [
+        { id: TEAM, name: 'Firsts', active: false, colour: TEAM_COLOUR_DEFAULT, created_at: '' },
+      ],
+    }
     renderScreen()
     expect(screen.getByTestId('panel-player')).toHaveTextContent('inactive')
   })

@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { renderHook, waitFor } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { TEAM_COLOUR_DEFAULT } from '@/features/teams/palette'
 
 interface Result {
   data: unknown
@@ -33,7 +34,13 @@ const { useCreateTeam, useRenameTeam } = await import('@/api/teams')
 const { teamKeys } = await import('@/api/queryKeys')
 
 const ID = '00000000-0000-4000-8000-000000000001'
-const ROW = { id: ID, name: 'Firsts', active: true, created_at: '2026-01-01T00:00:00+00:00' }
+const ROW = {
+  id: ID,
+  name: 'Firsts',
+  active: true,
+  colour: TEAM_COLOUR_DEFAULT,
+  created_at: '2026-01-01T00:00:00+00:00',
+}
 
 function wrapperFor(client: QueryClient) {
   return function Wrapper({ children }: { children: ReactNode }) {
