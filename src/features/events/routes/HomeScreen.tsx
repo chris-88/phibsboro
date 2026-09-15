@@ -1,3 +1,4 @@
+import { cn } from 'cn'
 import { useCallback, useMemo, useState } from 'react'
 import { useMonthAvailableCounts, useMonthEvents, useUpcomingEvents } from '@/api/events'
 import { useTeams } from '@/api/teams'
@@ -100,10 +101,28 @@ export default function HomeScreen(): React.JSX.Element {
     function HomeDayButton(props: React.ComponentProps<typeof CalendarDayButton>) {
       const events = byDay.get(dayKeyOfDate(props.day.date))
       const summary = events ? summariseDay(events, colourForTeam) : null
+      const selected = props.modifiers.selected
+      const today = props.modifiers.today
       return (
         <CalendarDayButton {...props}>
-          {props.children}
-          {summary && <CalendarDayDots summary={summary} />}
+          {/* The number sits in a compact chip pinned to the top of the cell (V13, Chris's feedback):
+              the selected/today highlight hugs the number instead of filling the dot-stretched cell,
+              and a fixed-height dots row below keeps every day's number on the same line. */}
+          <span
+            className={cn(
+              'flex size-7 items-center justify-center rounded-full text-sm',
+              selected
+                ? 'bg-primary font-medium text-primary-foreground'
+                : today
+                  ? 'bg-muted text-foreground'
+                  : '',
+            )}
+          >
+            {props.children}
+          </span>
+          <span className="flex h-2 items-center justify-center">
+            {summary && <CalendarDayDots summary={summary} />}
+          </span>
         </CalendarDayButton>
       )
     }
