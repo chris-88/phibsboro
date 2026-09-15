@@ -35,6 +35,7 @@ const detailWith = (myResponse: EventDetail['myResponse']): EventDetail => ({
   notes: null,
   opponent: null,
   homeAway: null,
+  jersey: null,
   meetAt: null,
   startsAt: '2026-09-15T00:07:26.597+00:00',
   status: 'scheduled',

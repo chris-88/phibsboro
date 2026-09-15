@@ -21,6 +21,7 @@ function eventRow(title: string): EventRow {
     notes: null,
     opponent: null,
     home_away: null,
+    jersey: null,
     meet_at: null,
     starts_at: '2026-03-14T19:30:00+00:00',
     status: 'scheduled',

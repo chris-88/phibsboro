@@ -8,10 +8,21 @@ import { timestampSchema, uuidSchema } from '@/lib/zod'
 export const eventTypeSchema = z.enum(['training', 'match', 'social'])
 export const eventStatusSchema = z.enum(['scheduled', 'cancelled'])
 export const homeAwaySchema = z.enum(['home', 'away'])
+/** The kit a team wears for a match (W7). `sky` is stored; the UI reads "Light Blue". */
+export const jerseySchema = z.enum(['black', 'sky', 'white'])
 
 export type EventType = z.infer<typeof eventTypeSchema>
 export type EventStatus = z.infer<typeof eventStatusSchema>
 export type HomeAway = z.infer<typeof homeAwaySchema>
+export type Jersey = z.infer<typeof jerseySchema>
+
+/** The one place a jersey value becomes words — form, detail and WhatsApp share read it here so
+ *  the three never drift (W7). */
+export const JERSEY_LABEL: Record<Jersey, string> = {
+  black: 'Black',
+  sky: 'Light Blue',
+  white: 'White',
+}
 
 /**
  * The `events` row, column for column (data-model.md). The string bounds mirror the SQL checks
@@ -39,6 +50,9 @@ export const eventRowSchema = z.object({
   // here is generous — the form caps what it writes, the stored `title` carries the real 80 limit.
   opponent: z.string().max(80).nullable(),
   home_away: homeAwaySchema.nullable(),
+  // Match only (W7, S15.1): the kit the team wears. Null for training/social and a match with none
+  // chosen. The DB check enforces match-only, mirroring opponent/home_away.
+  jersey: jerseySchema.nullable(),
   // Match only (V4, S8.3): the arrival time, earlier than `starts_at` (kick-off). Null for
   // training and social, and for a match with no separate meet time. The DB check enforces the
   // ordering; `starts_at` stays kick-off and keeps driving the S3.4 respond-until rule.
@@ -69,6 +83,7 @@ export type EventActionData = Pick<
   | 'notes'
   | 'opponent'
   | 'home_away'
+  | 'jersey'
   | 'meet_at'
   | 'starts_at'
   | 'status'
@@ -90,6 +105,7 @@ export const eventWithResponseSchema = eventRowSchema
     notes: true,
     opponent: true,
     home_away: true,
+    jersey: true,
     meet_at: true,
     starts_at: true,
     status: true,
@@ -150,6 +166,7 @@ export type Parity = [
   Expect<Equal<EventType, Enums<'event_type'>>>,
   Expect<Equal<EventStatus, Enums<'event_status'>>>,
   Expect<Equal<HomeAway, Enums<'home_away'>>>,
+  Expect<Equal<Jersey, Enums<'jersey'>>>,
   Expect<Equal<EventRow, Tables<'events'>>>,
   Expect<Equal<SquadRow, Tables<'event_squad'>>>,
   Expect<Equal<EventPreview, FnRow<'get_event_preview'>>>,
@@ -200,6 +217,9 @@ export function eventFormSchema(opts: { requireFuture: boolean; now: Date }) {
       // title is derived from these, not typed, so it is not a user field for a match (V3, AC2).
       opponent: z.string().trim().max(80, 'Keep the opponent name short.'),
       homeAway: homeAwaySchema,
+      // Match only (W7, S15.1): the kit, optional even on a match. Null = "Not set" and stores
+      // jersey null; hidden and reconciled to null for training/social in toEventInsert/Update.
+      jersey: jerseySchema.nullable(),
       // Match only (V4, S8.3): the arrival time, on the same date as kick-off, earlier than it.
       // Always present in the form values — hidden for training and social — and optional even on
       // a match; empty means no separate meet time and stores meet_at null.
@@ -285,6 +305,7 @@ export function toEventInsert(v: EventFormValues, createdBy: string): Insert<'ev
     notes: notes === '' ? null : notes,
     opponent: isMatch ? v.opponent.trim() : null,
     home_away: isMatch ? v.homeAway : null,
+    jersey: isMatch ? v.jersey : null,
     // Composed against the same date as kick-off; null off a match or when no meet time is set,
     // matching the DB checks (V4, AC3).
     meet_at: isMatch && v.meetTime !== '' ? dublinLocalToUtcIso(v.date, v.meetTime) : null,
@@ -312,6 +333,7 @@ export function toEventUpdate(v: EventFormValues): Update<'events'> {
     // (AC5).
     opponent: isMatch ? v.opponent.trim() : null,
     home_away: isMatch ? v.homeAway : null,
+    jersey: isMatch ? v.jersey : null,
     meet_at: isMatch && v.meetTime !== '' ? dublinLocalToUtcIso(v.date, v.meetTime) : null,
     starts_at: dublinLocalToUtcIso(v.date, v.time),
   }

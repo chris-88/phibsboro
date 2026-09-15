@@ -55,6 +55,7 @@ function event(over: Partial<EventRow> & Pick<EventRow, 'id'>): EventRow {
     notes: null,
     opponent: 'Kilbarrack',
     home_away: 'home',
+    jersey: null,
     meet_at: null,
     starts_at: '2026-09-20T14:00:00Z',
     status: 'scheduled',

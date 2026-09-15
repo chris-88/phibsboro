@@ -145,6 +145,7 @@ export type Database = {
           created_by: string | null
           home_away: Database['public']['Enums']['home_away'] | null
           id: string
+          jersey: Database['public']['Enums']['jersey'] | null
           location: string
           meet_at: string | null
           notes: string | null
@@ -162,6 +163,7 @@ export type Database = {
           created_by?: string | null
           home_away?: Database['public']['Enums']['home_away'] | null
           id?: string
+          jersey?: Database['public']['Enums']['jersey'] | null
           location: string
           meet_at?: string | null
           notes?: string | null
@@ -179,6 +181,7 @@ export type Database = {
           created_by?: string | null
           home_away?: Database['public']['Enums']['home_away'] | null
           id?: string
+          jersey?: Database['public']['Enums']['jersey'] | null
           location?: string
           meet_at?: string | null
           notes?: string | null
@@ -591,6 +594,7 @@ export type Database = {
       feedback_category: 'bug' | 'idea' | 'other'
       feedback_status: 'open' | 'resolved'
       home_away: 'home' | 'away'
+      jersey: 'black' | 'sky' | 'white'
       member_role: 'player' | 'manager'
     }
     CompositeTypes: {
@@ -719,6 +723,7 @@ export const Constants = {
       feedback_category: ['bug', 'idea', 'other'],
       feedback_status: ['open', 'resolved'],
       home_away: ['home', 'away'],
+      jersey: ['black', 'sky', 'white'],
       member_role: ['player', 'manager'],
     },
   },

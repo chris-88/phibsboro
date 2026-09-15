@@ -50,6 +50,7 @@ const ROW = {
   notes: null,
   opponent: null,
   home_away: null,
+  jersey: null,
   meet_at: null,
   starts_at: '2026-09-20T18:30:00+00:00',
   status: 'scheduled',
@@ -69,6 +70,7 @@ const VALUES: EventFormValues = {
   notes: '',
   opponent: 'Kilbarrack',
   homeAway: 'away',
+  jersey: null,
   meetTime: '',
 }
 
@@ -114,6 +116,7 @@ describe('useUpdateEvent (S4.2)', () => {
     })
     expect(Object.keys(payload).sort()).toEqual([
       'home_away',
+      'jersey',
       'location',
       'meet_at',
       'notes',

@@ -80,6 +80,7 @@ function MemberView({ detail }: { detail: EventDetail }): React.JSX.Element {
             startsAt={detail.startsAt}
             location={detail.location}
             meetAt={detail.meetAt}
+            jersey={detail.jersey}
             notes={detail.notes}
           />
         </CardContent>

@@ -18,6 +18,7 @@ const base: EventActionData = {
   notes: null,
   opponent: null,
   home_away: null,
+  jersey: null,
   meet_at: null,
   starts_at: '2026-09-15T18:30:00+00:00', // future relative to the fixed serverNow
   status: 'scheduled',

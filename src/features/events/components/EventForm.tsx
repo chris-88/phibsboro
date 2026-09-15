@@ -17,6 +17,8 @@ import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import {
   DEFAULT_TITLES,
   eventFormSchema,
+  JERSEY_LABEL,
+  jerseySchema,
   shouldRewriteTitle,
   type EventFormValues,
 } from '@/features/events/schema'
@@ -334,6 +336,34 @@ export function EventForm({
               )}
             />
             <FieldError errors={errors.homeAway ? [errors.homeAway] : undefined} />
+          </Field>
+
+          <Field>
+            <FieldLabel htmlFor="event-jersey">Jersey</FieldLabel>
+            <Controller
+              control={control}
+              name="jersey"
+              render={({ field }) => (
+                <ToggleGroup
+                  type="single"
+                  id="event-jersey"
+                  className="w-full"
+                  // An empty value (tapping the active kit again) clears back to "Not set" → null.
+                  value={field.value ?? ''}
+                  onValueChange={(value) => {
+                    field.onChange(value === '' ? null : value)
+                  }}
+                  disabled={submitting}
+                >
+                  {jerseySchema.options.map((j) => (
+                    <ToggleGroupItem key={j} value={j} variant="outline" className="flex-1">
+                      {JERSEY_LABEL[j]}
+                    </ToggleGroupItem>
+                  ))}
+                </ToggleGroup>
+              )}
+            />
+            <p className="text-xs text-muted-foreground">Optional — tap again to clear.</p>
           </Field>
 
           {/* The title is derived for a match (V3, AC2): a live, read-only preview. Its value is

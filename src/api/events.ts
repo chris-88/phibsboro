@@ -32,6 +32,7 @@ import {
   type EventStatus,
   type EventType,
   type HomeAway,
+  type Jersey,
   type UpcomingEventRow,
 } from '@/features/events/schema'
 import { dublinMonthRange } from '@/features/events/calendar-month'
@@ -77,6 +78,8 @@ export interface EventDetail {
    *  labels the event Home or Away. */
   opponent: string | null
   homeAway: HomeAway | null
+  /** Match only, null otherwise (W7, S15.1). The kit the team wears. */
+  jersey: Jersey | null
   /** Match only, null otherwise (S8.3). The arrival time, earlier than `startsAt` (kick-off). */
   meetAt: string | null
   startsAt: string
@@ -94,7 +97,7 @@ export interface EventDetail {
  * out, which is exactly the "not a member" signal S3.3 falls through to the preview on.
  */
 export const EVENT_SELECT =
-  'id, team_id, type, title, location, notes, opponent, home_away, meet_at, starts_at, status, teams!inner(name), event_responses(response, user_id)'
+  'id, team_id, type, title, location, notes, opponent, home_away, jersey, meet_at, starts_at, status, teams!inner(name), event_responses(response, user_id)'
 
 export function eventDetailOptions(eventId: string | undefined, userId: string | undefined) {
   return queryOptions({
@@ -123,6 +126,7 @@ export function eventDetailOptions(eventId: string | undefined, userId: string |
         notes: row.notes,
         opponent: row.opponent,
         homeAway: row.home_away,
+        jersey: row.jersey,
         meetAt: row.meet_at,
         startsAt: row.starts_at,
         status: row.status,

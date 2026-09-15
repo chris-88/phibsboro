@@ -24,6 +24,7 @@ function goodValues(overrides: Partial<EventFormValues> = {}): EventFormValues {
     notes: '',
     opponent: '',
     homeAway: 'home',
+    jersey: null,
     meetTime: '',
     ...overrides,
   }
@@ -223,6 +224,7 @@ describe('toEventUpdate (S4.2)', () => {
         type: 'match',
         opponent: '  Kilbarrack  ',
         homeAway: 'home',
+        jersey: 'sky',
       }),
     )
     expect(row).toEqual({
@@ -232,6 +234,7 @@ describe('toEventUpdate (S4.2)', () => {
       notes: null,
       opponent: 'Kilbarrack',
       home_away: 'home',
+      jersey: 'sky',
       meet_at: null,
       starts_at: '2026-03-14T19:30:00.000Z',
     })
@@ -259,6 +262,7 @@ describe('match opponent + home/away (S8.2)', () => {
       type: 'match',
       opponent: 'Kilbarrack',
       homeAway: 'home',
+      jersey: null,
       title: 'Firsts v Kilbarrack',
     })
     expect(schema.safeParse(values).success).toBe(true)
@@ -298,6 +302,7 @@ describe('match opponent + home/away (S8.2)', () => {
       type: 'match',
       opponent: '  Kilbarrack  ',
       homeAway: 'away',
+      jersey: null,
       title: 'Kilbarrack v Firsts',
     })
     const inserted = toEventInsert(match, 'creator-uuid')
@@ -319,6 +324,7 @@ describe('match meet + kick-off (S8.3)', () => {
       type: 'match',
       opponent: 'Kilbarrack',
       homeAway: 'home',
+      jersey: null,
       title: 'Firsts v Kilbarrack',
       date: '2026-07-18',
       time: '13:30',

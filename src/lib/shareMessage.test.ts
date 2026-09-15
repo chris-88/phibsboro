@@ -240,6 +240,7 @@ describe('buildMatchShareMessage (S9.3)', () => {
     id: ID,
     opponent: 'Kilbarrack',
     home_away: 'home',
+    jersey: null,
     location: HOME_VENUE.mapsUrl,
     starts_at: '2026-09-12T18:30:00Z',
     meet_at: '2026-09-12T17:45:00Z',
@@ -301,6 +302,33 @@ describe('buildMatchShareMessage (S9.3)', () => {
     )
     expect(msg).not.toContain('Squad:')
     expect(msg.endsWith('\n')).toBe(false)
+  })
+
+  // W7/S15.1 — the jersey line sits after the venue, before the squad, when set; omitted when null.
+  it('adds a Jersey line after the venue when a kit is set, with a squad', () => {
+    expect(buildMatchShareMessage(matchEvent({ jersey: 'sky' }), 'Firsts', SQUAD)).toBe(
+      [
+        'Firsts vs Kilbarrack',
+        'KO: 19:30 | Meet: 18:45',
+        'Home Game: Bogies',
+        'Jersey: Light Blue',
+        '',
+        'Squad:',
+        ' 1. John Smith',
+        ' 2. Liam Kelly',
+        ' 3. Cian Murphy (C)',
+        '10. Paul Byrne',
+        '',
+        `Are you available? ${eventUrl(ID)}`,
+      ].join('\n'),
+    )
+  })
+
+  it('adds a Jersey line even without a squad, and omits it when no kit is set', () => {
+    const withJersey = buildMatchShareMessage(matchEvent({ jersey: 'white' }), 'Firsts', [])
+    expect(withJersey.split('\n')[3]).toBe('Jersey: White')
+    const without = buildMatchShareMessage(matchEvent(), 'Firsts', [])
+    expect(without).not.toContain('Jersey:')
   })
 
   // AC4 — meet_at null: the second line is just "KO: …" with no "| Meet:".

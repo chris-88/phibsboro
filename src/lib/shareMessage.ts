@@ -5,6 +5,7 @@
  * comes from `formatEventTime` (D35) and the link from `eventUrl` (S0.3) — this module contains
  * no hash-route literal, does no date formatting, and never reads `import.meta.env`.
  */
+import { JERSEY_LABEL } from '@/features/events/schema'
 import type { Tables } from '@/lib/db'
 import { HOME_VENUE } from '@/lib/home-venue'
 import { eventUrl } from '@/lib/paths'
@@ -85,7 +86,7 @@ export interface MatchShareSquadMember {
  *  carried so the message can end with the event link a player taps to register or respond. */
 export type MatchShareEvent = Pick<
   EventRow,
-  'id' | 'opponent' | 'home_away' | 'location' | 'starts_at' | 'meet_at'
+  'id' | 'opponent' | 'home_away' | 'jersey' | 'location' | 'starts_at' | 'meet_at'
 >
 
 /**
@@ -125,6 +126,10 @@ export function buildMatchShareMessage(
     event.home_away === 'home' ? `Home Game: ${HOME_VENUE.label}` : `Away: ${event.location.trim()}`
 
   const lines = [`${teamName.trim()} vs ${(event.opponent ?? '').trim()}`, koLine, venueLine]
+
+  // The kit line rides with the fixture facts, after the venue and before the squad (W7). Omitted
+  // when no jersey is chosen.
+  if (event.jersey !== null) lines.push(`Jersey: ${JERSEY_LABEL[event.jersey]}`)
 
   if (squad.length > 0) {
     lines.push('', 'Squad:')
