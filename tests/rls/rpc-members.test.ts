@@ -5,10 +5,12 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import {
   createThrowaway,
   deleteAllInvites,
+  deleteMembership,
   deleteThrowaway,
   insertAttendance,
   insertMembership,
   insertResponse,
+  setTeamActive,
 } from './helpers/arrange.ts'
 import { anonClient, idOf, signInAs, signInWith } from './helpers/clients.ts'
 import { EVENT, FIRSTS, FIXTURES, SECONDS } from './helpers/fixtures.ts'
@@ -291,5 +293,98 @@ describe('row 36 — set_member_phone (D51)', () => {
       password: renumbered.password,
     })
     expect(old.error?.code).toBe('invalid_credentials')
+  })
+})
+
+// S14.1 (W6) — admin_set_membership: the god-mode assign. An admin puts any user on any team at an
+// exact role (up OR down), a non-admin is refused, and it reaches an inactive team. Uses `stranger`
+// (member of nothing) and cleans up its own rows.
+describe('admin_set_membership (S14.1, W6)', () => {
+  const target = () => idOf('stranger')
+
+  it('an admin assigns a user to a team, and sets the exact role up or down', async () => {
+    const admin = await signInAs('admin')
+    expect(
+      (
+        await admin.rpc('admin_set_membership', {
+          p_team_id: SECONDS,
+          p_user_id: target(),
+          p_role: 'manager',
+        })
+      ).error,
+    ).toBeNull()
+    let row = expectRows(
+      await admin
+        .from('team_members')
+        .select('role')
+        .match({ team_id: SECONDS, user_id: target() }),
+      1,
+    )
+    expect(row[0]?.role).toBe('manager')
+
+    expect(
+      (
+        await admin.rpc('admin_set_membership', {
+          p_team_id: SECONDS,
+          p_user_id: target(),
+          p_role: 'player',
+        })
+      ).error,
+    ).toBeNull()
+    row = expectRows(
+      await admin
+        .from('team_members')
+        .select('role')
+        .match({ team_id: SECONDS, user_id: target() }),
+      1,
+    )
+    expect(row[0]?.role).toBe('player')
+    await deleteMembership(SECONDS, target())
+  })
+
+  it('a non-admin is refused and anon has no execute; no row is written', async () => {
+    const aaron = await signInAs('playerFirsts')
+    expectRpcError(
+      await aaron.rpc('admin_set_membership', {
+        p_team_id: SECONDS,
+        p_user_id: idOf('playerFirsts'),
+        p_role: 'manager',
+      }),
+      'not_authorised',
+    )
+    await expectRowAbsent('team_members', { team_id: SECONDS, user_id: idOf('playerFirsts') })
+    expectNoExecute(
+      await anonClient().rpc('admin_set_membership', {
+        p_team_id: SECONDS,
+        p_user_id: idOf('playerFirsts'),
+        p_role: 'manager',
+      }),
+    )
+  })
+
+  it('reaches an inactive team (a repair tool)', async () => {
+    const admin = await signInAs('admin')
+    await setTeamActive(SECONDS, false)
+    try {
+      expect(
+        (
+          await admin.rpc('admin_set_membership', {
+            p_team_id: SECONDS,
+            p_user_id: target(),
+            p_role: 'player',
+          })
+        ).error,
+      ).toBeNull()
+      expectRows(
+        await admin
+          .from('team_members')
+          .select('role')
+          .match({ team_id: SECONDS, user_id: target() }),
+        1,
+      )
+    } finally {
+      await setTeamActive(SECONDS, true)
+      await deleteMembership(SECONDS, target())
+    }
   })
 })

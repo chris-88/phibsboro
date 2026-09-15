@@ -53,6 +53,9 @@ export const userKeys = {
    *  prefix as the player key so a response or attendance write never churns it. `'admin'` can
    *  never collide with a real userId (uuids). */
   adminHistory: () => ['history', 'admin'] as const,
+  /** The admin user manager's all-users directory (S14.2). Its own prefix so a membership write
+   *  invalidates only it. */
+  allUsers: () => ['adminUsers'] as const,
 } as const
 
 /**

@@ -93,3 +93,17 @@ set search_path = ''
 - `revoke execute from public, anon; grant execute to authenticated` (the RPC is admin-guarded internally).
 - Role changes and removal reuse the existing `set_member_role` and `remove_member`. The all-users read is a
   client compose over `profiles` + `team_members` + `teams` (all admin-readable), no new view.
+
+## `profiles` — new RLS policy (Epic 14, W6)
+
+`profiles` had only a select-own policy, so names were reachable only through security-definer RPCs
+(`team_member_directory`). The admin user manager needs the whole directory, and the feedback inbox embeds the
+reporter's profile, so an admin must be able to read profiles they do not own:
+
+```sql
+create policy profiles_select_admin on public.profiles
+  for select to authenticated using (public.is_admin());
+```
+
+Non-admins are unchanged (select-own). This also retroactively fixes the S12.3 inbox reporter-name embed,
+which resolved to null for other users until an admin could read their profile.

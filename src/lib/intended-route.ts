@@ -36,6 +36,7 @@ export const RESTORABLE_PATTERNS: readonly string[] = [
   '/squad/event/:id',
   '/admin',
   '/admin/feedback',
+  '/admin/users',
 ]
 
 const RESTORABLE_ROUTES: RouteObject[] = RESTORABLE_PATTERNS.map((path) => ({ path }))

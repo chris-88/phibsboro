@@ -18,8 +18,8 @@ reporter's context attached · a "Who's in" list on an event showing available t
 | 3 | S12.3 | Admin feedback inbox | 12 Feedback | S12.1, S6.3/S11 | M | ✓ |
 | 4 | S13.1 | Availability RPC + RLS | 13 Who's in | S1.4, S4.3 | M | ☐ |
 | 5 | S13.2 | "Who's in" on the event detail | 13 Who's in | S13.1, S3.3 | S | ☐ |
-| 6 | S14.1 | Admin membership RPC + RLS | 14 Admin users | S1.4, S6.4 | S | ☐ |
-| 7 | S14.2 | Admin &rarr; Users screen | 14 Admin users | S14.1, S11 | M | ☐ |
+| 6 | S14.1 | Admin membership RPC + RLS | 14 Admin users | S1.4, S6.4 | S | ✓ |
+| 7 | S14.2 | Admin &rarr; Users screen | 14 Admin users | S14.1, S11 | M | ✓ |
 | 8 | S15.1 | Match jersey (field, detail, share) | 15 Jersey | S8.2, S9.3 | M | ✓ |
 
 Epic 12 lands first because it is what makes the testing round useful — file it before the testers are deep

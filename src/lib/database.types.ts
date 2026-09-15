@@ -457,6 +457,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_set_membership: {
+        Args: {
+          p_role: Database['public']['Enums']['member_role']
+          p_team_id: string
+          p_user_id: string
+        }
+        Returns: undefined
+      }
       clear_squad: { Args: { p_event_id: string }; Returns: undefined }
       create_team_invite: {
         Args: {

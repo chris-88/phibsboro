@@ -95,6 +95,7 @@ describe('route table (D34)', () => {
       '/squad/event/:id',
       '/admin',
       '/admin/feedback',
+      '/admin/users',
       '*',
     ])
     expect(new Set(paths).size).toBe(paths.length)
@@ -128,6 +129,7 @@ describe('route table (D34)', () => {
       '/squad/event/:id': 'nav',
       '/admin': 'nav',
       '/admin/feedback': 'nav',
+      '/admin/users': 'nav',
       '*': 'bare',
     })
   })
