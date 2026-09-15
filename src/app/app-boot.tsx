@@ -22,7 +22,7 @@ export function AppSplash(): React.JSX.Element {
         alt="Phibsboro FC"
         width={88}
         height={88}
-        className="size-22"
+        className="size-22 rounded-full"
         // The crest is already in the shell; decoding sync avoids a flicker on the handover.
         decoding="sync"
       />
