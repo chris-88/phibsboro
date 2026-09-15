@@ -1,14 +1,14 @@
 import type { Enums } from '@/lib/db'
 
 /**
- * The only module in the codebase that constructs a query key (A6, S1.5 AC15). Three factories,
- * one shape: `['<entity>', '<what>', <id>]`. The entity segment comes first so one
+ * The only module in the codebase that constructs a query key (A6, S1.5 AC15). One factory per
+ * entity, one shape: `['<entity>', '<what>', <id>]`. The entity segment comes first so one
  * `invalidateQueries({ queryKey: eventKeys.all })` clears every event query — detail, preview,
  * upcoming, list, responses and attendance — which S3.1's optimistic `onSettled` (D48) and
  * S4.3's poll (D23) both rely on.
  *
- * Later stories add members to these three objects. They do not declare a fourth factory and
- * they do not write a string-literal key; lint fails both.
+ * A new top-level entity earns its own factory here (feedback, S12.3); a variant of an existing one
+ * is a new member on that entity's object. Neither ever writes a string-literal key; lint fails it.
  */
 export const eventKeys = {
   all: ['events'] as const,
@@ -53,4 +53,13 @@ export const userKeys = {
    *  prefix as the player key so a response or attendance write never churns it. `'admin'` can
    *  never collide with a real userId (uuids). */
   adminHistory: () => ['history', 'admin'] as const,
+} as const
+
+/**
+ * The admin feedback inbox (S12.3). Its own prefix, outside `events`/`history`, so nothing in the
+ * app churns it and a resolve invalidates only the inbox.
+ */
+export const feedbackKeys = {
+  all: ['feedback'] as const,
+  inbox: () => ['feedback', 'inbox'] as const,
 } as const

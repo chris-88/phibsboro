@@ -13,9 +13,9 @@ reporter's context attached · a "Who's in" list on an event showing available t
 
 | # | ID | Story | Epic | Depends on | Size | Status |
 |---|---|---|---|---|---|---|
-| 1 | S12.1 | Feedback data model + RLS | 12 Feedback | S1.4, S1.5 | S | ☐ |
-| 2 | S12.2 | Submit feedback | 12 Feedback | S12.1, S2.9 | S | ☐ |
-| 3 | S12.3 | Admin feedback inbox | 12 Feedback | S12.1, S6.3/S11 | M | ☐ |
+| 1 | S12.1 | Feedback data model + RLS | 12 Feedback | S1.4, S1.5 | S | ✓ |
+| 2 | S12.2 | Submit feedback | 12 Feedback | S12.1, S2.9 | S | ✓ |
+| 3 | S12.3 | Admin feedback inbox | 12 Feedback | S12.1, S6.3/S11 | M | ✓ |
 | 4 | S13.1 | Availability RPC + RLS | 13 Who's in | S1.4, S4.3 | M | ☐ |
 | 5 | S13.2 | "Who's in" on the event detail | 13 Who's in | S13.1, S3.3 | S | ☐ |
 

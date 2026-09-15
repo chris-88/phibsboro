@@ -1,4 +1,5 @@
-import { Navigate } from 'react-router'
+import { ChevronRight, MessageSquare } from 'lucide-react'
+import { Link, Navigate } from 'react-router'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { EmptyState, ErrorState, LoadingState } from '@/components/states'
 import { useCurrentUser } from '@/features/auth/use-current-user'
@@ -55,6 +56,16 @@ function AdminTeams(): React.JSX.Element {
   return (
     <div className="flex flex-col gap-4 py-4">
       {isEmpty && <EmptyState title="No teams yet." body="Add your first team below." />}
+
+      {/* The feedback inbox (S12.3) lives under Admin — where a triager already is. */}
+      <Link
+        to={paths.adminFeedback()}
+        className="flex items-center gap-3 rounded-xl border bg-card px-4 py-3 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+      >
+        <MessageSquare className="size-5 shrink-0 text-muted-foreground" aria-hidden="true" />
+        <span className="min-w-0 flex-1 font-medium text-foreground">Feedback</span>
+        <ChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+      </Link>
 
       <Card>
         <CardHeader>

@@ -152,3 +152,12 @@ export const throwawayPhone = (n: number) => `${THROWAWAY_PREFIX}${String(n)}`
 export async function deleteThrowaway(id: string) {
   await deleteUser(id)
 }
+
+/** Clear every feedback row (S12.1). The reseed does not truncate `feedback` — the table postdates
+ *  the seed — so its RLS test clears its own rows through here, not a service client of its own. */
+export async function deleteAllFeedback() {
+  check(
+    (await admin.from('feedback').delete().neq('id', '00000000-0000-0000-0000-000000000000')).error,
+    'deleteAllFeedback',
+  )
+}

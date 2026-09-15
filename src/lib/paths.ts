@@ -21,6 +21,7 @@ export const paths = {
   squad: () => '/squad',
   squadEvent: (id: string) => `/squad/event/${id}`,
   admin: () => '/admin',
+  adminFeedback: () => '/admin/feedback',
 } as const
 
 /** Thrown rather than returning a relative `"/#/event/x"` that would look right in a test

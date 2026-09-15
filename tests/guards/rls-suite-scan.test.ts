@@ -88,6 +88,7 @@ describe('the service-role client stays out of assertions (S1.4 AC8)', () => {
       'event-detail-embed.test.ts', // S3.3 AC15 — the member-read embed filter regression guard
       'event-responses.test.ts',
       'events.test.ts',
+      'feedback.test.ts', // S12.1 — feedback table, RLS and resolve_feedback
       'profiles.test.ts',
       'reset-tokens.test.ts',
       'rpc-invites.test.ts',

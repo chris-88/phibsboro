@@ -31,6 +31,13 @@ reuses the admin god-mode surface that already exists. (Chosen by the owner 2026
 the tester hitting send) and Sentry user feedback (needs the Sentry DSN provisioned first, and splits reports
 across two tools).
 
+**Fast-follow (planned, not built here)** — A **GitHub-issue mirror**: the table stays the durable, private
+source of truth, and a small server piece (a Supabase Edge Function, or a `pg_net` trigger) opens an issue in
+a **private** feedback repo for triage. It needs a private repo and a fine-grained token the owner creates;
+it does not change this table. Not doable client-only (a public PWA cannot hold a write token), and the repo
+is public, so issues there would be public — hence a separate private repo. (Owner chose "table now, mirror
+next" on 2026-09-15.)
+
 ### W2 — Feedback is insert-only for users; context auto-captured
 **Decision** — RLS lets any signed-in user INSERT their own feedback row and read back only their own; only
 an admin may read all and update `status` (open → resolved). No user UPDATE/DELETE — a sent report is sent.

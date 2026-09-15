@@ -154,6 +154,13 @@ export const routeTable: readonly AppRoute[] = [
     screen: { lazy: () => import('@/features/teams/admin-screen') },
   },
   {
+    path: paths.adminFeedback(),
+    chrome: 'nav',
+    guard: 'admin',
+    title: 'Feedback',
+    screen: { lazy: () => import('@/features/feedback/routes/FeedbackInboxScreen') },
+  },
+  {
     path: '*',
     chrome: 'bare',
     guard: 'public',

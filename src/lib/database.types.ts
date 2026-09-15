@@ -208,6 +208,57 @@ export type Database = {
           },
         ]
       }
+      feedback: {
+        Row: {
+          category: Database['public']['Enums']['feedback_category']
+          context: Json | null
+          created_at: string
+          id: string
+          message: string
+          resolved_at: string | null
+          resolved_by: string | null
+          status: Database['public']['Enums']['feedback_status']
+          user_id: string
+        }
+        Insert: {
+          category?: Database['public']['Enums']['feedback_category']
+          context?: Json | null
+          created_at?: string
+          id?: string
+          message: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: Database['public']['Enums']['feedback_status']
+          user_id: string
+        }
+        Update: {
+          category?: Database['public']['Enums']['feedback_category']
+          context?: Json | null
+          created_at?: string
+          id?: string
+          message?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: Database['public']['Enums']['feedback_status']
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'feedback_resolved_by_fkey'
+            columns: ['resolved_by']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'feedback_user_id_fkey'
+            columns: ['user_id']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
@@ -493,6 +544,7 @@ export type Database = {
         Args: { p_event_id: string; p_user_id: string }
         Returns: undefined
       }
+      resolve_feedback: { Args: { p_id: string }; Returns: undefined }
       revoke_team_invite: {
         Args: {
           p_role: Database['public']['Enums']['member_role']
@@ -536,6 +588,8 @@ export type Database = {
       availability_response: 'available' | 'unavailable'
       event_status: 'scheduled' | 'cancelled'
       event_type: 'training' | 'match' | 'social'
+      feedback_category: 'bug' | 'idea' | 'other'
+      feedback_status: 'open' | 'resolved'
       home_away: 'home' | 'away'
       member_role: 'player' | 'manager'
     }
@@ -662,6 +716,8 @@ export const Constants = {
       availability_response: ['available', 'unavailable'],
       event_status: ['scheduled', 'cancelled'],
       event_type: ['training', 'match', 'social'],
+      feedback_category: ['bug', 'idea', 'other'],
+      feedback_status: ['open', 'resolved'],
       home_away: ['home', 'away'],
       member_role: ['player', 'manager'],
     },
