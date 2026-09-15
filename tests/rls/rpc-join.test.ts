@@ -170,6 +170,56 @@ describe('row 27 — join_team_by_token with a player invite', () => {
   })
 })
 
+// Regression (reported 2026-09-15): a user who first joins a team as a player and then redeems that
+// team's manager invite must be UPGRADED to manager. join_team_by_token used `on conflict do
+// nothing`, so the existing player row swallowed the manager row and the user stayed a player —
+// while the single-use manager invite was still consumed, so re-tapping could not recover it. The
+// insert now upgrades on conflict, but only ever upwards (never a downgrade). Uses `stranger`, who
+// row 27 left as a player on Firsts; the file's afterAll deletes that membership, so no residue.
+describe('join_team_by_token upgrades an existing membership, and never downgrades it', () => {
+  it("a player who redeems that team's manager invite is upgraded to manager", async () => {
+    const admin = await signInAs('admin')
+    const sean = await signInAs('stranger')
+    const before = expectRows(
+      await sean
+        .from('team_members')
+        .select('role')
+        .match({ team_id: FIRSTS, user_id: idOf('stranger') }),
+      1,
+    )
+    expect(before[0]).toEqual({ role: 'player' })
+
+    const mgr = await admin.rpc('create_team_invite', { p_team_id: FIRSTS, p_role: 'manager' })
+    expectTokenShape(mgr.data)
+    expectRows(await sean.rpc('join_team_by_token', { p_token: mgr.data }), 1)
+
+    const upgraded = expectRows(
+      await sean
+        .from('team_members')
+        .select('role')
+        .match({ team_id: FIRSTS, user_id: idOf('stranger') }),
+      1,
+    )
+    expect(upgraded[0]).toEqual({ role: 'manager' })
+  })
+
+  it('a later player invite for the same team does not knock the manager back to player', async () => {
+    const admin = await signInAs('admin')
+    const sean = await signInAs('stranger')
+    const plr = await admin.rpc('create_team_invite', { p_team_id: FIRSTS, p_role: 'player' })
+    expectTokenShape(plr.data)
+    expectRows(await sean.rpc('join_team_by_token', { p_token: plr.data }), 1)
+    const still = expectRows(
+      await sean
+        .from('team_members')
+        .select('role')
+        .match({ team_id: FIRSTS, user_id: idOf('stranger') }),
+      1,
+    )
+    expect(still[0]).toEqual({ role: 'manager' })
+  })
+})
+
 describe('row 28 — join_team_by_token with a manager invite is single use (D28)', () => {
   it("admin's manager invite promotes on first use", async () => {
     const sean = await signInAs('stranger')
