@@ -2,17 +2,41 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router'
 import { describe, expect, it, vi } from 'vitest'
-import type { AttendanceHistory } from '@/api/attendance'
+import type { AttendanceHistory, HistoryList } from '@/api/attendance'
 import type { CurrentUser } from '@/features/auth/use-current-user'
-import type { HistoryRow as HistoryRowData } from '@/features/attendance/schema'
+import type {
+  AdminHistoryRow as AdminHistoryRowData,
+  HistoryRow as HistoryRowData,
+} from '@/features/attendance/schema'
 
 const hoisted = vi.hoisted(() => ({
   history: { value: undefined as unknown as AttendanceHistory },
+  admin: {
+    value: {
+      rows: [] as unknown[],
+      status: 'success',
+      hasNextPage: false,
+      isFetchingNextPage: false,
+      isFetchNextPageError: false,
+      fetchNextPage: vi.fn(),
+      refetch: vi.fn(),
+    } as unknown as HistoryList<AdminHistoryRowData>,
+  },
+  isAdmin: { value: false },
 }))
 
-vi.mock('@/api/attendance', () => ({ useAttendanceHistory: () => hoisted.history.value }))
+vi.mock('@/api/attendance', () => ({
+  useAttendanceHistory: () => hoisted.history.value,
+  useAdminAttendanceHistory: () => hoisted.admin.value,
+}))
+vi.mock('@/api/teams', () => ({
+  useTeams: () => ({ data: [{ id: 'team-1', name: 'Firsts' }] }),
+}))
 vi.mock('@/features/auth/use-current-user', () => ({
-  useSignedInUser: (): Pick<CurrentUser, 'id'> => ({ id: 'user-1' }),
+  useSignedInUser: (): Pick<CurrentUser, 'id' | 'isAdmin'> => ({
+    id: 'user-1',
+    isAdmin: hoisted.isAdmin.value,
+  }),
 }))
 
 const HistoryScreen = (await import('@/features/attendance/routes/HistoryScreen')).default
@@ -39,7 +63,39 @@ const row = (over: Partial<HistoryRowData> = {}): HistoryRowData => ({
 })
 
 function renderScreen(history: AttendanceHistory): void {
+  hoisted.isAdmin.value = false
   hoisted.history.value = history
+  render(
+    <MemoryRouter>
+      <HistoryScreen />
+    </MemoryRouter>,
+  )
+}
+
+const adminBase: HistoryList<AdminHistoryRowData> = {
+  rows: [],
+  status: 'success',
+  hasNextPage: false,
+  isFetchingNextPage: false,
+  isFetchNextPageError: false,
+  fetchNextPage: vi.fn(),
+  refetch: vi.fn(),
+}
+
+const adminRow = (over: Partial<AdminHistoryRowData> = {}): AdminHistoryRowData => ({
+  id: '00000000-0000-4000-8000-000000000101',
+  team_id: 'team-1',
+  type: 'match',
+  title: 'v Larkview',
+  starts_at: '2026-09-08T13:30:00.000Z',
+  status: 'scheduled',
+  attendedCount: 14,
+  ...over,
+})
+
+function renderAdmin(admin: HistoryList<AdminHistoryRowData>): void {
+  hoisted.isAdmin.value = true
+  hoisted.admin.value = admin
   render(
     <MemoryRouter>
       <HistoryScreen />
@@ -96,5 +152,22 @@ describe('HistoryScreen (S3.5)', () => {
     expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument()
     // The whole-screen error copy never appears while rows are on screen.
     expect(screen.queryByText("Couldn't load your history.")).not.toBeInTheDocument()
+  })
+})
+
+describe('HistoryScreen admin god mode (S11.3)', () => {
+  it("lists every team's past events, each linking to the manager record with an attended count", () => {
+    renderAdmin({ ...adminBase, rows: [adminRow()] })
+    const link = screen.getByRole('link')
+    expect(link.getAttribute('href')).toContain('/manage/event/')
+    expect(link).toHaveTextContent('14 attended')
+    // The team name is shown so an admin can tell the teams apart.
+    expect(link).toHaveTextContent('Firsts')
+  })
+
+  it('shows a cancelled past event as Cancelled, not an attendance count', () => {
+    renderAdmin({ ...adminBase, rows: [adminRow({ status: 'cancelled' })] })
+    expect(screen.getByText('Cancelled')).toBeInTheDocument()
+    expect(screen.queryByText(/attended/)).not.toBeInTheDocument()
   })
 })

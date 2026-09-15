@@ -52,7 +52,7 @@ vi.mock('@/features/auth/use-current-user', () => ({
   useSignedInUser: () => ({ memberships: [] }),
 }))
 
-const { useSetAttendance, useBulkMarkAttended, useAttendanceHistory } =
+const { useSetAttendance, useBulkMarkAttended, useAttendanceHistory, useAdminAttendanceHistory } =
   await import('@/api/attendance')
 const { eventKeys } = await import('@/api/queryKeys')
 
@@ -198,5 +198,46 @@ describe('useAttendanceHistory embed scoping (regression)', () => {
     // The read must scope the embedded attendance to this user, not rely on RLS — an admin's read
     // policy returns every squad member's row, which crashed the history without this filter.
     expect(calls).toContainEqual({ op: 'eq', payload: { col: 'attendance.user_id', val: USER } })
+  })
+})
+
+describe('useAdminAttendanceHistory (S11.3)', () => {
+  const TEAM = '00000000-0000-4000-8000-000000000001'
+
+  it('reads every team without the per-user embed filter and counts who attended', async () => {
+    results.push({
+      data: [
+        {
+          id: EVENT,
+          team_id: TEAM,
+          type: 'match',
+          title: 'v Larkview',
+          starts_at: '2026-09-08T13:30:00.000Z',
+          status: 'scheduled',
+          // The whole squad's rows come back for an admin (RLS), which is exactly the count source.
+          attendance: [{ attended: true }, { attended: true }, { attended: false }],
+        },
+      ],
+      error: null,
+    })
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    const { result } = renderHook(() => useAdminAttendanceHistory(true), {
+      wrapper: wrapperFor(client),
+    })
+    await waitFor(() => {
+      expect(result.current.status).toBe('success')
+    })
+    // God mode does NOT scope the embed to a user — it needs the whole array for the count.
+    expect(calls.some((c) => c.op === 'eq')).toBe(false)
+    expect(result.current.rows[0]?.attendedCount).toBe(2)
+  })
+
+  it('does not fetch when disabled — the player path never fires it', () => {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    const { result } = renderHook(() => useAdminAttendanceHistory(false), {
+      wrapper: wrapperFor(client),
+    })
+    expect(result.current.status).toBe('pending')
+    expect(from).not.toHaveBeenCalled()
   })
 })

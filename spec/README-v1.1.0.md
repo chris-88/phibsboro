@@ -26,6 +26,7 @@ numbers, captain) · the club's real numbered-teamsheet WhatsApp share · team c
 | 10 | S10.2 | Calendar Home screen | 10 Calendar/nav | S10.1, S3.1–S3.4, S8.x | L | ✓ |
 | 11 | S11.1 | Admin-aware reads + widened pickers | 11 Admin god mode | S2.9, S10.2, S6.3 | M | ✓ |
 | 12 | S11.2 | Admin Home all-teams calendar | 11 Admin god mode | S11.1 | M | ✓ |
+| 13 | S11.3 | Admin History all-teams god view | 11 Admin god mode | S11.2, S3.5 | S | ✓ |
 
 
 Epic 8 is the foundation (the event model everything else reads). The **Squad tab (S10.3) is built before

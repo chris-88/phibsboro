@@ -9,7 +9,12 @@ import type { PostgrestError } from '@supabase/supabase-js'
 import { z } from 'zod'
 import { eventKeys, userKeys } from '@/api/queryKeys'
 import { filterHistory } from '@/features/attendance/history-filter'
-import { historyRowSchema, type HistoryRow } from '@/features/attendance/schema'
+import {
+  adminHistoryRowSchema,
+  historyRowSchema,
+  type AdminHistoryRow,
+  type HistoryRow,
+} from '@/features/attendance/schema'
 import { useSession } from '@/features/auth/session-context'
 import { useSignedInUser } from '@/features/auth/use-current-user'
 import type { RosterAttendance } from '@/lib/roster'
@@ -157,17 +162,18 @@ export function useBulkMarkAttended(
   return mutation
 }
 
-// —— The history read (S3.5) —————————————————————————————————————————————————
-// One select against `events` with the caller's own attendance embedded, newest first, 25 rows a
-// page behind "Show more". RLS does the narrowing: the player select policy on `attendance` is
-// `user_id = auth.uid()`, so the embed holds at most the caller's own row and AC6 holds with no
-// client-side user filter. The FK hint is named so an ambiguous embed fails at build-review, not
-// silently at runtime if a second FK is added later. No INSERT, UPDATE, UPSERT or DELETE lives in
-// this read — attendance is manager-written (S4.5) and the player grant is select-only (AC5).
+// —— The history reads (S3.5, S11.3) ——————————————————————————————————————————
+// One select against `events` with attendance embedded, newest first, 25 rows a page behind "Show
+// more". Two readers share the SELECT: the player read (S3.5) filters the embed to its own row with
+// `.eq('attendance.user_id', userId)` — belt-and-braces over the RLS `user_id = auth.uid()` policy,
+// because an admin's read policy returns the whole squad and would blow past `.max(1)`; the admin
+// read (S11.3) keeps the whole array and counts it. The FK hint is named so an ambiguous embed fails
+// at build-review, not silently at runtime if a second FK is added later. No INSERT, UPDATE, UPSERT
+// or DELETE lives in either read — attendance is manager-written (S4.5), the player grant read-only.
 
 /** `attendance!attendance_event_id_fkey` names Postgres's default FK, so the embed never resolves
- *  ambiguously. Do NOT add a `user_id` filter — RLS already restricts it to the caller, and a
- *  parameterised filter would invite reuse for a manager view the policy would refuse anyway. */
+ *  ambiguously. The user filter lives on the reader, not baked in here, because the admin read
+ *  (S11.3) deliberately wants the whole squad's rows for its count. */
 export const HISTORY_SELECT =
   'id, team_id, type, title, starts_at, status, attendance!attendance_event_id_fkey(attended)' as const
 
@@ -177,10 +183,12 @@ const PAGE_SIZE = 25
 // recomputed: offset paging against a moving `lt` boundary would skip or duplicate a row whenever
 // an event crossed into the past between pages. It never enters the query key, which would churn.
 
-/** The one shape S3.5's screen sees: pages already flattened and run through `filterHistory`, plus
- *  the paging flags it renders "Show more" and the page-two error from. It holds no paging logic. */
-export interface AttendanceHistory {
-  rows: HistoryRow[]
+/** The shape the history screen sees: pages already flattened (and, for the player, run through
+ *  `filterHistory`), plus the paging flags it renders "Show more" and the page-two error from. It
+ *  holds no paging logic. Generic over the row so the player (S3.5) and admin (S11.3) reads share
+ *  one screen shell. */
+export interface HistoryList<Row> {
+  rows: Row[]
   status: 'pending' | 'error' | 'success'
   /** Drives "Show more"; the raw page length, never the filtered length. */
   hasNextPage: boolean
@@ -191,6 +199,9 @@ export interface AttendanceHistory {
   refetch: () => void
 }
 
+/** The player's own history (S3.5). */
+export type AttendanceHistory = HistoryList<HistoryRow>
+
 /**
  * The player's own past events, own attendance embedded (S3.5). `userId` scopes the query key so a
  * response (S3.4) or attendance (S4.5) invalidation never churns this infinite query — the key sits
@@ -199,11 +210,14 @@ export interface AttendanceHistory {
  * `useSignedInUser()` (S2.9) and drive the pre-join filter; the screen is guarded `authed`, so a
  * signed-in user is guaranteed here.
  */
-export function useAttendanceHistory(userId: string): AttendanceHistory {
+export function useAttendanceHistory(userId: string, enabled = true): AttendanceHistory {
   const { memberships } = useSignedInUser()
 
   const query = useInfiniteQuery({
     queryKey: userKeys.history(userId),
+    // Disabled on the admin path so the god-mode read (`useAdminAttendanceHistory`) is the only one
+    // that fires; `true` by default keeps the player path byte-for-byte unchanged.
+    enabled,
     // serverNow() is the device clock until the first response records the skew; either is fine —
     // the boundary only decides whether a just-started event lands in this list or S3.2's, and no
     // write is gated on it (S3.4, by contrast, forbids the device clock). Read once, then pinned.
@@ -236,6 +250,49 @@ export function useAttendanceHistory(userId: string): AttendanceHistory {
     () => filterHistory((query.data?.pages ?? []).flat(), memberships),
     [query.data, memberships],
   )
+
+  return {
+    rows,
+    status: query.status,
+    hasNextPage: query.hasNextPage,
+    isFetchingNextPage: query.isFetchingNextPage,
+    isFetchNextPageError: query.isFetchNextPageError,
+    fetchNextPage: () => void query.fetchNextPage(),
+    refetch: () => void query.refetch(),
+  }
+}
+
+/**
+ * Every team's past events for an admin (god mode, S11.3), the whole squad's attendance embedded so
+ * each row shows how many attended. Newest first, the same 25-a-page paging as the player history.
+ * RLS returns all events and all attendance to an admin (V14), so there is deliberately no
+ * `.eq('attendance.user_id')` embed filter (the count needs the whole array) and no `filterHistory`
+ * membership narrowing — an admin sees the club, not a team. `enabled` gates it so the player path
+ * never fires this query. The key sits under the shared `history` prefix (outside `eventKeys.all`),
+ * so a response or attendance write never churns it. This read never writes; it is view-only.
+ */
+export function useAdminAttendanceHistory(enabled: boolean): HistoryList<AdminHistoryRow> {
+  const query = useInfiniteQuery({
+    queryKey: userKeys.adminHistory(),
+    enabled,
+    initialPageParam: { page: 0, cutoffIso: serverNow().toISOString() },
+    queryFn: async ({ pageParam }): Promise<AdminHistoryRow[]> => {
+      const { data, error } = await supabase
+        .from('events')
+        .select(HISTORY_SELECT)
+        .lt('starts_at', pageParam.cutoffIso)
+        .order('starts_at', { ascending: false })
+        .range(pageParam.page * PAGE_SIZE, pageParam.page * PAGE_SIZE + PAGE_SIZE - 1)
+      if (error) throw error
+      return z.array(adminHistoryRowSchema).parse(data)
+    },
+    getNextPageParam: (last, _pages, lastParam) =>
+      last.length === PAGE_SIZE
+        ? { page: lastParam.page + 1, cutoffIso: lastParam.cutoffIso }
+        : undefined,
+  })
+
+  const rows = useMemo(() => (query.data?.pages ?? []).flat(), [query.data])
 
   return {
     rows,

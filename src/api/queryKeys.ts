@@ -49,4 +49,8 @@ export const teamKeys = {
 export const userKeys = {
   current: () => ['currentUser'] as const,
   history: (userId: string) => ['history', userId] as const,
+  /** God-mode history (S11.3): all teams, so it is not user-scoped. Sits under the same `history`
+   *  prefix as the player key so a response or attendance write never churns it. `'admin'` can
+   *  never collide with a real userId (uuids). */
+  adminHistory: () => ['history', 'admin'] as const,
 } as const

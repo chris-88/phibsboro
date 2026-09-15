@@ -38,8 +38,9 @@ export const ATTENDANCE_LABEL: Record<AttendanceState, string> = {
  * second literal. The embed comes back as `attendance: { attended }[]` of length 0 or 1 — RLS keys
  * the player select policy on `user_id = auth.uid()`, so the array holds at most the caller's own
  * row (D33). The transform collapses it to one of the three states, so no component ever sees an
- * array. `.max(1)` is belt-and-braces: the history read now filters the embed to the viewer, so it fails loudly only if both that filter and the policy ever
- * widens and the embed returns the whole squad.
+ * array. `.max(1)` is belt-and-braces: the player read filters the embed to the viewer, so this
+ * fails loudly only if both that filter is dropped and the policy widens. The admin god-mode read
+ * (S11.3) deliberately keeps the whole squad's array and parses it with `adminHistoryRowSchema`.
  */
 export const historyRowSchema = eventRowSchema
   .pick({ id: true, team_id: true, type: true, title: true, starts_at: true, status: true })
@@ -54,3 +55,19 @@ export const historyRowSchema = eventRowSchema
     return { ...row, attendance: state }
   })
 export type HistoryRow = z.infer<typeof historyRowSchema>
+
+// —— The admin history read (S11.3) ——————————————————————————————————————————
+// God-mode history: every team's past events with the whole squad's attendance embedded, so a row
+// can show how many turned up. RLS returns all attendance to an admin (V14), so the embed is the
+// full array — no `.max(1)` — and the count is derived here. Player history never uses this schema.
+
+/** One row of the admin god-mode history read (S11.3): a past event plus the count of players who
+ *  attended, derived from the full embedded attendance array. */
+export const adminHistoryRowSchema = eventRowSchema
+  .pick({ id: true, team_id: true, type: true, title: true, starts_at: true, status: true })
+  .extend({ attendance: z.array(z.object({ attended: z.boolean() })) })
+  .transform(({ attendance, ...row }) => ({
+    ...row,
+    attendedCount: attendance.reduce((n, a) => n + (a.attended ? 1 : 0), 0),
+  }))
+export type AdminHistoryRow = z.infer<typeof adminHistoryRowSchema>
