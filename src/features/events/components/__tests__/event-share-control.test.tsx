@@ -2,6 +2,7 @@ import { render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { EventActionData } from '@/features/events/schema'
 import { HOME_VENUE } from '@/lib/home-venue'
+import { eventUrl } from '@/lib/paths'
 
 // serverNow is fixed so the past/future gate (AC8) is deterministic; useCurrentUser is stubbed so
 // the role gate (AC9) can be driven from each test. Both are mocked before the component imports.
@@ -85,9 +86,10 @@ describe('EventShareControl', () => {
     expect(body).toContain('Are you available?')
   })
 
-  // S9.3 AC7 — a match shares the club teamsheet (team name + picked squad), not the availability
-  // request, and carries no availability link. Names are resolved from the mocked team directory.
-  it('shares the match teamsheet with the picked squad (AC7)', () => {
+  // S9.3 AC7 — a match shares the club teamsheet (team name + picked squad) and, since the
+  // 2026-09-15 fix, still ends with the availability link so the share is never a dead end. Names
+  // are resolved from the mocked team directory.
+  it('shares the match teamsheet with the picked squad and the availability link (AC7)', () => {
     hoisted.members = [
       { user_id: 'u1', name: 'John Smith' },
       { user_id: 'u2', name: 'Jane Doe' },
@@ -116,9 +118,13 @@ describe('EventShareControl', () => {
         'Squad:',
         ' 1. John Smith',
         ' 7. Jane Doe (C)',
+        '',
+        `Are you available? ${eventUrl(base.id)}`,
       ].join('\n'),
     )
-    expect(body).not.toContain('Are you available?')
+    // The teamsheet now carries the event link (so players can register / set availability), but
+    // still never a raw wa.me link inside the body.
+    expect(body).toContain(eventUrl(base.id))
     expect(body).not.toContain('wa.me')
   })
 })

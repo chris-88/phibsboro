@@ -81,10 +81,11 @@ export interface MatchShareSquadMember {
 }
 
 /** The match fields the teamsheet reads. Narrower than the row; `opponent`/`home_away` are non-null
- *  for a real match but typed nullable on the row, so the generator coalesces defensively. */
+ *  for a real match but typed nullable on the row, so the generator coalesces defensively. `id` is
+ *  carried so the message can end with the event link a player taps to register or respond. */
 export type MatchShareEvent = Pick<
   EventRow,
-  'opponent' | 'home_away' | 'location' | 'starts_at' | 'meet_at'
+  'id' | 'opponent' | 'home_away' | 'location' | 'starts_at' | 'meet_at'
 >
 
 /**
@@ -101,11 +102,14 @@ export type MatchShareEvent = Pick<
  *   ...
  *   20. {name}
  *
- * Numbers are right-aligned to two columns as in the club message. No squad → the message ends
- * after the venue line, so a manager shares the fixture first and the picked side later. Unlike the
- * availability share this carries no link: it is the published teamsheet, not a call to respond.
- * Pure: times come from `formatEventTime`'s 'time' variant (D35, Dublin), the home label from the
- * one `HOME_VENUE` constant (S8.4). Byte-for-byte in Vitest, so a wording change is a test edit.
+ * Numbers are right-aligned to two columns as in the club message. No squad → the fixture block
+ * stands alone, so a manager shares the fixture first and the picked side later. Every match share
+ * ends with a blank line then the event link — `Are you available? {url}` — exactly like the
+ * availability share, so a player tapping it from WhatsApp can register or set their availability
+ * whether or not a squad is published. (Restored 2026-09-15: the teamsheet had shipped linkless,
+ * dead-ending anyone not already in the app.) Pure: times come from `formatEventTime`'s 'clock24'
+ * variant (D35, Dublin), the home label from the one `HOME_VENUE` constant (S8.4), the link from
+ * `eventUrl` (S0.3). Byte-for-byte in Vitest, so a wording change is a test edit.
  */
 export function buildMatchShareMessage(
   event: MatchShareEvent,
@@ -129,6 +133,11 @@ export function buildMatchShareMessage(
       lines.push(`${number}. ${player.name.trim()}${player.isCaptain ? ' (C)' : ''}`)
     }
   }
+
+  // Always close with the event link so the share is never a dead end: a new player taps it to
+  // register (S2.4), an existing one to set availability (S3.4). Same call-to-action as the
+  // non-match availability share so the two never drift.
+  lines.push('', `Are you available? ${eventUrl(event.id)}`)
 
   return lines.join('\n')
 }

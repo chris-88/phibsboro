@@ -237,6 +237,7 @@ describe('buildMatchShareMessage (S9.3)', () => {
   // A home match kicking off 7.30pm Dublin, meeting 6.45pm. September is IST (+1), so the UTC
   // instants are 18:30 and 17:45. The `time` variant renders the Dublin wall clock (D35).
   const matchEvent = (over: Partial<MatchShareEvent> = {}): MatchShareEvent => ({
+    id: ID,
     opponent: 'Kilbarrack',
     home_away: 'home',
     location: HOME_VENUE.mapsUrl,
@@ -254,7 +255,7 @@ describe('buildMatchShareMessage (S9.3)', () => {
   ]
 
   // AC1, AC5 — home + squad, byte for byte: "vs", KO+Meet, "Home Game: Bogies", blank, "Squad:",
-  // right-aligned numbers, "(C)" on the captain, ordered by shirt number.
+  // right-aligned numbers, "(C)" on the captain, ordered by shirt number, then the availability link.
   it('renders a home match with a squad byte for byte', () => {
     expect(buildMatchShareMessage(matchEvent(), 'Firsts', SQUAD)).toBe(
       [
@@ -267,6 +268,8 @@ describe('buildMatchShareMessage (S9.3)', () => {
         ' 2. Liam Kelly',
         ' 3. Cian Murphy (C)',
         '10. Paul Byrne',
+        '',
+        `Are you available? ${eventUrl(ID)}`,
       ].join('\n'),
     )
   })
@@ -283,14 +286,20 @@ describe('buildMatchShareMessage (S9.3)', () => {
     expect(msg).not.toContain('Home Game')
   })
 
-  // AC3 — no squad selected: the message stops after the venue line, no "Squad:" block, no link.
-  it('stops after the venue line when no squad is picked', () => {
+  // AC3 — no squad selected: no "Squad:" block, but the fixture still ends with the availability
+  // link so the share is never a dead end (regression fix 2026-09-15).
+  it('shares the fixture and the availability link when no squad is picked', () => {
     const msg = buildMatchShareMessage(matchEvent(), 'Firsts', [])
     expect(msg).toBe(
-      ['Firsts vs Kilbarrack', 'KO: 19:30 | Meet: 18:45', 'Home Game: Bogies'].join('\n'),
+      [
+        'Firsts vs Kilbarrack',
+        'KO: 19:30 | Meet: 18:45',
+        'Home Game: Bogies',
+        '',
+        `Are you available? ${eventUrl(ID)}`,
+      ].join('\n'),
     )
     expect(msg).not.toContain('Squad:')
-    expect(msg).not.toContain('http')
     expect(msg.endsWith('\n')).toBe(false)
   })
 
@@ -327,9 +336,15 @@ describe('buildMatchShareMessage (S9.3)', () => {
     expect(msg.split('\n')[2]).toBe('Home Game: Bogies')
   })
 
-  // The match teamsheet carries no availability link, unlike buildShareMessage.
-  it('carries no event link', () => {
-    expect(buildMatchShareMessage(matchEvent(), 'Firsts', SQUAD)).not.toContain('http')
+  // The match teamsheet now ends with the availability link, whether or not a squad is picked, so a
+  // player tapping it from WhatsApp can register or set availability (regression fix 2026-09-15).
+  it('ends with the exact eventUrl on its last line, with and without a squad', () => {
+    for (const squad of [SQUAD, []] as const) {
+      const lines = buildMatchShareMessage(matchEvent(), 'Firsts', squad).split('\n')
+      expect(lines[lines.length - 1]).toBe(`Are you available? ${eventUrl(ID)}`)
+      // The link sits on its own line after a blank separator, mirroring the availability share.
+      expect(lines[lines.length - 2]).toBe('')
+    }
   })
 })
 
