@@ -1,9 +1,9 @@
 # v1.2.0 — Decision record
 
-v1.2.0 is a small "testing-phase" release, scoped while the management team starts using the app. Two
-nice-to-haves: an **in-app feedback inbox** (so tester feedback lands somewhere you can triage, not across
-WhatsApp threads) and **"who's in"** (players see who else is available, to lift response rates). Decisions
-here extend `00-decisions.md` and `00-decisions-v1.1.0.md`.
+v1.2.0 is a "testing-phase" release, scoped while the management team starts using the app. Nice-to-haves:
+an **in-app feedback inbox** (Epic 12), **"who's in"** (Epic 13, players see who else is available), an
+**admin user/membership manager** (Epic 14, a god-mode repair tool), and a **match jersey** (Epic 15).
+Decisions here extend `00-decisions.md` and `00-decisions-v1.1.0.md`.
 
 Both features stay inside the app's "keep it boring, serve the core loop" ethos. `CLAUDE.md`'s out-of-scope
 list still holds in full: no chat, no automated WhatsApp/push, no stats/results, no payments. Feedback is an
@@ -18,6 +18,8 @@ operator tool, not a chat feature; "who's in" is a read of existing availability
 | W3 | "Who's in" exposes available **names only**; decliner/awaiting identities are never exposed | S13.1, S13.2 |
 | W4 | "Who's in" is served by a security-definer RPC, not by relaxing the `event_responses` SELECT policy | S13.1 |
 | W5 | "Who's in" surfaces on the event detail screen only, not the calendar day rows | S13.2 |
+| W6 | Admin user/membership manager: assign to any team, change role, remove — via an admin RPC | S14.1, S14.2 |
+| W7 | Match jersey (Black/Light Blue/White), match-only, shown in-app and in the WhatsApp share | S15.1 |
 
 ---
 
@@ -64,3 +66,22 @@ members' names and the three counts, and nothing that identifies a decliner or a
 **Decision** — "Who's in" appears on the event detail screen (S3.3), beneath the availability control. It is
 deliberately not added to the calendar day rows (kept compact per V13) or the Home next-event card in v1.2.0,
 to avoid a per-day fan-out of RPC calls and keep the calendar light. Revisit if testers want it at a glance.
+
+### W6 — Admin user & membership manager (repair tool)
+**Decision** — An admin gets an **Admin → Users** screen listing every profile with its team memberships and
+per-team role, and can **assign a user to any team**, **change their role** (player ↔ manager), and **remove**
+them — a god-mode override so an admin can fix state directly when a normal UI path can't. Memberships are
+RPC-only (the sole `team_members` policy is SELECT; there is no client write path), so assignment adds one
+admin-only security-definer RPC `admin_set_membership(p_team_id, p_user_id, p_role)` — an upsert that sets the
+exact role (an admin may downgrade as well as upgrade, unlike the join-link flow, which only upgrades — see
+[[the join role-upgrade fix]] / D26). Role changes reuse `set_member_role`; removal reuses `remove_member`.
+Reaches inactive teams too (it is a repair tool). No account creation or deletion here — identity is managed
+by sign-up and the reset-link flow; this screen only moves memberships. (Owner request 2026-09-15.)
+
+### W7 — Match jersey, in the share and in-app
+**Decision** — A match carries an optional **jersey** the manager picks — **Black**, **Light Blue** or
+**White** — a new `jersey` enum column on `events`, match-only and nullable, alongside `opponent`/`home_away`/
+`meet_at` (V2). Set on the match create/edit form; shown on the event detail; and added to the WhatsApp match
+teamsheet as a `Jersey: {colour}` line (a D13/V8 amendment) so players know the kit to bring. Training and
+social have no jersey (W7 = matches only, owner's choice). Omitted from the share and the detail when unset.
+(Owner request 2026-09-15.)

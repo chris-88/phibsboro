@@ -65,3 +65,31 @@ set search_path = ''
 - `revoke execute ... from public, anon;` then `grant execute ... to authenticated;` (the S1.3 RPC pattern).
 - Counts derive from `team_members` (the squad, the denominator) and `event_responses` (S4.3's derivation,
   reused): `awaiting = squad_size - (available + unavailable)`.
+
+## `events` — new column (Epic 15, W7)
+
+| Column | Type | Null | Default | Notes |
+|---|---|---|---|---|
+| `jersey` | `jersey` enum (`'black'`\|`'sky'`\|`'white'`) | yes | — | Match only. The kit the team wears; null for training/social and for a match with none chosen. |
+
+- New enum: `create type public.jersey as enum ('black','sky','white');` (`sky` = "Light Blue" in the UI).
+- Check (belt and braces, mirroring `opponent`/`home_away`): `jersey is null or type = 'match'`.
+- RLS unchanged — the column lives on `events`, already policied. Regenerate `database.types.ts`.
+
+## `admin_set_membership` — new RPC (Epic 14, W6)
+
+```sql
+create function public.admin_set_membership(p_team_id uuid, p_user_id uuid, p_role public.member_role)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+```
+
+- `is_admin()` guard, else raise `not_authorised` (the S1.3 RPC convention).
+- Upsert: `insert into team_members (team_id, user_id, role) values (...) on conflict on constraint
+  team_members_pkey do update set role = excluded.role` — sets the **exact** role (admin may downgrade, unlike
+  the join-link upgrade-only merge).
+- `revoke execute from public, anon; grant execute to authenticated` (the RPC is admin-guarded internally).
+- Role changes and removal reuse the existing `set_member_role` and `remove_member`. The all-users read is a
+  client compose over `profiles` + `team_members` + `teams` (all admin-readable), no new view.
