@@ -1,13 +1,24 @@
 name: CI
 
-# Every pull request and every push to main. One step reads secrets — the S1.4 RLS suite, which
-# runs against the hosted project (D63) — and that step alone is skipped on a pull request from a
-# fork, where GitHub withholds them. Everything else runs on a fork, and the privileged fork
-# trigger is never needed (D14, D38).
+# Every pull request and every push to main. The only step that reads secrets and touches hosted
+# data is the S1.4 RLS suite (D63) — and it is DESTRUCTIVE (wipes and reseeds the one shared
+# project). Now that the project holds data worth keeping it is off by default and runs only on
+# demand (a manual workflow_dispatch with run_rls=true, or the repo variable RUN_RLS_HOSTED='true');
+# see the `rls` job. Everything else runs offline against a local build, so the whole gate — bar the
+# opt-in RLS run — works on a fork with no secrets (D14, D38).
 on:
   pull_request:
   push:
     branches: [main]
+  # Manual trigger for the destructive hosted RLS suite. It is off on ordinary pushes now that the
+  # shared project holds data worth keeping (see the `rls` job); dispatch with run_rls=true to run
+  # it — e.g. after an RLS/migration change, or at go-live.
+  workflow_dispatch:
+    inputs:
+      run_rls:
+        description: 'Run the hosted RLS suite — WIPES and reseeds the shared Supabase project'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -102,7 +113,17 @@ jobs:
   # by the db job's 403. Needs the repository secrets, so it is skipped on a fork pull request.
   rls:
     name: rls (hosted)
-    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+    # Destructive: globalSetup wipes and reseeds the ONE shared hosted project (D63). Now that the
+    # project holds real data worth keeping, this no longer runs on ordinary pushes — that is what
+    # used to nuke the data on every deploy. It runs only when explicitly asked: a manual
+    # workflow_dispatch with run_rls=true, or the repo variable RUN_RLS_HOSTED set to 'true'. The
+    # same-repo guard still applies so a fork PR (no secrets) never selects it. Run `npm run
+    # test:rls` locally, or dispatch this workflow, whenever RLS policies or migrations change, and
+    # as part of the go-live checklist.
+    if: >-
+      (github.event_name == 'workflow_dispatch' && inputs.run_rls) ||
+      (github.event_name != 'workflow_dispatch' && vars.RUN_RLS_HOSTED == 'true' &&
+      (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository))
     runs-on: ubuntu-latest
     env:
       TZ: UTC
@@ -123,8 +144,19 @@ jobs:
           VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
         run: npm run test:rls
-      # AC20 — a merged migration is never edited or deleted. Pure git, no database, so it belongs
-      # here rather than in the skipped local-stack job.
+
+  # AC20 — a merged migration is never edited or deleted. Pure git, no database, no secrets, so it
+  # runs on every push and pull request (forks included), independent of the gated RLS suite it used
+  # to live inside. This is the schema-safety guard that must survive the RLS job being off.
+  migrations:
+    name: migrations
+    runs-on: ubuntu-latest
+    env:
+      TZ: UTC
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0 # the immutability check diffs against origin/main
       - name: Merged migrations are immutable
         run: test -z "$(git diff --diff-filter=MD --name-only origin/main...HEAD -- supabase/migrations)"
 

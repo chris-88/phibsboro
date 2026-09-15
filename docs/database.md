@@ -54,9 +54,17 @@ explicit opt-in that reads `.env.local` and runs the S1.2 files against the host
 There is one Supabase project, not two. The access token has no organisation scope, so project creation
 returns 403 and a dedicated test project cannot be created from here.
 
-That is fine for now. The project holds no real data, so the S1.4 RLS suite truncates freely and
-`npm run db:seed` puts it back. The suite prints the project ref and the row counts it is about to
+That was fine while the project held no real data: the S1.4 RLS suite truncated freely and
+`npm run db:seed` put it back. The suite prints the project ref and the row counts it is about to
 destroy before it does ([D63](../spec/00-decisions.md)).
+
+**Update 2026-09-15 — the project now holds data worth keeping.** With the app in steady use, the
+shared project accumulates real events, availability and squads. The destructive RLS suite is
+therefore **no longer run on every push** — it would wipe that data each deploy. CI runs it only on
+demand (a `run_rls=true` dispatch of `ci.yml`, or the `RUN_RLS_HOSTED` repo variable set to `'true'`);
+`docs/ci.md` has the details. Locally, `npm run test:rls` still wipes and reseeds, so run it only when
+the data is expendable — when RLS/migrations change, and at go-live. Everything below still describes
+what the suite and the seed do when you do run them.
 
 **One shared project means one runner at a time.** `npm run test:rls` wipes and reseeds, so two
 concurrent runs stomp each other's fixtures and both go red on off-by-one counts — the failures are
@@ -75,8 +83,9 @@ npm run test:rls                                     # S1.4 RLS suite; hosted on
 (`tests/helpers/target.ts`), and refuses to start if the URL's host is not `<ref>.supabase.co`. It runs
 the seed with `--reset` in `globalSetup`, signs in every fixture once, and leaves the seeded counts behind
 (25 profiles, 2 teams, 24 memberships, 8 events, 44 responses, 17 attendance, 0 invites, 0 reset tokens).
-About 65 seconds from here; the CI `db` job runs it on every push to `main` and every same-repository pull
-request.
+About 65 seconds from here. In CI it is the `rls (hosted)` job, which — since 2026-09-15 — runs only on
+demand (a `run_rls=true` dispatch or `RUN_RLS_HOSTED='true'`), not on every push, so it no longer wipes the
+shared project's data each deploy.
 
 Without `PFC_SEED_ALLOW_REMOTE=1` the seed refuses any URL that is not localhost, so nobody seeds a
 hosted project by muscle memory (S1.2 AC25). Fixture numbers are `+3538999…`, the password is in
