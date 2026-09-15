@@ -212,6 +212,11 @@ export function useAttendanceHistory(userId: string): AttendanceHistory {
       const { data, error } = await supabase
         .from('events')
         .select(HISTORY_SELECT)
+        // Filter the embedded attendance to this user's own row. A player's RLS already scopes it,
+        // but an admin's read policy returns EVERY squad member's attendance, which widened the
+        // embed past the schema's `.max(1)` and crashed the history for admins. Filtering here makes
+        // the embed the viewer's own row (0 or 1) for everyone, not just where RLS happens to.
+        .eq('attendance.user_id', userId)
         .lt('starts_at', pageParam.cutoffIso)
         .order('starts_at', { ascending: false })
         .range(pageParam.page * PAGE_SIZE, pageParam.page * PAGE_SIZE + PAGE_SIZE - 1)

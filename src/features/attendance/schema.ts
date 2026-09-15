@@ -38,7 +38,7 @@ export const ATTENDANCE_LABEL: Record<AttendanceState, string> = {
  * second literal. The embed comes back as `attendance: { attended }[]` of length 0 or 1 — RLS keys
  * the player select policy on `user_id = auth.uid()`, so the array holds at most the caller's own
  * row (D33). The transform collapses it to one of the three states, so no component ever sees an
- * array. `.max(1)` is not decoration: it fails the boundary parse loudly if that policy ever
+ * array. `.max(1)` is belt-and-braces: the history read now filters the embed to the viewer, so it fails loudly only if both that filter and the policy ever
  * widens and the embed returns the whole squad.
  */
 export const historyRowSchema = eventRowSchema

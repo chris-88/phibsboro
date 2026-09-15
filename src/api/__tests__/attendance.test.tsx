@@ -31,7 +31,13 @@ function makeBuilder(): Record<string, unknown> {
     return b
   }
   b.select = () => b
-  b.eq = () => b
+  b.eq = (col: string, val: unknown) => {
+    calls.push({ op: 'eq', payload: { col, val } })
+    return b
+  }
+  b.lt = () => b
+  b.order = () => b
+  b.range = () => b
   b.then = (onOk: (r: Result) => unknown, onErr?: (e: unknown) => unknown) =>
     resolve().then(onOk, onErr)
   return b
@@ -42,8 +48,12 @@ vi.mock('@/lib/supabase', () => ({ supabase: { from: () => from() } }))
 vi.mock('@/features/auth/session-context', () => ({
   useSession: () => ({ status: 'signedIn', session: { user: { id: USER } } }),
 }))
+vi.mock('@/features/auth/use-current-user', () => ({
+  useSignedInUser: () => ({ memberships: [] }),
+}))
 
-const { useSetAttendance, useBulkMarkAttended } = await import('@/api/attendance')
+const { useSetAttendance, useBulkMarkAttended, useAttendanceHistory } =
+  await import('@/api/attendance')
 const { eventKeys } = await import('@/api/queryKeys')
 
 function wrapperFor(client: QueryClient) {
@@ -71,7 +81,10 @@ describe('useSetAttendance (S4.5)', () => {
     await waitFor(() => {
       expect(result.current.isSuccess).toBe(true)
     })
-    expect(calls.map((c) => c.op)).toEqual(['delete'])
+    // Only write ops matter here; the delete path also records its .eq(...) filter now.
+    expect(calls.filter((c) => c.op === 'delete' || c.op === 'upsert').map((c) => c.op)).toEqual([
+      'delete',
+    ])
   })
 
   it('an attended input upserts with recorded_by set to the acting user (AC2, AC4)', async () => {
@@ -81,7 +94,7 @@ describe('useSetAttendance (S4.5)', () => {
     await waitFor(() => {
       expect(result.current.isSuccess).toBe(true)
     })
-    expect(calls[0]?.op).toBe('upsert')
+    expect(calls.find((c) => c.op === 'delete' || c.op === 'upsert')?.op).toBe('upsert')
     expect(calls[0]?.payload).toEqual({
       event_id: EVENT,
       user_id: P1,
@@ -141,7 +154,7 @@ describe('useBulkMarkAttended (S4.5)', () => {
       expect(result.current.isSuccess).toBe(true)
     })
     expect(result.current.data).toBe(2)
-    expect(calls[0]?.op).toBe('upsert')
+    expect(calls.find((c) => c.op === 'delete' || c.op === 'upsert')?.op).toBe('upsert')
     expect(calls[0]?.opts).toEqual({ onConflict: 'event_id,user_id', ignoreDuplicates: true })
   })
 
@@ -171,5 +184,19 @@ describe('useBulkMarkAttended (S4.5)', () => {
     // P1's Absent survives; only P2 is added as attended.
     expect(cache).toContainEqual({ userId: P1, attended: false })
     expect(cache).toContainEqual({ userId: P2, attended: true })
+  })
+})
+
+describe('useAttendanceHistory embed scoping (regression)', () => {
+  it('filters the embedded attendance to the viewer, so an admin read does not widen past .max(1)', async () => {
+    results.push({ data: [], error: null })
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    const { result } = renderHook(() => useAttendanceHistory(USER), { wrapper: wrapperFor(client) })
+    await waitFor(() => {
+      expect(result.current.status).toBe('success')
+    })
+    // The read must scope the embedded attendance to this user, not rely on RLS — an admin's read
+    // policy returns every squad member's row, which crashed the history without this filter.
+    expect(calls).toContainEqual({ op: 'eq', payload: { col: 'attendance.user_id', val: USER } })
   })
 })
