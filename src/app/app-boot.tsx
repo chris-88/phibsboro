@@ -1,11 +1,12 @@
 import { useSession } from '@/features/auth/session-context'
 
-/** The club crest. A *relative* URL, so it resolves against the document's own base — right at
- *  `/` on the custom domain and at `/phibsboro/` on the Pages project page — without reading
- *  `import.meta.env` (the env boundary is `@/lib/env`, S1.5 AC6). The HashRouter fragment never
- *  changes the document base, so this is stable on every deep link. index.html renders the same
- *  crest, so the handover is seamless (AC9). */
-const CREST_SRC = 'icons/icon-192.png'
+/** The club eagle for the splash: black on white, so it sits seamlessly on the light splash
+ *  background (the app icon is the inverse, white-on-black). A *relative* URL, so it resolves
+ *  against the document's own base — right at `/` on the custom domain and at `/phibsboro/` on the
+ *  Pages project page — without reading `import.meta.env` (the env boundary is `@/lib/env`, S1.5
+ *  AC6). The HashRouter fragment never changes the document base, so this is stable on every deep
+ *  link. index.html renders the same image, so the handover is seamless (AC9). */
+const CREST_SRC = 'icons/splash.png'
 
 /**
  * The React splash. Byte-identical in look to the static shell in `index.html` (AC9): the crest
