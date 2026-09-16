@@ -15,9 +15,8 @@ describe('navItemsForRole (AC7)', () => {
     expect(labels('manager')).toEqual(['Home', 'Stats', 'Schedule', 'Squad'])
   })
 
-  it('gives an admin Home, Stats, Schedule and Admin — no Squad (Q4, AC1)', () => {
-    expect(labels('admin')).toEqual(['Home', 'Stats', 'Schedule', 'Admin'])
-    expect(labels('admin')).not.toContain('Squad')
+  it('gives an admin Home, Stats, Schedule, Squad and Admin (Chris 2026-09-16, overrides Q4)', () => {
+    expect(labels('admin')).toEqual(['Home', 'Stats', 'Schedule', 'Squad', 'Admin'])
   })
 
   it('never offers a player Manage, Squad or Admin', () => {
@@ -27,7 +26,13 @@ describe('navItemsForRole (AC7)', () => {
   })
 
   it('uses the D34 route paths', () => {
-    expect(navItemsForRole('admin').map((i) => i.to)).toEqual(['/', '/stats', '/manage', '/admin'])
+    expect(navItemsForRole('admin').map((i) => i.to)).toEqual([
+      '/',
+      '/stats',
+      '/manage',
+      '/squad',
+      '/admin',
+    ])
     expect(navItemsForRole('manager').map((i) => i.to)).toEqual([
       '/',
       '/stats',

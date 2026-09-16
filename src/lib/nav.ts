@@ -25,9 +25,11 @@ export function navItemsForRole(role: AppRole): NavItem[] {
   if (role === 'manager' || role === 'admin') {
     items.push({ label: 'Schedule', to: paths.manage(), icon: CalendarDays })
   }
-  // The Squad hub is a manager tab only (Q4): admins keep the fourth slot for Admin and reach a
-  // team's members through Admin and matchday through the match view. No fifth tab either way.
-  if (role === 'manager') {
+  // The Squad hub (Selection · Game Stats · Members) is a manager and admin tab (Chris,
+  // 2026-09-16 — overrides Q4's manager-only). An admin manages every team, so `useActiveTeam`
+  // resolves one through the same all-teams picker `/manage` uses; the manager guard already
+  // admits an admin. Admins get five tabs, ending with Admin.
+  if (role === 'manager' || role === 'admin') {
     items.push({ label: 'Squad', to: paths.squad(), icon: Users })
   }
   if (role === 'admin') {
