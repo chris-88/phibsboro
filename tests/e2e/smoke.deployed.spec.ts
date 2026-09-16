@@ -17,7 +17,7 @@ const ROUTES = [
   '/join/abc123',
   '/reset/abc123',
   `/event/${UUID}`,
-  '/history',
+  '/profile',
   '/manage',
   '/manage/event/new',
   `/manage/event/${UUID}`,
