@@ -19,11 +19,11 @@ import { serverNow } from '@/lib/serverClock'
 import { formatEventTime } from '@/lib/time'
 
 /**
- * `/squad` (S10.3, V11/V12): the manager's squad hub. Matchday on top — the managed team's
- * upcoming matches, each opening the squad picker (S9.2; until then the match manager view) — and
- * the S6.4 members list below, reset / remove / change-role one tap away. The team is resolved
- * through `useActiveTeam()`, so a multi-team manager gets the same picker as `/manage` and both
- * sections follow it (AC5, D50). The guard already sent a player home (AC6); RLS bounds every read.
+ * `/squad` (S10.3, V11/V12; S17.2, X3): the manager's squad hub, the three manager jobs one under
+ * the next — **Selection** (pick the matchday squad, S9.2), **Game Stats** (run a match, S17.4) and
+ * **Members** (S6.4). The team is resolved through `useActiveTeam()`, so a multi-team manager gets
+ * the same picker as `/manage` and all three sections follow it (AC5, D50). The guard already sent a
+ * player home (AC6); RLS bounds every read.
  */
 export default function SquadScreen(): React.JSX.Element {
   const { teamId, team, isLoading, isError } = useActiveTeam()
@@ -64,9 +64,16 @@ export default function SquadScreen(): React.JSX.Element {
 
       <section className="flex flex-col gap-2">
         <h3 className="px-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-          Matchday
+          Selection
         </h3>
-        <MatchdayList teamId={teamId} />
+        <SelectionList teamId={teamId} />
+      </section>
+
+      <section className="flex flex-col gap-2">
+        <h3 className="px-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+          Game Stats
+        </h3>
+        <GameStatsList teamId={teamId} />
       </section>
 
       <section className="flex flex-col gap-2">
@@ -82,12 +89,11 @@ export default function SquadScreen(): React.JSX.Element {
 }
 
 /**
- * The managed team's upcoming matches (AC2, AC4): type match, kick-off in the future, not
- * cancelled — training and social never appear, and a cancelled match needs no squad. Soonest
- * first. Reuses `useTeamEvents` (no new read); the filter is client-side so the same cached rows
- * back the manage list. Each row links to the squad picker route (S9.2).
+ * Selection (AC1): the managed team's upcoming matches — type match, kick-off in the future, not
+ * cancelled — soonest first, each opening the squad picker (S9.2). Reuses `useTeamEvents` (no new
+ * read); the filter is client-side so the same cached rows back the manage list.
  */
-function MatchdayList({ teamId }: { teamId: string }): React.JSX.Element {
+function SelectionList({ teamId }: { teamId: string }): React.JSX.Element {
   const events = useTeamEvents(teamId)
 
   if (events.isPending) {
@@ -113,17 +119,17 @@ function MatchdayList({ teamId }: { teamId: string }): React.JSX.Element {
     <ul className="flex flex-col gap-2">
       {matches.map((match) => (
         <li key={match.id}>
-          <MatchdayRow match={match} />
+          <SelectionRow match={match} />
         </li>
       ))}
     </ul>
   )
 }
 
-/** One match row: the fixture, a Kick-off (and Meet, when set) line, and the squad-status hint,
+/** One selection row: the fixture, a Kick-off (and Meet, when set) line, and the squad-status hint,
  *  opening the squad picker (S9.2). The status reads the per-match `event_squad` cache the picker
  *  writes — "Squad not picked" until someone is in, then "{n} picked" with a captain note. */
-function MatchdayRow({ match }: { match: EventRow }): React.JSX.Element {
+function SelectionRow({ match }: { match: EventRow }): React.JSX.Element {
   const meet = match.meet_at !== null ? ` · Meet ${formatEventTime(match.meet_at, 'time')}` : ''
   const squad = useEventSquad(match.id)
   const status =
@@ -134,19 +140,94 @@ function MatchdayRow({ match }: { match: EventRow }): React.JSX.Element {
           squad.data.some((s) => s.is_captain),
         )
   return (
+    <MatchLink
+      to={paths.squadEvent(match.id)}
+      title={match.title}
+      subtitle={`${formatEventTime(match.starts_at, 'short')}${meet} · ${locationDisplay(match.location).label}`}
+      hint={status}
+    />
+  )
+}
+
+/**
+ * Game Stats (AC1, AC2): the team's matches that have kicked off — recent and in-progress, not
+ * cancelled — most recent first, each opening the collection screen (S17.4). Same `useTeamEvents`
+ * read (deduped, distinct copy so a failure here doesn't collide with Selection's).
+ */
+function GameStatsList({ teamId }: { teamId: string }): React.JSX.Element {
+  const events = useTeamEvents(teamId)
+
+  if (events.isPending) {
+    return <LoadingState label="Loading games" />
+  }
+  if (events.isError) {
+    return <ErrorState title="Couldn't load games." onRetry={() => void events.refetch()} />
+  }
+
+  const nowMs = serverNow().getTime()
+  const matches = events.data
+    .filter(
+      (e) =>
+        e.type === 'match' && e.status !== 'cancelled' && new Date(e.starts_at).getTime() < nowMs,
+    )
+    .sort((a, b) => new Date(b.starts_at).getTime() - new Date(a.starts_at).getTime())
+
+  if (matches.length === 0) {
+    return <EmptyState title="No matches to score yet." body="Kicked-off matches show up here." />
+  }
+
+  return (
+    <ul className="flex flex-col gap-2">
+      {matches.map((match) => (
+        <li key={match.id}>
+          <GameStatsRow match={match} />
+        </li>
+      ))}
+    </ul>
+  )
+}
+
+/** One Game Stats row: the fixture, its kick-off line, and either the entered scoreline or a
+ *  "Add match stats" prompt — opening the S17.4 collection screen. */
+function GameStatsRow({ match }: { match: EventRow }): React.JSX.Element {
+  const scored = match.score_us !== null && match.score_them !== null
+  const hint = scored
+    ? `Final ${String(match.score_us)}–${String(match.score_them)}`
+    : 'Add match stats'
+  return (
+    <MatchLink
+      to={paths.gameStats(match.id)}
+      title={match.title}
+      subtitle={`${formatEventTime(match.starts_at, 'short')} · ${locationDisplay(match.location).label}`}
+      hint={hint}
+    />
+  )
+}
+
+/** The shared row shell for both match lists: a card linking somewhere, with a title, a subtitle
+ *  and a small status hint, and the chevron affordance. */
+function MatchLink({
+  to,
+  title,
+  subtitle,
+  hint,
+}: {
+  to: string
+  title: string
+  subtitle: string
+  hint: string
+}): React.JSX.Element {
+  return (
     <Card>
       <CardContent className="p-0">
         <Link
-          to={paths.squadEvent(match.id)}
+          to={to}
           className="flex min-h-tap items-center gap-3 rounded-xl px-4 py-3 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
         >
           <span className="flex min-w-0 flex-1 flex-col gap-1.5">
-            <span className="truncate text-base font-semibold text-foreground">{match.title}</span>
-            <span className="text-sm text-muted-foreground">
-              {formatEventTime(match.starts_at, 'short')}
-              {meet} · {locationDisplay(match.location).label}
-            </span>
-            <span className="text-xs font-medium text-muted-foreground">{status}</span>
+            <span className="truncate text-base font-semibold text-foreground">{title}</span>
+            <span className="text-sm text-muted-foreground">{subtitle}</span>
+            <span className="text-xs font-medium text-muted-foreground">{hint}</span>
           </span>
           <ChevronRight className="size-5 shrink-0 text-muted-foreground" aria-hidden="true" />
         </Link>
