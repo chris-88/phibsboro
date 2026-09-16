@@ -50,6 +50,7 @@ const user = (over: Partial<AdminUser> = {}): AdminUser => ({
   phone: '+353876968718',
   isAdmin: false,
   lastSignInAt: null,
+  lastSeenAt: null,
   memberships: [{ teamId: 't1', teamName: 'PCF I', role: 'player' }],
   ...over,
 })
@@ -98,17 +99,24 @@ describe('AdminUsersScreen (S14.2)', () => {
     expect(screen.getByText('PCF I')).toBeInTheDocument()
   })
 
-  it('shows the last sign-in, or "Never signed in" (S18.5)', () => {
+  it('shows last active (the later of interaction and login) or "Never signed in" (S18.5/S18.6)', () => {
     renderScreen(
       query({
         isSuccess: true,
         data: [
-          user({ id: 'u1', name: 'Seen User', lastSignInAt: '2026-09-14T14:24:00+00:00' }),
-          user({ id: 'u2', name: 'New User', lastSignInAt: null, memberships: [] }),
+          // Interacted more recently than the login, so the interaction time wins.
+          user({
+            id: 'u1',
+            name: 'Active User',
+            lastSignInAt: '2026-09-14T14:24:00+00:00',
+            lastSeenAt: '2026-09-16T09:00:00+00:00',
+          }),
+          user({ id: 'u2', name: 'New User', memberships: [] }),
         ],
       }),
     )
-    expect(screen.getByText(/^Last seen /)).toBeInTheDocument()
+    // 16 Sep (the interaction), not 14 Sep (the login).
+    expect(screen.getByText(/^Last active .*16 Sep/)).toBeInTheDocument()
     expect(screen.getByText('Never signed in')).toBeInTheDocument()
   })
 

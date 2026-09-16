@@ -116,6 +116,13 @@ function UserCard({ user, isSelf }: { user: AdminUser; isSelf: boolean }): React
   const [addRole, setAddRole] = useState<MemberRole>('player')
   const [deleteOpen, setDeleteOpen] = useState(false)
 
+  // Last activity is the later of a real interaction (S18.6) and the login time (S18.5); ISO strings
+  // sort chronologically, so the max is the last of them. Undefined only when the user never signed in.
+  const lastActive = [user.lastSeenAt, user.lastSignInAt]
+    .filter((x): x is string => x !== null)
+    .sort()
+    .at(-1)
+
   const memberTeamIds = new Set(user.memberships.map((m) => m.teamId))
   // Only active teams the user is not already on can be added (the RPC accepts inactive too, but
   // the everyday picker stays active-only, D50).
@@ -137,9 +144,9 @@ function UserCard({ user, isSelf }: { user: AdminUser; isSelf: boolean }): React
         </CardTitle>
         <p className="text-sm text-muted-foreground">{user.phone}</p>
         <p className="text-xs text-muted-foreground">
-          {user.lastSignInAt === null
+          {lastActive === undefined
             ? 'Never signed in'
-            : `Last seen ${formatEventTime(user.lastSignInAt, 'short')}`}
+            : `Last active ${formatEventTime(lastActive, 'short')}`}
         </p>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">

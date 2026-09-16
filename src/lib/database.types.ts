@@ -357,6 +357,7 @@ export type Database = {
           created_at: string
           id: string
           is_admin: boolean
+          last_seen_at: string | null
           name: string
           phone: string
         }
@@ -365,6 +366,7 @@ export type Database = {
           created_at?: string
           id: string
           is_admin?: boolean
+          last_seen_at?: string | null
           name: string
           phone: string
         }
@@ -373,6 +375,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_admin?: boolean
+          last_seen_at?: string | null
           name?: string
           phone?: string
         }
@@ -735,6 +738,7 @@ export type Database = {
           user_id: string
         }[]
       }
+      touch_last_seen: { Args: never; Returns: undefined }
     }
     Enums: {
       availability_response: 'available' | 'unavailable'

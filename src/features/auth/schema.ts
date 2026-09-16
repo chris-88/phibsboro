@@ -65,6 +65,8 @@ export const profileRowSchema = z.object({
   phone: e164Schema,
   is_admin: z.boolean(),
   avatar_path: z.string().nullable(),
+  /** When the user last interacted with the app (S18.6), null until the first touch. */
+  last_seen_at: timestampSchema.nullable(),
   created_at: timestampSchema,
 })
 export type ProfileRow = z.infer<typeof profileRowSchema>

@@ -28,6 +28,8 @@ export interface AdminUser {
   isAdmin: boolean
   /** When the user last signed in (S18.5), or null if never — from `auth.users` via an admin RPC. */
   lastSignInAt: string | null
+  /** When the user last interacted with the app (S18.6), throttled; null until the first touch. */
+  lastSeenAt: string | null
   memberships: AdminUserMembership[]
 }
 
@@ -36,6 +38,7 @@ const profileSchema = z.object({
   name: z.string(),
   phone: z.string(),
   is_admin: z.boolean(),
+  last_seen_at: z.string().nullable(),
 })
 const membershipSchema = z.object({
   team_id: z.string(),
@@ -57,7 +60,7 @@ export function useAllUsers(): UseQueryResult<AdminUser[]> {
     queryKey: userKeys.allUsers(),
     queryFn: async (): Promise<AdminUser[]> => {
       const [p, m, t, lsi] = await Promise.all([
-        supabase.from('profiles').select('id, name, phone, is_admin'),
+        supabase.from('profiles').select('id, name, phone, is_admin, last_seen_at'),
         supabase.from('team_members').select('team_id, user_id, role'),
         supabase.from('teams').select('id, name'),
         // Last sign-in lives on auth.users, off-limits to clients, so an admin-only RPC returns it.
@@ -96,6 +99,7 @@ export function useAllUsers(): UseQueryResult<AdminUser[]> {
           phone: pr.phone,
           isAdmin: pr.is_admin,
           lastSignInAt: lastSignIn.get(pr.id) ?? null,
+          lastSeenAt: pr.last_seen_at,
           memberships: (byUser.get(pr.id) ?? []).sort((a, b) =>
             a.teamName.localeCompare(b.teamName),
           ),

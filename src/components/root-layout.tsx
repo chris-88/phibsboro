@@ -4,6 +4,7 @@ import { AppShell, AppShellSkeleton } from '@/components/app-shell'
 import { LoadingState } from '@/components/states'
 import { SessionInvalidError } from '@/api/current-user'
 import { useCurrentUser } from '@/features/auth/use-current-user'
+import { useLastSeen } from '@/features/auth/use-last-seen'
 import { supabase } from '@/lib/supabase'
 import { PendingJoinGate } from '@/features/teams/PendingJoinGate'
 import { NOT_FOUND_TITLE, useDocumentTitle } from '@/lib/document-title'
@@ -47,6 +48,8 @@ function RoutedShell(): React.JSX.Element {
   useEffect(() => {
     if (deadSession) void supabase.auth.signOut()
   }, [deadSession])
+  // S18.6: stamp last-active for a signed-in user, throttled — the admin Users screen reads it.
+  useLastSeen(user.status === 'ready', pathname)
   const chrome = meta?.chrome ?? 'bare'
   const guard: GuardLevel = meta?.guard ?? 'public'
   useDocumentTitle(meta?.title ?? NOT_FOUND_TITLE)

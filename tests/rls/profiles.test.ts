@@ -4,7 +4,13 @@ import { describe, expect, it } from 'vitest'
 
 import { anonClient, idOf, signInAs } from './helpers/clients.ts'
 import { FIXTURES } from './helpers/fixtures.ts'
-import { expectEmpty, expectRlsDenied, expectRowUnchanged, expectRows } from './helpers/expect.ts'
+import {
+  expectEmpty,
+  expectNoExecute,
+  expectRlsDenied,
+  expectRowUnchanged,
+  expectRows,
+} from './helpers/expect.ts'
 
 describe('row 4 — profiles select is own row only', () => {
   it('player selects their own row, and an unfiltered select returns exactly one row', async () => {
@@ -125,5 +131,18 @@ describe('row 5 — nobody can write profiles through the anon key', () => {
     expectRlsDenied(
       await anon.from('profiles').update({ name: 'x' }).eq('id', idOf('admin')).select(),
     )
+  })
+})
+
+describe('touch_last_seen (S18.6)', () => {
+  it('a signed-in user stamps their own last_seen_at', async () => {
+    const aaron = await signInAs('playerFirsts')
+    expect((await aaron.rpc('touch_last_seen')).error).toBeNull()
+    const rows = expectRows(await aaron.from('profiles').select('last_seen_at'), 1)
+    expect(rows[0]?.last_seen_at).not.toBeNull()
+  })
+
+  it('anon holds no execute', async () => {
+    expectNoExecute(await anonClient().rpc('touch_last_seen'))
   })
 })
