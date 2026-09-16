@@ -1,7 +1,7 @@
 import { renderHook } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const rpc = vi.fn((_fn: string) => Promise.resolve({ data: null, error: null }))
+const rpc = vi.fn<(fn: string) => Promise<{ data: null; error: null }>>()
 vi.mock('@/lib/supabase', () => ({ supabase: { rpc: (fn: string) => rpc(fn) } }))
 
 const { useLastSeen } = await import('@/features/auth/use-last-seen')
