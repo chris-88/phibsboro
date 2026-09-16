@@ -107,3 +107,33 @@ create policy profiles_select_admin on public.profiles
 
 Non-admins are unchanged (select-own). This also retroactively fixes the S12.3 inbox reporter-name embed,
 which resolved to null for other users until an admin could read their profile.
+
+## `profiles` — new column (Epic 16, W10)
+
+| Column | Type | Null | Notes |
+|---|---|---|---|
+| `avatar_path` | text | yes | Storage object path in the `avatars` bucket, e.g. `{uid}/{ts}.jpg`. Null = no photo (initials fallback). The path carries a timestamp so a new upload changes the public URL (cache-bust). |
+
+## `avatars` — new Storage bucket + policies (Epic 16, W10)
+
+```sql
+insert into storage.buckets (id, name, public) values ('avatars', 'avatars', true)
+  on conflict (id) do nothing;
+-- Authenticated users write only under their own uid prefix; read is public (bucket.public = true).
+create policy "avatars insert own" on storage.objects for insert to authenticated
+  with check (bucket_id = 'avatars' and (storage.foldername(name))[1] = auth.uid()::text);
+create policy "avatars update own" on storage.objects for update to authenticated
+  using (bucket_id = 'avatars' and (storage.foldername(name))[1] = auth.uid()::text);
+create policy "avatars delete own" on storage.objects for delete to authenticated
+  using (bucket_id = 'avatars' and (storage.foldername(name))[1] = auth.uid()::text);
+```
+
+## `set_own_avatar` — new RPC (Epic 16, W10)
+
+```sql
+create function public.set_own_avatar(p_path text)
+returns void language plpgsql security definer set search_path = ''
+```
+- Sets `profiles.avatar_path = p_path` where `id = auth.uid()` (p_path may be null to clear). No admin needed
+  — a user owns their own photo. `revoke ... from public, anon; grant ... to authenticated`. The direct
+  `profiles` UPDATE stays closed, so name/phone remain admin-only.

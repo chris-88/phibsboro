@@ -21,6 +21,10 @@ reporter's context attached · a "Who's in" list on an event showing available t
 | 6 | S14.1 | Admin membership RPC + RLS | 14 Admin users | S1.4, S6.4 | S | ✓ |
 | 7 | S14.2 | Admin &rarr; Users screen | 14 Admin users | S14.1, S11 | M | ✓ |
 | 8 | S15.1 | Match jersey (field, detail, share) | 15 Jersey | S8.2, S9.3 | M | ✓ |
+| 9 | S16.1 | Avatar storage: bucket, RLS, `avatar_path`, `set_own_avatar` | 16 Profile | S12.1 | M | ☐ |
+| 10 | S16.2 | Avatar component + upload | 16 Profile | S16.1 | M | ☐ |
+| 11 | S16.3 | Profile screen + header avatar (replaces the ⋮ menu) | 16 Profile | S16.2, S2.9 | L | ☐ |
+| 12 | S16.4 | Retire History → disabled Stats tab placeholder | 16 Profile | S16.3 | S | ☐ |
 
 Epic 12 lands first because it is what makes the testing round useful — file it before the testers are deep
 in. Epic 13 is independent and can follow.
@@ -29,6 +33,11 @@ in. Epic 13 is independent and can follow.
 - **Epic 12 — In-app feedback:** a signed-in user taps "Send feedback", picks bug/idea/other, types a note,
   and sends it. It saves with the route, app version and device auto-attached. Admins read and resolve every
   report on an admin inbox screen — feedback in one queryable place instead of scattered across WhatsApp.
+- **Epic 16 — Player profile & nav refresh (retires History):** the top-right ⋮ menu becomes the signed-in
+  user's photo, opening a profile screen with their name, teams/roles and the old menu actions (sign out,
+  feedback, add-to-home). Photos upload to a public Storage bucket; initials until set. The History tab is
+  removed and a **disabled "Stats" tab** takes its slot — a signpost for a richer stats surface built out in
+  a later epic (stats deliberately live there, not hidden in the profile).
 - **Epic 14 — Admin user manager:** an admin opens Admin → Users, sees every person and their team roles, and
   can assign anyone to any team, flip player↔manager, or remove them — a repair tool for when a normal path
   can't fix it. One admin-only RPC for the assign; role-change and remove reuse the existing member RPCs.

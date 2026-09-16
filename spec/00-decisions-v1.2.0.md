@@ -20,6 +20,9 @@ operator tool, not a chat feature; "who's in" is a read of existing availability
 | W5 | "Who's in" surfaces on the event detail screen only, not the calendar day rows | S13.2 |
 | W6 | Admin user/membership manager: assign to any team, change role, remove — via an admin RPC | S14.1, S14.2 |
 | W7 | Match jersey (Black/Light Blue/White), match-only, shown in-app and in the WhatsApp share | S15.1 |
+| W8 | Retire the History tab; a disabled **Stats** tab takes its slot (real stats are a later epic) | S16.4 |
+| W9 | The header ⋮ menu becomes the profile avatar → `/profile` (essentials + the moved actions) | S16.3 |
+| W10 | Avatars in a public Storage bucket, written through `set_own_avatar`; `profiles.avatar_path` | S16.1, S16.2 |
 
 ---
 
@@ -85,3 +88,29 @@ by sign-up and the reset-link flow; this screen only moves memberships. (Owner r
 teamsheet as a `Jersey: {colour}` line (a D13/V8 amendment) so players know the kit to bring. Training and
 social have no jersey (W7 = matches only, owner's choice). Omitted from the share and the detail when unset.
 (Owner request 2026-09-15.)
+
+### W8 — Retire the History tab; a disabled Stats tab takes its slot
+**Decision** — The bottom-nav **History** tab is removed: the calendar Home already runs back through past
+months, so a reverse-chronological list is a pre-calendar hangover. In its nav slot goes a **Stats** tab that
+is **present but disabled** — visible, greyed, not selectable — a signpost that a richer stats surface is
+coming. Player stats (attendance record, availability rate, matches, …) are deliberately **not** tucked into
+the profile; they get their own Stats surface, built out as a later epic (this brings "stats" into scope the
+way V1 did team selection — the placeholder itself commits nothing). The admin god-view history (S11.3) is
+retired with the tab; the all-teams calendar covers it. The player temporarily has no attendance view until
+the Stats epic lands, which the owner accepts. (Owner call 2026-09-16.)
+
+### W9 — The header ⋮ menu becomes the profile avatar
+**Decision** — The top-right overflow menu (`AppShellMenu`: Send feedback, Sign out, Add to home screen) is
+replaced by the signed-in user's **profile picture**, which links to a **profile screen** (`/profile`)
+carrying the user's **essentials** — avatar, name, teams & roles — and the three moved menu actions. Player
+stats/attendance are **not** here (W8: they belong on the future Stats tab). The avatar shows the user's
+photo, or a coloured initials circle until one is set. Self profile only for now — viewing a teammate's
+profile is a later epic (it ties into who's-in / squad). (Owner request 2026-09-16.)
+
+### W10 — Avatars in a public Storage bucket, written through an RPC
+**Decision** — Profile photos live in a **public-read Supabase Storage bucket** `avatars`; the public URL is
+derived client-side (no signed-URL churn), which is fine for a club app. `profiles` gains a nullable
+`avatar_path`; a user sets their own through a security-definer RPC `set_own_avatar(p_path)` (never a direct
+`profiles` UPDATE, keeping name/phone admin-controlled). Storage RLS lets an authenticated user write only
+under their own `{uid}/…` prefix. The image is downscaled in the browser before upload to keep it small.
+Self-read only for now; exposing avatars on teammates' cards waits for the view-others epic. (2026-09-16.)
