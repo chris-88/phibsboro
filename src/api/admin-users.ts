@@ -26,6 +26,8 @@ export interface AdminUser {
   phone: string
   /** The global admin flag `is_admin()` reads (D2); an admin toggles it via `admin_set_admin` (S18.2). */
   isAdmin: boolean
+  /** When the user last signed in (S18.5), or null if never — from `auth.users` via an admin RPC. */
+  lastSignInAt: string | null
   memberships: AdminUserMembership[]
 }
 
@@ -41,6 +43,7 @@ const membershipSchema = z.object({
   role: z.enum(['player', 'manager']),
 })
 const teamSchema = z.object({ id: z.string(), name: z.string() })
+const lastSignInSchema = z.object({ user_id: z.string(), last_sign_in_at: z.string().nullable() })
 
 /**
  * Every person and the teams/roles they hold (S14.2, W6). Admin-only in practice — the screen is
@@ -53,17 +56,27 @@ export function useAllUsers(): UseQueryResult<AdminUser[]> {
   return useQuery({
     queryKey: userKeys.allUsers(),
     queryFn: async (): Promise<AdminUser[]> => {
-      const [p, m, t] = await Promise.all([
+      const [p, m, t, lsi] = await Promise.all([
         supabase.from('profiles').select('id, name, phone, is_admin'),
         supabase.from('team_members').select('team_id, user_id, role'),
         supabase.from('teams').select('id, name'),
+        // Last sign-in lives on auth.users, off-limits to clients, so an admin-only RPC returns it.
+        // Called directly, not via `callRpc`: gen-types types a zero-arg function's Args as `never`.
+        supabase.rpc('admin_last_sign_in'),
       ])
       if (p.error) throw p.error
       if (m.error) throw m.error
       if (t.error) throw t.error
+      if (lsi.error) throw lsi.error
       const profiles = z.array(profileSchema).parse(p.data)
       const members = z.array(membershipSchema).parse(m.data)
       const teams = z.array(teamSchema).parse(t.data)
+      const lastSignIn = new Map(
+        z
+          .array(lastSignInSchema)
+          .parse(lsi.data)
+          .map((r) => [r.user_id, r.last_sign_in_at]),
+      )
 
       const teamName = new Map(teams.map((x) => [x.id, x.name]))
       const byUser = new Map<string, AdminUserMembership[]>()
@@ -82,6 +95,7 @@ export function useAllUsers(): UseQueryResult<AdminUser[]> {
           name: pr.name,
           phone: pr.phone,
           isAdmin: pr.is_admin,
+          lastSignInAt: lastSignIn.get(pr.id) ?? null,
           memberships: (byUser.get(pr.id) ?? []).sort((a, b) =>
             a.teamName.localeCompare(b.teamName),
           ),

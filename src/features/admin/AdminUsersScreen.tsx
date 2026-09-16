@@ -24,6 +24,7 @@ import { EmptyState, ErrorState, LoadingState } from '@/components/states'
 import { useCurrentUser } from '@/features/auth/use-current-user'
 import { type MemberRole } from '@/features/teams/schema'
 import { paths } from '@/lib/paths'
+import { formatEventTime } from '@/lib/time'
 
 const ROLE_LABEL: Record<MemberRole, string> = { player: 'Player', manager: 'Manager' }
 
@@ -135,6 +136,11 @@ function UserCard({ user, isSelf }: { user: AdminUser; isSelf: boolean }): React
           )}
         </CardTitle>
         <p className="text-sm text-muted-foreground">{user.phone}</p>
+        <p className="text-xs text-muted-foreground">
+          {user.lastSignInAt === null
+            ? 'Never signed in'
+            : `Last seen ${formatEventTime(user.lastSignInAt, 'short')}`}
+        </p>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
         {user.memberships.length === 0 ? (

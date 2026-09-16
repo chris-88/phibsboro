@@ -88,3 +88,25 @@ describe('admin_delete_user (S18.2)', () => {
     await expectRowAbsent('profiles', { id: deletable.id })
   })
 })
+
+describe('admin_last_sign_in (S18.5)', () => {
+  it('an admin gets a last_sign_in_at row per user', async () => {
+    const admin = await signInAs('admin')
+    const res = await admin.rpc('admin_last_sign_in')
+    expect(res.error).toBeNull()
+    expect((res.data ?? []).length).toBeGreaterThan(0)
+    expect(res.data?.[0]).toHaveProperty('user_id')
+    expect(res.data?.[0]).toHaveProperty('last_sign_in_at')
+  })
+
+  it('a non-admin gets no rows (role-gated in the body, not an error)', async () => {
+    const player = await signInAs('playerFirsts')
+    const res = await player.rpc('admin_last_sign_in')
+    expect(res.error).toBeNull()
+    expect(res.data).toEqual([])
+  })
+
+  it('anon holds no execute', async () => {
+    expectNoExecute(await anonClient().rpc('admin_last_sign_in'))
+  })
+})

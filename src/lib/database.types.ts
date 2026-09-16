@@ -550,6 +550,13 @@ export type Database = {
     }
     Functions: {
       admin_delete_user: { Args: { p_user_id: string }; Returns: undefined }
+      admin_last_sign_in: {
+        Args: never
+        Returns: {
+          last_sign_in_at: string
+          user_id: string
+        }[]
+      }
       admin_set_admin: {
         Args: { p_is_admin: boolean; p_user_id: string }
         Returns: undefined

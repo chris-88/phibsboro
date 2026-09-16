@@ -49,6 +49,7 @@ const user = (over: Partial<AdminUser> = {}): AdminUser => ({
   name: 'Chris Quinn',
   phone: '+353876968718',
   isAdmin: false,
+  lastSignInAt: null,
   memberships: [{ teamId: 't1', teamName: 'PCF I', role: 'player' }],
   ...over,
 })
@@ -95,6 +96,20 @@ describe('AdminUsersScreen (S14.2)', () => {
     expect(screen.getByText('Chris Quinn')).toBeInTheDocument()
     expect(screen.getByText('+353876968718')).toBeInTheDocument()
     expect(screen.getByText('PCF I')).toBeInTheDocument()
+  })
+
+  it('shows the last sign-in, or "Never signed in" (S18.5)', () => {
+    renderScreen(
+      query({
+        isSuccess: true,
+        data: [
+          user({ id: 'u1', name: 'Seen User', lastSignInAt: '2026-09-14T14:24:00+00:00' }),
+          user({ id: 'u2', name: 'New User', lastSignInAt: null, memberships: [] }),
+        ],
+      }),
+    )
+    expect(screen.getByText(/^Last seen /)).toBeInTheDocument()
+    expect(screen.getByText('Never signed in')).toBeInTheDocument()
   })
 
   it('filters by name', async () => {
