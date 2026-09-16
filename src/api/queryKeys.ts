@@ -45,17 +45,8 @@ export const teamKeys = {
   lookup: (token: string) => ['teams', 'inviteLookup', token] as const,
 } as const
 
-/**
- * `history` sits under its own prefix on purpose: a response or attendance invalidation must
- * not churn S3.5's infinite query.
- */
 export const userKeys = {
   current: () => ['currentUser'] as const,
-  history: (userId: string) => ['history', userId] as const,
-  /** God-mode history (S11.3): all teams, so it is not user-scoped. Sits under the same `history`
-   *  prefix as the player key so a response or attendance write never churns it. `'admin'` can
-   *  never collide with a real userId (uuids). */
-  adminHistory: () => ['history', 'admin'] as const,
   /** The admin user manager's all-users directory (S14.2). Its own prefix so a membership write
    *  invalidates only it. */
   allUsers: () => ['adminUsers'] as const,

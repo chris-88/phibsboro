@@ -27,11 +27,11 @@ export const ids = {
   pastEvent: PAST_EVENT_ID,
 } as const
 
-// A long-ago join, so filterHistory keeps this player's past events.
+// A long-ago join date for the member fixtures.
 const JOINED_AT = '2020-01-01T00:00:00+00:00'
 // Far future / far past, so a screen's own serverNow() cut-off never hides a fixture. The stub
 // ignores the query's own .gte/.lt filters, so these only have to satisfy the schemas and the
-// pure client-side pickers (pickNextEvent, filterHistory).
+// pure client-side pickers (pickNextEvent).
 const FUTURE = '2099-06-13T18:30:00+00:00'
 const PAST = '2020-06-13T18:30:00+00:00'
 
@@ -112,19 +112,6 @@ export const eventDetailRow = {
   teams: { name: 'Firsts' },
   event_responses: [],
 }
-
-/** historyRowSchema — the past-events read; recorded, so filterHistory always keeps it. */
-export const historyEventRows = [
-  {
-    id: PAST_EVENT_ID,
-    team_id: TEAM_ID,
-    type: 'training',
-    title: 'Tuesday training',
-    starts_at: PAST,
-    status: 'scheduled',
-    attendance: [{ attended: true }],
-  },
-]
 
 /** eventRowSchema — the full-row manager list read (select *). */
 export const teamEventRows = [

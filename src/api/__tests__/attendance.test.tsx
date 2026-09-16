@@ -35,9 +35,6 @@ function makeBuilder(): Record<string, unknown> {
     calls.push({ op: 'eq', payload: { col, val } })
     return b
   }
-  b.lt = () => b
-  b.order = () => b
-  b.range = () => b
   b.then = (onOk: (r: Result) => unknown, onErr?: (e: unknown) => unknown) =>
     resolve().then(onOk, onErr)
   return b
@@ -48,12 +45,8 @@ vi.mock('@/lib/supabase', () => ({ supabase: { from: () => from() } }))
 vi.mock('@/features/auth/session-context', () => ({
   useSession: () => ({ status: 'signedIn', session: { user: { id: USER } } }),
 }))
-vi.mock('@/features/auth/use-current-user', () => ({
-  useSignedInUser: () => ({ memberships: [] }),
-}))
 
-const { useSetAttendance, useBulkMarkAttended, useAttendanceHistory, useAdminAttendanceHistory } =
-  await import('@/api/attendance')
+const { useSetAttendance, useBulkMarkAttended } = await import('@/api/attendance')
 const { eventKeys } = await import('@/api/queryKeys')
 
 function wrapperFor(client: QueryClient) {
@@ -184,60 +177,5 @@ describe('useBulkMarkAttended (S4.5)', () => {
     // P1's Absent survives; only P2 is added as attended.
     expect(cache).toContainEqual({ userId: P1, attended: false })
     expect(cache).toContainEqual({ userId: P2, attended: true })
-  })
-})
-
-describe('useAttendanceHistory embed scoping (regression)', () => {
-  it('filters the embedded attendance to the viewer, so an admin read does not widen past .max(1)', async () => {
-    results.push({ data: [], error: null })
-    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-    const { result } = renderHook(() => useAttendanceHistory(USER), { wrapper: wrapperFor(client) })
-    await waitFor(() => {
-      expect(result.current.status).toBe('success')
-    })
-    // The read must scope the embedded attendance to this user, not rely on RLS — an admin's read
-    // policy returns every squad member's row, which crashed the history without this filter.
-    expect(calls).toContainEqual({ op: 'eq', payload: { col: 'attendance.user_id', val: USER } })
-  })
-})
-
-describe('useAdminAttendanceHistory (S11.3)', () => {
-  const TEAM = '00000000-0000-4000-8000-000000000001'
-
-  it('reads every team without the per-user embed filter and counts who attended', async () => {
-    results.push({
-      data: [
-        {
-          id: EVENT,
-          team_id: TEAM,
-          type: 'match',
-          title: 'v Larkview',
-          starts_at: '2026-09-08T13:30:00.000Z',
-          status: 'scheduled',
-          // The whole squad's rows come back for an admin (RLS), which is exactly the count source.
-          attendance: [{ attended: true }, { attended: true }, { attended: false }],
-        },
-      ],
-      error: null,
-    })
-    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-    const { result } = renderHook(() => useAdminAttendanceHistory(true), {
-      wrapper: wrapperFor(client),
-    })
-    await waitFor(() => {
-      expect(result.current.status).toBe('success')
-    })
-    // God mode does NOT scope the embed to a user — it needs the whole array for the count.
-    expect(calls.some((c) => c.op === 'eq')).toBe(false)
-    expect(result.current.rows[0]?.attendedCount).toBe(2)
-  })
-
-  it('does not fetch when disabled — the player path never fires it', () => {
-    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-    const { result } = renderHook(() => useAdminAttendanceHistory(false), {
-      wrapper: wrapperFor(client),
-    })
-    expect(result.current.status).toBe('pending')
-    expect(from).not.toHaveBeenCalled()
   })
 })

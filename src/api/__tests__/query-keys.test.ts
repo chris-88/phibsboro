@@ -35,10 +35,10 @@ describe('query keys (AC15, A6)', () => {
     expect(keys.teamKeys.lookup('tok')).toEqual(['teams', 'inviteLookup', 'tok'])
   })
 
-  it('history sits under its own prefix so response invalidation never churns it', () => {
-    expect(keys.userKeys.history('u')[0]).toBe('history')
+  it('user keys sit outside the events prefix so a response write never churns them', () => {
     expect(keys.userKeys.current()).toEqual(['currentUser'])
-    expect(keys.userKeys.history('u')[0]).not.toBe(keys.eventKeys.all[0])
+    expect(keys.userKeys.allUsers()).toEqual(['adminUsers'])
+    expect(keys.userKeys.current()[0]).not.toBe(keys.eventKeys.all[0])
   })
 
   it('keys are distinct per id and per kind', () => {
