@@ -175,6 +175,8 @@ export interface ResponseFixture {
   readonly eventId: string
   readonly phone: string
   readonly response: 'available' | 'unavailable'
+  /** Mandatory for `unavailable` (S18.4), null for `available`; the DB check enforces both. */
+  readonly reason: string | null
 }
 
 const p = (i: number) => {
@@ -187,8 +189,13 @@ const respond = (
   available: readonly string[],
   unavailable: readonly string[],
 ): ResponseFixture[] => [
-  ...available.map((phone) => ({ eventId, phone, response: 'available' as const })),
-  ...unavailable.map((phone) => ({ eventId, phone, response: 'unavailable' as const })),
+  ...available.map((phone) => ({ eventId, phone, response: 'available' as const, reason: null })),
+  ...unavailable.map((phone) => ({
+    eventId,
+    phone,
+    response: 'unavailable' as const,
+    reason: 'Away this weekend',
+  })),
 ]
 
 // Mixed on purpose (AC20). On each imminent event three squad members have no row at all, so
@@ -201,7 +208,12 @@ export const RESPONSES: readonly ResponseFixture[] = [
     [MANAGERS[0].phone, p(1), p(2), p(3), p(4), p(5)],
     [p(6), p(7), p(8)],
   ),
-  { eventId: eventFor(TEAM_FIRSTS.id, 'imminent').id, phone: LEAVER.phone, response: 'available' },
+  {
+    eventId: eventFor(TEAM_FIRSTS.id, 'imminent').id,
+    phone: LEAVER.phone,
+    response: 'available',
+    reason: null,
+  },
   ...respond(
     eventFor(TEAM_SECONDS.id, 'imminent').id,
     [MANAGERS[1].phone, p(11), p(12), p(13), p(14), p(15)],

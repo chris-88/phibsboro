@@ -346,6 +346,12 @@ describe('the day-card optimistic write against a month cache (AC6)', () => {
 
   const yes = () => screen.getByRole('button', { name: 'Yes' })
   const no = () => screen.getByRole('button', { name: 'No' })
+  // No now opens the mandatory-reason prompt (S18.4): tap No, type a reason, Save.
+  const declineWith = async (reason: string): Promise<void> => {
+    await userEvent.click(no())
+    await userEvent.type(screen.getByLabelText('Reason'), reason)
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }))
+  }
 
   it('fills the tapped button before the request resolves (AC6)', async () => {
     let resolve: (v: { error: unknown }) => void = () => undefined
@@ -355,7 +361,7 @@ describe('the day-card optimistic write against a month cache (AC6)', () => {
       }),
     )
     renderHarness(upcoming({ myResponse: 'available' }))
-    await userEvent.click(no())
+    await declineWith('Away with work')
     await waitFor(() => {
       expect(no()).toHaveAttribute('aria-pressed', 'true')
     })
@@ -368,7 +374,7 @@ describe('the day-card optimistic write against a month cache (AC6)', () => {
       error: { message: 'nope', details: '', hint: '', code: 'P0001', name: 'PostgrestError' },
     })
     renderHarness(upcoming({ myResponse: 'available' }))
-    await userEvent.click(no())
+    await declineWith('Away with work')
     await waitFor(() => {
       expect(screen.getByText("Couldn't save. Tap again.")).toBeInTheDocument()
     })

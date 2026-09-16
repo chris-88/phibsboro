@@ -63,12 +63,14 @@ export async function setResponse(
   eventId: string,
   userId: string,
   response: 'available' | 'unavailable',
+  // Mandatory for unavailable (S18.4); defaulted so existing callers need no change.
+  reason: string | null = response === 'unavailable' ? 'Away this weekend' : null,
 ) {
   check(
     (
       await admin
         .from('event_responses')
-        .update({ response })
+        .update({ response, reason })
         .match({ event_id: eventId, user_id: userId })
     ).error,
     'setResponse',

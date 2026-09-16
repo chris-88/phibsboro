@@ -103,7 +103,7 @@ describe('row 15 — player updates their own response', () => {
     const rows = expectRows(
       await aaron
         .from('event_responses')
-        .update({ response: 'unavailable' })
+        .update({ response: 'unavailable', reason: 'Away this weekend' })
         .match({ event_id: EVENT.firsts.far.id, user_id: idOf('playerFirsts') })
         .select('response'),
       1,
@@ -116,7 +116,7 @@ describe('row 15 — player updates their own response', () => {
     expectEmpty(
       await aaron
         .from('event_responses')
-        .update({ response: 'unavailable' })
+        .update({ response: 'unavailable', reason: 'Away this weekend' })
         .match({ event_id: EVENT.firsts.far.id, user_id: idOf('playerFirstsOther') })
         .select(),
     )
@@ -161,7 +161,10 @@ describe('S3.4 AC1 — a genuine change on a scheduled future event', () => {
     const second = expectRows(
       await ian
         .from('event_responses')
-        .upsert({ ...key, response: 'unavailable' }, { onConflict: 'event_id,user_id' })
+        .upsert(
+          { ...key, response: 'unavailable', reason: 'Away this weekend' },
+          { onConflict: 'event_id,user_id' },
+        )
         .select('response, updated_at'),
       1,
     )
@@ -205,7 +208,7 @@ describe('row 16 — the starts_at cut-off (D12)', () => {
     expectRlsDenied(
       await aaron
         .from('event_responses')
-        .update({ response: 'unavailable' })
+        .update({ response: 'unavailable', reason: 'Away this weekend' })
         .match({ event_id: EVENT.firsts.past.id, user_id: idOf('playerFirsts') })
         .select(),
     )
@@ -241,7 +244,7 @@ describe('row 17 — cancelled events take no response (D12)', () => {
     expectRlsDenied(
       await aaron
         .from('event_responses')
-        .update({ response: 'unavailable' })
+        .update({ response: 'unavailable', reason: 'Away this weekend' })
         .match({ event_id: EVENT.firsts.cancelled.id, user_id: idOf('playerFirsts') })
         .select(),
     )
@@ -383,7 +386,7 @@ describe("row 20 — a leaver's rows stay readable to them and their old manager
     expectRlsDenied(
       await mark
         .from('event_responses')
-        .update({ response: 'unavailable' })
+        .update({ response: 'unavailable', reason: 'Away this weekend' })
         .match({ event_id: EVENT.firsts.imminent.id, user_id: idOf('leaver') })
         .select(),
     )
@@ -424,7 +427,7 @@ describe('row 40 — admin on a team they are not a member of', () => {
     const updated = expectRows(
       await admin
         .from('event_responses')
-        .update({ response: 'unavailable' })
+        .update({ response: 'unavailable', reason: 'Away this weekend' })
         .match(row)
         .select('response'),
       1,

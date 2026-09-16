@@ -9,6 +9,7 @@ const row = (over: Partial<RosterRow> = {}): RosterRow => ({
   name: 'Dara Byrne',
   role: 'player',
   response: null,
+  reason: null,
   attended: null,
   ...over,
 })
@@ -101,18 +102,38 @@ describe('PlayerResponseCard — respond on behalf (S18.1)', () => {
     expect(screen.getByLabelText('Dara Byrne, awaiting')).toBeInTheDocument()
   })
 
-  it('lets a manager mark a player available or unavailable on their behalf', async () => {
+  it('marks a player available in one tap on their behalf', async () => {
     const user = userEvent.setup()
     const onResponse = vi.fn()
     render(<PlayerResponseCard row={row({ response: null })} onResponseChange={onResponse} />)
-
     await user.click(screen.getByRole('button', { name: "Set Dara Byrne's availability" }))
     await user.click(screen.getByRole('menuitem', { name: 'Mark available' }))
     expect(onResponse).toHaveBeenCalledWith('u1', 'available')
+  })
 
+  it('collects a mandatory reason before marking a player unavailable (S18.4)', async () => {
+    const user = userEvent.setup()
+    const onResponse = vi.fn()
+    render(<PlayerResponseCard row={row({ response: null })} onResponseChange={onResponse} />)
     await user.click(screen.getByRole('button', { name: "Set Dara Byrne's availability" }))
     await user.click(screen.getByRole('menuitem', { name: 'Mark unavailable' }))
-    expect(onResponse).toHaveBeenLastCalledWith('u1', 'unavailable')
+    // The write doesn't fire until a reason is saved.
+    const save = screen.getByRole('button', { name: 'Save' })
+    expect(save).toBeDisabled()
+    expect(onResponse).not.toHaveBeenCalled()
+    await user.type(screen.getByLabelText('Reason'), 'Injured')
+    await user.click(save)
+    expect(onResponse).toHaveBeenCalledWith('u1', 'unavailable', 'Injured')
+  })
+
+  it('shows the reason an unavailable player gave (S18.4)', () => {
+    render(
+      <PlayerResponseCard
+        row={row({ response: 'unavailable', reason: 'Away with work' })}
+        onAttendanceChange={vi.fn()}
+      />,
+    )
+    expect(screen.getByText('Reason: Away with work')).toBeInTheDocument()
   })
 
   it('disables the menu item matching the current response (no redundant write)', async () => {

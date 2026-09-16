@@ -108,6 +108,7 @@ describe('availableForAttendance (S4.5 bulk payload)', () => {
     name: userId,
     role: 'player',
     response,
+    reason: null,
     attended: null,
   })
 

@@ -1,5 +1,7 @@
+import { useState } from 'react'
 import { useSetResponse } from '@/api/availability'
 import { Button } from '@/components/ui/button'
+import { ReasonDialog } from '@/features/availability/components/ReasonDialog'
 import type { AvailabilityResponse } from '@/features/availability/schema'
 
 export interface AvailabilityButtonsProps {
@@ -26,10 +28,22 @@ export function AvailabilityButtons({
   disabledReason,
 }: AvailabilityButtonsProps): React.JSX.Element {
   const setResponse = useSetResponse()
+  const [reasonOpen, setReasonOpen] = useState(false)
 
-  const choose = (response: AvailabilityResponse): void => {
-    if (disabled || response === current) return
-    setResponse.mutate({ eventId, response })
+  // Yes is one tap (D61: firing nothing when already yes). No opens the mandatory-reason prompt
+  // (S18.4) — even when already unavailable, so the reason can be corrected — and only writes once a
+  // reason is given.
+  const chooseYes = (): void => {
+    if (disabled || current === 'available') return
+    setResponse.mutate({ eventId, response: 'available' })
+  }
+  const chooseNo = (): void => {
+    if (disabled) return
+    setReasonOpen(true)
+  }
+  const submitReason = (reason: string): void => {
+    setReasonOpen(false)
+    setResponse.mutate({ eventId, response: 'unavailable', reason })
   }
 
   return (
@@ -42,9 +56,7 @@ export function AvailabilityButtons({
           aria-pressed={current === 'available'}
           disabled={disabled}
           className="min-h-14 w-full"
-          onClick={() => {
-            choose('available')
-          }}
+          onClick={chooseYes}
         >
           Yes
         </Button>
@@ -55,13 +67,19 @@ export function AvailabilityButtons({
           aria-pressed={current === 'unavailable'}
           disabled={disabled}
           className="min-h-14 w-full"
-          onClick={() => {
-            choose('unavailable')
-          }}
+          onClick={chooseNo}
         >
           No
         </Button>
       </div>
+
+      <ReasonDialog
+        open={reasonOpen}
+        onOpenChange={setReasonOpen}
+        subject="you"
+        onSubmit={submitReason}
+        pending={setResponse.isPending}
+      />
 
       {current !== null && (
         <p className="text-sm text-muted-foreground">

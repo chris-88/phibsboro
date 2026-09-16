@@ -235,6 +235,7 @@ async function main() {
           event_id: r.eventId,
           user_id: id(r.phone),
           response: r.response,
+          reason: r.reason,
         })),
       )
     ).error,

@@ -37,6 +37,7 @@ const responseRow = (userId: string, response: 'available' | 'unavailable'): Eve
   event_id: EVENT,
   user_id: userId,
   response,
+  reason: null,
   updated_at: 'x',
 })
 

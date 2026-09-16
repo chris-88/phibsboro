@@ -6,11 +6,14 @@ import { timestampSchema, uuidSchema } from '@/lib/zod'
 export const availabilityResponseSchema = z.enum(['available', 'unavailable'])
 export type AvailabilityResponse = z.infer<typeof availabilityResponseSchema>
 
-/** One row per player per event. No row means awaiting; that is never stored (D25). */
+/** One row per player per event. No row means awaiting; that is never stored (D25). `reason` is the
+ *  mandatory why for an `unavailable` answer (S18.4), always null for `available` — the DB check
+ *  enforces both, so a component can trust it. */
 export const eventResponseRowSchema = z.object({
   event_id: uuidSchema,
   user_id: uuidSchema,
   response: availabilityResponseSchema,
+  reason: z.string().nullable(),
   updated_at: timestampSchema,
 })
 export type EventResponseRow = z.infer<typeof eventResponseRowSchema>

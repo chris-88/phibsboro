@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Check, ChevronDown, X } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import {
@@ -7,6 +8,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
+import { ReasonDialog } from '@/features/availability/components/ReasonDialog'
 import { ResponsePill } from '@/features/availability/components/ResponsePill'
 import type { AvailabilityResponse } from '@/features/availability/schema'
 import { attendanceValue, toAttended } from '@/features/events/components/attendance-value'
@@ -23,8 +25,9 @@ export interface PlayerResponseCardProps {
   disabledReason?: string
   /** S18.1: supplied by the manager view while the event is still open, this turns the availability
    *  pill into a menu — "Mark available / unavailable" — so a manager can answer on a player's
-   *  behalf. Omitted (a closed/cancelled event, or any other screen), the pill is display-only. */
-  onResponseChange?: (userId: string, response: AvailabilityResponse) => void
+   *  behalf. Omitted (a closed/cancelled event, or any other screen), the pill is display-only.
+   *  `reason` carries the mandatory why for `unavailable` (S18.4), collected before the call. */
+  onResponseChange?: (userId: string, response: AvailabilityResponse, reason?: string) => void
   /** True while this row's on-behalf response write is in flight: the menu trigger goes disabled. */
   responseSaving?: boolean
 }
@@ -47,6 +50,7 @@ export function PlayerResponseCard({
 }: PlayerResponseCardProps): React.JSX.Element {
   const disabled = onAttendanceChange === undefined || saving || disabledReason !== undefined
   const state = row.response ?? 'awaiting'
+  const [reasonOpen, setReasonOpen] = useState(false)
 
   function handleValueChange(next: string): void {
     if (onAttendanceChange === undefined) return
@@ -92,7 +96,8 @@ export function PlayerResponseCard({
                 <DropdownMenuItem
                   disabled={row.response === 'unavailable'}
                   onSelect={() => {
-                    onResponseChange(row.userId, 'unavailable')
+                    // A reason is mandatory for unavailable (S18.4): open the prompt, then write.
+                    setReasonOpen(true)
                   }}
                 >
                   <X aria-hidden="true" />
@@ -102,6 +107,24 @@ export function PlayerResponseCard({
             </DropdownMenu>
           )}
         </div>
+
+        {/* The reason an unavailable player gave, so a manager sees why (S18.4). */}
+        {row.response === 'unavailable' && row.reason !== null && row.reason !== '' && (
+          <p className="text-xs text-muted-foreground">Reason: {row.reason}</p>
+        )}
+
+        {onResponseChange !== undefined && (
+          <ReasonDialog
+            open={reasonOpen}
+            onOpenChange={setReasonOpen}
+            subject={row.name}
+            pending={responseSaving}
+            onSubmit={(reason) => {
+              setReasonOpen(false)
+              onResponseChange(row.userId, 'unavailable', reason)
+            }}
+          />
+        )}
 
         <ToggleGroup
           type="single"

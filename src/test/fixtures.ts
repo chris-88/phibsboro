@@ -162,7 +162,7 @@ export const memberRows = [
 
 /** eventResponseRowSchema — the manager responses read. */
 export const responseRows = [
-  { event_id: EVENT_ID, user_id: PLAYER_ID, response: 'available', updated_at: PAST },
+  { event_id: EVENT_ID, user_id: PLAYER_ID, response: 'available', reason: null, updated_at: PAST },
 ]
 
 /** attendance pick — user_id, attended. */

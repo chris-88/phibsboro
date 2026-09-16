@@ -42,12 +42,27 @@ describe('set_response_for (S18.1)', () => {
       p_event_id: EVENT.firsts.far.id,
       p_user_id: subject.id,
       p_response: 'unavailable',
+      p_reason: 'Away with work', // mandatory for unavailable (S18.4)
     })
     expect(flip.error).toBeNull()
-    // Still one row (upsert on the PK), now the new value.
+    // Still one row (upsert on the PK), now the new value plus the reason.
     expect(
-      expectRows(await manager.from('event_responses').select('response').match(match), 1)[0],
-    ).toEqual({ response: 'unavailable' })
+      expectRows(
+        await manager.from('event_responses').select('response, reason').match(match),
+        1,
+      )[0],
+    ).toEqual({ response: 'unavailable', reason: 'Away with work' })
+  })
+
+  it('refuses to mark unavailable without a reason (S18.4 check)', async () => {
+    const manager = await signInAs('admin')
+    // No p_reason → the DB check rejects it (a constraint error, not one of the RPC words).
+    const res = await manager.rpc('set_response_for', {
+      p_event_id: EVENT.firsts.far.id,
+      p_user_id: subject.id,
+      p_response: 'unavailable',
+    })
+    expect(res.error).not.toBeNull()
   })
 
   it('a plain player cannot set anyone else on their behalf', async () => {

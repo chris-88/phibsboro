@@ -68,6 +68,13 @@ function renderWith(initial: EventDetail): QueryClient {
 const yes = () => screen.getByRole('button', { name: 'Yes' })
 const no = () => screen.getByRole('button', { name: 'No' })
 
+/** No now opens the mandatory-reason prompt (S18.4): tap No, type a reason, Save. */
+const declineWith = async (reason: string): Promise<void> => {
+  await userEvent.click(no())
+  await userEvent.type(screen.getByLabelText('Reason'), reason)
+  await userEvent.click(screen.getByRole('button', { name: 'Save' }))
+}
+
 beforeEach(() => {
   upsert.mockReset()
 })
@@ -94,14 +101,14 @@ describe('AvailabilityButtons (S3.3)', () => {
       }),
     )
     renderWith(detailWith('available'))
-    await userEvent.click(no())
+    await declineWith('Away with work')
     // Optimistic: No is pressed while the request is still in flight.
     await waitFor(() => {
       expect(no()).toHaveAttribute('aria-pressed', 'true')
     })
     expect(yes()).toHaveAttribute('aria-pressed', 'false')
     expect(upsert).toHaveBeenCalledWith(
-      { event_id: EVENT_ID, user_id: USER_ID, response: 'unavailable' },
+      { event_id: EVENT_ID, user_id: USER_ID, response: 'unavailable', reason: 'Away with work' },
       { onConflict: 'event_id,user_id' },
     )
     resolve({ error: null })
@@ -112,7 +119,7 @@ describe('AvailabilityButtons (S3.3)', () => {
       error: { message: 'nope', details: '', hint: '', code: 'P0001', name: 'PostgrestError' },
     })
     renderWith(detailWith('available'))
-    await userEvent.click(no())
+    await declineWith('Away with work')
     await waitFor(() => {
       expect(screen.getByText("Couldn't save. Tap again.")).toBeInTheDocument()
     })
@@ -134,7 +141,7 @@ describe('AvailabilityButtons (S3.3)', () => {
       },
     })
     renderWith(detailWith('available'))
-    await userEvent.click(no())
+    await declineWith('Away with work')
     // Rolled back to the previous answer, and — unlike a network failure — no line is shown.
     await waitFor(() => {
       expect(yes()).toHaveAttribute('aria-pressed', 'true')

@@ -57,18 +57,21 @@ export type Database = {
       event_responses: {
         Row: {
           event_id: string
+          reason: string | null
           response: Database['public']['Enums']['availability_response']
           updated_at: string
           user_id: string
         }
         Insert: {
           event_id: string
+          reason?: string | null
           response: Database['public']['Enums']['availability_response']
           updated_at?: string
           user_id: string
         }
         Update: {
           event_id?: string
+          reason?: string | null
           response?: Database['public']['Enums']['availability_response']
           updated_at?: string
           user_id?: string
@@ -700,6 +703,7 @@ export type Database = {
       set_response_for: {
         Args: {
           p_event_id: string
+          p_reason?: string
           p_response: Database['public']['Enums']['availability_response']
           p_user_id: string
         }

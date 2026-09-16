@@ -177,7 +177,7 @@ export function useEventResponses(
       if (!eventId) return []
       const { data, error } = await supabase
         .from('event_responses')
-        .select('event_id, user_id, response, updated_at')
+        .select('event_id, user_id, response, reason, updated_at')
         .eq('event_id', eventId)
       if (error) throw error
       return z.array(eventResponseRowSchema).parse(data)

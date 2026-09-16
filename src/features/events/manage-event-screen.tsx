@@ -119,7 +119,8 @@ function ManagerEventView({ detail }: { detail: EventDetail }): React.JSX.Elemen
     [members.data],
   )
   const rosterResponses = useMemo(
-    () => responses.data?.map((r) => ({ userId: r.user_id, response: r.response })),
+    () =>
+      responses.data?.map((r) => ({ userId: r.user_id, response: r.response, reason: r.reason })),
     [responses.data],
   )
   const roster: RosterRow[] | null = useMemo(
@@ -181,11 +182,11 @@ function ManagerEventView({ detail }: { detail: EventDetail }): React.JSX.Elemen
   // attendance, on its own sets so a response write and an attendance write on the same card never
   // clobber each other's spinner or line. The optimistic pill flips at once; a refusal rolls it back.
   const handleResponseChange = useCallback(
-    (userId: string, response: AvailabilityResponse) => {
+    (userId: string, response: AvailabilityResponse, reason?: string) => {
       setResponseFailedUserIds((prev) => withoutId(prev, userId))
       setResponseSavingUserIds((prev) => withId(prev, userId))
       setResponseFor.mutate(
-        { userId, response },
+        { userId, response, reason },
         {
           onError: () => {
             setResponseFailedUserIds((prev) => withId(prev, userId))

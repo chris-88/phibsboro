@@ -107,6 +107,7 @@ const response = (id: string, r: EventResponseRow['response']): EventResponseRow
   event_id: ID,
   user_id: id,
   response: r,
+  reason: null,
   updated_at: '2026-09-10T00:00:00+00:00',
 })
 

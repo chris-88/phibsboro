@@ -18,6 +18,9 @@ export interface RosterMember {
 export interface RosterResponse {
   readonly userId: string
   readonly response: Response
+  /** The reason an `unavailable` player gave (S18.4); null for available. Undefined-tolerant so a
+   *  caller that hasn't wired it yet still compiles. */
+  readonly reason?: string | null
 }
 export interface RosterAttendance {
   readonly userId: string
@@ -30,6 +33,8 @@ export interface RosterRow {
   readonly role: Role
   /** null means awaiting — absence of an `event_responses` row, never a stored value (D25). */
   readonly response: Response | null
+  /** The reason an `unavailable` player gave (S18.4); null when available or awaiting. */
+  readonly reason: string | null
   /** null means not recorded — absence of an `attendance` row (D25). */
   readonly attended: boolean | null
 }
@@ -55,16 +60,20 @@ export function buildRoster(
   responses: readonly RosterResponse[],
   attendance: readonly RosterAttendance[],
 ): RosterRow[] {
-  const responseByUser = new Map(responses.map((r) => [r.userId, r.response]))
+  const responseByUser = new Map(responses.map((r) => [r.userId, r]))
   const attendedByUser = new Map(attendance.map((a) => [a.userId, a.attended]))
 
-  const rows: RosterRow[] = members.map((m) => ({
-    userId: m.userId,
-    name: m.name,
-    role: m.role,
-    response: responseByUser.get(m.userId) ?? null,
-    attended: attendedByUser.get(m.userId) ?? null,
-  }))
+  const rows: RosterRow[] = members.map((m) => {
+    const r = responseByUser.get(m.userId)
+    return {
+      userId: m.userId,
+      name: m.name,
+      role: m.role,
+      response: r?.response ?? null,
+      reason: r?.reason ?? null,
+      attended: attendedByUser.get(m.userId) ?? null,
+    }
+  })
 
   return rows.sort((a, b) => {
     const byRank = rank(a.response) - rank(b.response)

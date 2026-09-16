@@ -17,6 +17,9 @@ import { usePromptStore } from '@/stores/prompt-store'
 export interface SetResponseVars {
   eventId: string
   response: AvailabilityResponse
+  /** The mandatory why for an `unavailable` answer (S18.4). Ignored (stored null) for `available`;
+   *  the DB check requires a non-empty one for `unavailable`, and the UI collects it first. */
+  reason?: string | null
 }
 
 /** S3.3's mutation surface plus one derived flag. A `42501` refusal from the D12 `WITH CHECK` means
@@ -60,16 +63,19 @@ export function useSetResponse(): SetResponseMutation {
 
   const mutation: UseMutationResult<void, PostgrestError, SetResponseVars, SetResponseContext> =
     useMutation({
-      mutationFn: async ({ eventId, response }) => {
+      mutationFn: async ({ eventId, response, reason }) => {
         // Only rendered below a member view, so a signed-in user is guaranteed; the guard keeps
         // the type honest rather than guarding a reachable path.
         if (userId === undefined) throw new Error('not signed in')
-        const { error } = await supabase
-          .from('event_responses')
-          .upsert(
-            { event_id: eventId, user_id: userId, response },
-            { onConflict: 'event_id,user_id' },
-          )
+        const { error } = await supabase.from('event_responses').upsert(
+          {
+            event_id: eventId,
+            user_id: userId,
+            response,
+            reason: response === 'unavailable' ? (reason ?? null) : null,
+          },
+          { onConflict: 'event_id,user_id' },
+        )
         if (error) throw error
       },
       onMutate: async ({ eventId, response }) => {
@@ -134,6 +140,8 @@ export function useSetResponse(): SetResponseMutation {
 export interface SetResponseForVars {
   userId: string
   response: AvailabilityResponse
+  /** The mandatory why for an `unavailable` answer (S18.4); ignored for `available`. */
+  reason?: string | null
 }
 
 interface SetResponseForContext {
@@ -154,14 +162,16 @@ export function useSetResponseFor(
   const qc = useQueryClient()
   const key = eventKeys.responses(eventId)
   return useMutation({
-    mutationFn: async ({ userId, response }) => {
+    mutationFn: async ({ userId, response, reason }) => {
       await callRpc('set_response_for', {
         p_event_id: eventId,
         p_user_id: userId,
         p_response: response,
+        // The RPC arg defaults to null when omitted; `undefined` (not null) matches its type.
+        p_reason: response === 'unavailable' ? (reason ?? undefined) : undefined,
       })
     },
-    onMutate: async ({ userId, response }) => {
+    onMutate: async ({ userId, response, reason }) => {
       await qc.cancelQueries({ queryKey: key })
       const previous = qc.getQueryData<EventResponseRow[]>(key)
       if (previous) {
@@ -170,7 +180,13 @@ export function useSetResponseFor(
         // refetch replaces the row with the server's truth.
         qc.setQueryData<EventResponseRow[]>(key, [
           ...others,
-          { event_id: eventId, user_id: userId, response, updated_at: '' },
+          {
+            event_id: eventId,
+            user_id: userId,
+            response,
+            reason: response === 'unavailable' ? (reason ?? null) : null,
+            updated_at: '',
+          },
         ])
       }
       return { previous }
