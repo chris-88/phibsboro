@@ -167,6 +167,13 @@ export const routeTable: readonly AppRoute[] = [
     screen: { lazy: () => import('@/features/profile/routes/ProfileScreen') },
   },
   {
+    path: paths.stats(),
+    chrome: 'nav',
+    guard: 'authed',
+    title: 'Stats',
+    screen: { lazy: () => import('@/features/stats/routes/StatsScreen') },
+  },
+  {
     path: '*',
     chrome: 'bare',
     guard: 'public',

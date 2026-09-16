@@ -4,10 +4,11 @@ import { isNavItemActive, navItemsForRole } from '@/lib/nav'
 const labels = (role: 'player' | 'manager' | 'admin') => navItemsForRole(role).map((i) => i.label)
 
 describe('navItemsForRole (AC7)', () => {
-  it('gives a player Home and a disabled Stats placeholder (W8)', () => {
+  it('gives a player Home and Stats', () => {
     expect(labels('player')).toEqual(['Home', 'Stats'])
     const stats = navItemsForRole('player').find((i) => i.label === 'Stats')
-    expect(stats?.disabled).toBe(true)
+    expect(stats?.disabled).toBeFalsy()
+    expect(stats?.to).toBe('/stats')
   })
 
   it('gives a manager Home, Stats, Schedule and Squad (S10.3 AC1)', () => {

@@ -542,6 +542,19 @@ export type Database = {
         }
         Returns: undefined
       }
+      attendance_stats: {
+        Args: { p_team_id: string }
+        Returns: {
+          games_attended: number
+          games_total: number
+          invited: number
+          name: string
+          responded: number
+          training_attended: number
+          training_total: number
+          user_id: string
+        }[]
+      }
       clear_squad: { Args: { p_event_id: string }; Returns: undefined }
       create_team_invite: {
         Args: {
@@ -620,6 +633,20 @@ export type Database = {
         }[]
       }
       new_token: { Args: never; Returns: string }
+      performance_stats: {
+        Args: { p_team_id: string }
+        Returns: {
+          appearances: number
+          assists: number
+          goals: number
+          minutes: number
+          motm: number
+          name: string
+          red_cards: number
+          user_id: string
+          yellow_cards: number
+        }[]
+      }
       redeem_reset_token: {
         Args: { p_new_password: string; p_token: string }
         Returns: string

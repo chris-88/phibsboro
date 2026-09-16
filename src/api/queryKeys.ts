@@ -66,3 +66,13 @@ export const feedbackKeys = {
   all: ['feedback'] as const,
   inbox: () => ['feedback', 'inbox'] as const,
 } as const
+
+/**
+ * The Stats tab reads (S17.5/S17.6). Team-scoped, its own prefix so nothing else churns them and a
+ * match-stat write can invalidate performance without touching events.
+ */
+export const statsKeys = {
+  all: ['stats'] as const,
+  attendance: (teamId: string) => ['stats', 'attendance', teamId] as const,
+  performance: (teamId: string) => ['stats', 'performance', teamId] as const,
+} as const

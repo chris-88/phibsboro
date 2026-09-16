@@ -22,3 +22,30 @@ export const matchStatsRowSchema = z.object({
 export type MatchStatsRow = z.infer<typeof matchStatsRowSchema>
 
 export type Parity = [Expect<Equal<MatchStatsRow, Tables<'match_stats'>>>]
+
+/** One row of `attendance_stats` (S17.5). Snake-case from the RPC; the hook maps to the view. */
+export const attendanceStatRowSchema = z.object({
+  user_id: uuidSchema,
+  name: z.string(),
+  games_total: z.number().int(),
+  games_attended: z.number().int(),
+  training_total: z.number().int(),
+  training_attended: z.number().int(),
+  responded: z.number().int(),
+  invited: z.number().int(),
+})
+export type AttendanceStatRow = z.infer<typeof attendanceStatRowSchema>
+
+/** One row of `performance_stats` (S17.6). */
+export const performanceStatRowSchema = z.object({
+  user_id: uuidSchema,
+  name: z.string(),
+  appearances: z.number().int(),
+  goals: z.number().int(),
+  assists: z.number().int(),
+  yellow_cards: z.number().int(),
+  red_cards: z.number().int(),
+  minutes: z.number().int(),
+  motm: z.number().int(),
+})
+export type PerformanceStatRow = z.infer<typeof performanceStatRowSchema>

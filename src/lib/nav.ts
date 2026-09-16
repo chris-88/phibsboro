@@ -20,9 +20,7 @@ export interface NavItem {
 export function navItemsForRole(role: AppRole): NavItem[] {
   const items: NavItem[] = [
     { label: 'Home', to: paths.home(), icon: House },
-    // Stats is a disabled placeholder where History used to be (W8): a richer stats surface is a
-    // later epic. The calendar Home covers reverse-chronology in the meantime.
-    { label: 'Stats', to: '/stats', icon: BarChart3, disabled: true },
+    { label: 'Stats', to: paths.stats(), icon: BarChart3 },
   ]
   if (role === 'manager' || role === 'admin') {
     items.push({ label: 'Schedule', to: paths.manage(), icon: CalendarDays })

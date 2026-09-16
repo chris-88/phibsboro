@@ -7,18 +7,16 @@ import { BottomNav } from '@/components/bottom-nav'
 const render = (ui: React.ReactElement) => rtlRender(<MemoryRouter>{ui}</MemoryRouter>)
 
 describe('BottomNav', () => {
-  it('renders one item per role entry (Stats is a disabled placeholder, not a link)', () => {
+  it('renders one link per role entry', () => {
     render(<BottomNav role="manager" currentPath="/" />)
-    // Home, Manage, Squad are links; Stats (W8) is a disabled span, not a link.
-    expect(screen.getAllByRole('link')).toHaveLength(3)
+    // Home, Stats, Schedule, Squad are all links now (Stats enabled, S17.7).
+    expect(screen.getAllByRole('link')).toHaveLength(4)
     expect(screen.getAllByRole('listitem')).toHaveLength(4)
   })
 
-  it('shows Stats as present but disabled and non-navigable (W8)', () => {
+  it('links Stats to /stats', () => {
     render(<BottomNav role="player" currentPath="/" />)
-    const stats = screen.getByText('Stats').closest('[aria-disabled]')
-    expect(stats).not.toBeNull()
-    expect(screen.queryByRole('link', { name: /stats/i })).not.toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /stats/i })).toHaveAttribute('href', '/stats')
   })
 
   it('marks the item matching currentPath as the current page (AC10)', () => {
