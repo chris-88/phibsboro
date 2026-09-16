@@ -89,6 +89,7 @@ describe('the service-role client stays out of assertions (S1.4 AC8)', () => {
       'event-responses.test.ts',
       'events.test.ts',
       'feedback.test.ts', // S12.1 — feedback table, RLS and resolve_feedback
+      'match-stats.test.ts', // S17.3 - match_stats table RLS
       'profiles.test.ts',
       'reset-tokens.test.ts',
       'rpc-invites.test.ts',

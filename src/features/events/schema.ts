@@ -53,6 +53,10 @@ export const eventRowSchema = z.object({
   // Match only (W7, S15.1): the kit the team wears. Null for training/social and a match with none
   // chosen. The DB check enforces match-only, mirroring opponent/home_away.
   jersey: jerseySchema.nullable(),
+  // Match only (X4, S17.3): man of the match and the final score. Null off a match / until entered.
+  motm_user_id: uuidSchema.nullable(),
+  score_us: z.number().int().nullable(),
+  score_them: z.number().int().nullable(),
   // Match only (V4, S8.3): the arrival time, earlier than `starts_at` (kick-off). Null for
   // training and social, and for a match with no separate meet time. The DB check enforces the
   // ordering; `starts_at` stays kick-off and keeps driving the S3.4 respond-until rule.

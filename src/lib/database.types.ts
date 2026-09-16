@@ -148,8 +148,11 @@ export type Database = {
           jersey: Database['public']['Enums']['jersey'] | null
           location: string
           meet_at: string | null
+          motm_user_id: string | null
           notes: string | null
           opponent: string | null
+          score_them: number | null
+          score_us: number | null
           series_id: string | null
           starts_at: string
           status: Database['public']['Enums']['event_status']
@@ -166,8 +169,11 @@ export type Database = {
           jersey?: Database['public']['Enums']['jersey'] | null
           location: string
           meet_at?: string | null
+          motm_user_id?: string | null
           notes?: string | null
           opponent?: string | null
+          score_them?: number | null
+          score_us?: number | null
           series_id?: string | null
           starts_at: string
           status?: Database['public']['Enums']['event_status']
@@ -184,8 +190,11 @@ export type Database = {
           jersey?: Database['public']['Enums']['jersey'] | null
           location?: string
           meet_at?: string | null
+          motm_user_id?: string | null
           notes?: string | null
           opponent?: string | null
+          score_them?: number | null
+          score_us?: number | null
           series_id?: string | null
           starts_at?: string
           status?: Database['public']['Enums']['event_status']
@@ -198,6 +207,13 @@ export type Database = {
           {
             foreignKeyName: 'events_created_by_fkey'
             columns: ['created_by']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'events_motm_user_id_fkey'
+            columns: ['motm_user_id']
             isOneToOne: false
             referencedRelation: 'profiles'
             referencedColumns: ['id']
@@ -255,6 +271,64 @@ export type Database = {
           },
           {
             foreignKeyName: 'feedback_user_id_fkey'
+            columns: ['user_id']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      match_stats: {
+        Row: {
+          assists: number
+          event_id: string
+          goals: number
+          minutes: number | null
+          recorded_by: string | null
+          red_card: boolean
+          updated_at: string
+          user_id: string
+          yellow_cards: number
+        }
+        Insert: {
+          assists?: number
+          event_id: string
+          goals?: number
+          minutes?: number | null
+          recorded_by?: string | null
+          red_card?: boolean
+          updated_at?: string
+          user_id: string
+          yellow_cards?: number
+        }
+        Update: {
+          assists?: number
+          event_id?: string
+          goals?: number
+          minutes?: number | null
+          recorded_by?: string | null
+          red_card?: boolean
+          updated_at?: string
+          user_id?: string
+          yellow_cards?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'match_stats_event_id_fkey'
+            columns: ['event_id']
+            isOneToOne: false
+            referencedRelation: 'events'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'match_stats_recorded_by_fkey'
+            columns: ['recorded_by']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'match_stats_user_id_fkey'
             columns: ['user_id']
             isOneToOne: false
             referencedRelation: 'profiles'

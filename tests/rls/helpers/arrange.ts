@@ -161,3 +161,17 @@ export async function deleteAllFeedback() {
     'deleteAllFeedback',
   )
 }
+
+/** Clear every match_stats row (S17.3). The reseed does not truncate it (postdates the seed), so
+ *  the match-stats RLS test clears its own rows through here. */
+export async function deleteAllMatchStats() {
+  check(
+    (
+      await admin
+        .from('match_stats')
+        .delete()
+        .neq('event_id', '00000000-0000-0000-0000-000000000000')
+    ).error,
+    'deleteAllMatchStats',
+  )
+}
