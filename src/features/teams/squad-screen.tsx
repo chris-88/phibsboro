@@ -1,9 +1,11 @@
+import { useState } from 'react'
 import { ChevronRight } from 'lucide-react'
 import { Link } from 'react-router'
 import { useQueryClient } from '@tanstack/react-query'
 import { teamKeys } from '@/api/queryKeys'
 import { EmptyState, ErrorState, LoadingState } from '@/components/states'
 import { Card, CardContent } from '@/components/ui/card'
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { useTeamEvents } from '@/api/events'
 import { useEventSquad } from '@/api/squad'
 import { squadStatusText } from '@/features/events/squad-picker'
@@ -18,18 +20,23 @@ import { paths } from '@/lib/paths'
 import { serverNow } from '@/lib/serverClock'
 import { formatEventTime } from '@/lib/time'
 
+/** Which of the three manager jobs the Squad tab is showing. */
+type SquadView = 'selection' | 'games' | 'members'
+
 /**
- * `/squad` (S10.3, V11/V12; S17.2, X3): the manager's squad hub, the three manager jobs one under
- * the next — **Selection** (pick the matchday squad, S9.2), **Game Stats** (run a match, S17.4) and
- * **Members** (S6.4). The team is resolved through `useActiveTeam()`, so a multi-team manager gets
- * the same picker as `/manage` and all three sections follow it (AC5, D50). The guard already sent a
- * player home (AC6); RLS bounds every read.
+ * `/squad` (S10.3, V11/V12; S17.2, X3): the manager's squad hub. One segmented switch at the top
+ * chooses between the three manager jobs — **Selection** (pick the matchday squad, S9.2), **Game
+ * Stats** (run a match, S17.4) and **Members** (S6.4) — so only one is on screen at a time (Chris,
+ * 2026-09-16). The team is resolved through `useActiveTeam()`, so a multi-team manager gets the same
+ * picker as `/manage` and every view follows it (AC5, D50). The guard already sent a player home
+ * (AC6); RLS bounds every read.
  */
 export default function SquadScreen(): React.JSX.Element {
   const { teamId, team, isLoading, isError } = useActiveTeam()
   const account = useCurrentUser()
   const isAdmin = account.status === 'ready' && account.user.isAdmin
   const qc = useQueryClient()
+  const [view, setView] = useState<SquadView>('selection')
 
   if (isError) {
     return (
@@ -57,33 +64,37 @@ export default function SquadScreen(): React.JSX.Element {
   }
 
   return (
-    <div className="flex flex-col gap-6 py-4">
+    <div className="flex flex-col gap-4 py-4">
       <header className="min-w-0">
         <ManageHeader />
       </header>
 
-      <section className="flex flex-col gap-2">
-        <h3 className="px-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+      <ToggleGroup
+        type="single"
+        value={view}
+        onValueChange={(v) => {
+          // Radix hands back '' when the active item is tapped again; ignore that so a view is
+          // always selected (mirrors the Stats tab, S17.7).
+          if (v === 'selection' || v === 'games' || v === 'members') setView(v)
+        }}
+        className="w-full"
+      >
+        <ToggleGroupItem value="selection" variant="outline" className="flex-1">
           Selection
-        </h3>
-        <SelectionList teamId={teamId} />
-      </section>
-
-      <section className="flex flex-col gap-2">
-        <h3 className="px-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+        </ToggleGroupItem>
+        <ToggleGroupItem value="games" variant="outline" className="flex-1">
           Game Stats
-        </h3>
-        <GameStatsList teamId={teamId} />
-      </section>
-
-      <section className="flex flex-col gap-2">
-        <h3 className="px-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+        </ToggleGroupItem>
+        <ToggleGroupItem value="members" variant="outline" className="flex-1">
           Members
-        </h3>
-        {/* The S6.4 roster, embedded not duplicated: reset / remove / change-role, its own four
-            states. The admin-only actions follow the caller's role. */}
-        <MemberList teamId={teamId} teamName={team.name} isAdmin={isAdmin} />
-      </section>
+        </ToggleGroupItem>
+      </ToggleGroup>
+
+      {view === 'selection' && <SelectionList teamId={teamId} />}
+      {view === 'games' && <GameStatsList teamId={teamId} />}
+      {/* The S6.4 roster, embedded not duplicated: reset / remove / change-role, its own four
+          states. The admin-only actions follow the caller's role. */}
+      {view === 'members' && <MemberList teamId={teamId} teamName={team.name} isAdmin={isAdmin} />}
     </div>
   )
 }
