@@ -14,7 +14,7 @@ Attendance and Performance, shown by role.
 
 | # | ID | Story | Depends on | Size | Status |
 |---|---|---|---|---|---|
-| 1 | S17.1 | Schedule: rename Manage, add Past | S4.1, S4.3 | S | ☐ |
+| 1 | S17.1 | Schedule: rename Manage, add Past | S4.1, S4.3 | S | ✓ |
 | 2 | S17.3 | Match-stats data model + RLS + `events` MOTM/score | S1.4, S9.1 | M | ☐ |
 | 3 | S17.4 | Game Stats: live collection + edit (Squad tab) | S17.3, S9.2, S10.3 | L | ☐ |
 | 4 | S17.2 | Squad tab: Selection · Game Stats · Members | S17.4 | S | ☐ |

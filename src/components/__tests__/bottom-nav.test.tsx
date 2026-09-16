@@ -23,19 +23,19 @@ describe('BottomNav', () => {
 
   it('marks the item matching currentPath as the current page (AC10)', () => {
     render(<BottomNav role="admin" currentPath="/manage" />)
-    expect(screen.getByRole('link', { name: /manage/i })).toHaveAttribute('aria-current', 'page')
+    expect(screen.getByRole('link', { name: /schedule/i })).toHaveAttribute('aria-current', 'page')
     expect(screen.getByRole('link', { name: /home/i })).not.toHaveAttribute('aria-current')
   })
 
-  it('activates Manage from a deeper manage route', () => {
+  it('activates Schedule from a deeper manage route', () => {
     render(<BottomNav role="manager" currentPath="/manage/event/new" />)
-    expect(screen.getByRole('link', { name: /manage/i })).toHaveAttribute('aria-current', 'page')
+    expect(screen.getByRole('link', { name: /schedule/i })).toHaveAttribute('aria-current', 'page')
   })
 
   it('distinguishes the active item by weight as well as colour, so it survives greyscale (AC10)', () => {
     render(<BottomNav role="manager" currentPath="/" />)
     expect(screen.getByRole('link', { name: /home/i }).className).toContain('font-semibold')
-    expect(screen.getByRole('link', { name: /manage/i }).className).toContain('font-normal')
+    expect(screen.getByRole('link', { name: /schedule/i }).className).toContain('font-normal')
   })
 
   it('pads its bottom with the safe-area inset so no item sits under the home indicator (AC5)', () => {
@@ -48,6 +48,6 @@ describe('BottomNav', () => {
   it('links to the route path; the hash router turns it into #/… in the browser', () => {
     render(<BottomNav role="manager" currentPath="/" />)
     expect(screen.getByRole('link', { name: /home/i })).toHaveAttribute('href', '/')
-    expect(screen.getByRole('link', { name: /manage/i })).toHaveAttribute('href', '/manage')
+    expect(screen.getByRole('link', { name: /schedule/i })).toHaveAttribute('href', '/manage')
   })
 })

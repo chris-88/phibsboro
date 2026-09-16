@@ -10,12 +10,12 @@ describe('navItemsForRole (AC7)', () => {
     expect(stats?.disabled).toBe(true)
   })
 
-  it('gives a manager Home, Stats, Manage and Squad (S10.3 AC1)', () => {
-    expect(labels('manager')).toEqual(['Home', 'Stats', 'Manage', 'Squad'])
+  it('gives a manager Home, Stats, Schedule and Squad (S10.3 AC1)', () => {
+    expect(labels('manager')).toEqual(['Home', 'Stats', 'Schedule', 'Squad'])
   })
 
-  it('gives an admin Home, Stats, Manage and Admin — no Squad (Q4, AC1)', () => {
-    expect(labels('admin')).toEqual(['Home', 'Stats', 'Manage', 'Admin'])
+  it('gives an admin Home, Stats, Schedule and Admin — no Squad (Q4, AC1)', () => {
+    expect(labels('admin')).toEqual(['Home', 'Stats', 'Schedule', 'Admin'])
     expect(labels('admin')).not.toContain('Squad')
   })
 

@@ -100,7 +100,7 @@ export const routeTable: readonly AppRoute[] = [
     path: paths.manage(),
     chrome: 'nav',
     guard: 'manager',
-    title: 'Manage',
+    title: 'Schedule',
     screen: { lazy: () => import('@/features/events/manage-screen') },
   },
   {
