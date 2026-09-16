@@ -17,6 +17,13 @@ export interface PlayerResponseListProps {
   failedUserIds?: ReadonlySet<string>
   /** Rendered under every control when the event forbids editing, e.g. cancelled (S4.5). */
   disabledReason?: string
+  /** S18.1: the manager on-behalf availability handler, forwarded to every card. Omitted (a
+   *  cancelled/closed event) leaves each pill display-only. */
+  onResponseChange?: PlayerResponseCardProps['onResponseChange']
+  /** The `userId`s whose on-behalf response write is in flight (S18.1). */
+  responseSavingUserIds?: ReadonlySet<string>
+  /** The `userId`s whose last on-behalf response write failed (S18.1): its own inline line. */
+  responseFailedUserIds?: ReadonlySet<string>
 }
 
 /**
@@ -31,6 +38,9 @@ export function PlayerResponseList({
   savingUserIds,
   failedUserIds,
   disabledReason,
+  onResponseChange,
+  responseSavingUserIds,
+  responseFailedUserIds,
 }: PlayerResponseListProps): React.JSX.Element {
   return (
     <ul className="flex flex-col gap-2">
@@ -41,7 +51,14 @@ export function PlayerResponseList({
             onAttendanceChange={onAttendanceChange}
             saving={savingUserIds?.has(row.userId) ?? false}
             disabledReason={disabledReason}
+            onResponseChange={onResponseChange}
+            responseSaving={responseSavingUserIds?.has(row.userId) ?? false}
           />
+          {responseFailedUserIds?.has(row.userId) && (
+            <p role="alert" className="px-1 text-xs text-destructive">
+              Couldn&apos;t set availability. Try again.
+            </p>
+          )}
           {failedUserIds?.has(row.userId) && (
             <p role="alert" className="px-1 text-xs text-destructive">
               Couldn&apos;t save. Tap again.

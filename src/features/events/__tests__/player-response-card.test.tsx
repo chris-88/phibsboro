@@ -93,3 +93,44 @@ describe('PlayerResponseCard', () => {
     expect(onChange).not.toHaveBeenCalled()
   })
 })
+
+describe('PlayerResponseCard — respond on behalf (S18.1)', () => {
+  it('leaves the pill display-only when no response handler is passed', () => {
+    render(<PlayerResponseCard row={row({ response: null })} onAttendanceChange={vi.fn()} />)
+    expect(screen.queryByRole('button', { name: /availability/i })).not.toBeInTheDocument()
+    expect(screen.getByLabelText('Dara Byrne, awaiting')).toBeInTheDocument()
+  })
+
+  it('lets a manager mark a player available or unavailable on their behalf', async () => {
+    const user = userEvent.setup()
+    const onResponse = vi.fn()
+    render(<PlayerResponseCard row={row({ response: null })} onResponseChange={onResponse} />)
+
+    await user.click(screen.getByRole('button', { name: "Set Dara Byrne's availability" }))
+    await user.click(screen.getByRole('menuitem', { name: 'Mark available' }))
+    expect(onResponse).toHaveBeenCalledWith('u1', 'available')
+
+    await user.click(screen.getByRole('button', { name: "Set Dara Byrne's availability" }))
+    await user.click(screen.getByRole('menuitem', { name: 'Mark unavailable' }))
+    expect(onResponse).toHaveBeenLastCalledWith('u1', 'unavailable')
+  })
+
+  it('disables the menu item matching the current response (no redundant write)', async () => {
+    const user = userEvent.setup()
+    render(<PlayerResponseCard row={row({ response: 'available' })} onResponseChange={vi.fn()} />)
+    await user.click(screen.getByRole('button', { name: "Set Dara Byrne's availability" }))
+    expect(screen.getByRole('menuitem', { name: 'Mark available' })).toHaveAttribute(
+      'aria-disabled',
+      'true',
+    )
+    expect(screen.getByRole('menuitem', { name: 'Mark unavailable' })).not.toHaveAttribute(
+      'aria-disabled',
+      'true',
+    )
+  })
+
+  it('disables the trigger while an on-behalf write is in flight', () => {
+    render(<PlayerResponseCard row={row()} onResponseChange={vi.fn()} responseSaving />)
+    expect(screen.getByRole('button', { name: "Set Dara Byrne's availability" })).toBeDisabled()
+  })
+})

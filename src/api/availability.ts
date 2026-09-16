@@ -7,8 +7,10 @@ import {
 import type { PostgrestError } from '@supabase/supabase-js'
 import type { EventDetail, UpcomingEvent } from '@/api/events'
 import { eventKeys } from '@/api/queryKeys'
+import { callRpc } from '@/api/rpc'
 import { useSession } from '@/features/auth/session-context'
-import type { AvailabilityResponse } from '@/features/availability/schema'
+import type { AvailabilityResponse, EventResponseRow } from '@/features/availability/schema'
+import type { AppError } from '@/lib/errors'
 import { supabase } from '@/lib/supabase'
 import { usePromptStore } from '@/stores/prompt-store'
 
@@ -126,4 +128,58 @@ export function useSetResponse(): SetResponseMutation {
 
   // a 42501 is a stale screen, not a retryable failure, so it never shows the line (AC9)
   return { ...mutation, showRetryLine: mutation.isError && mutation.error.code !== '42501' }
+}
+
+/** What the manager sets and for whom. */
+export interface SetResponseForVars {
+  userId: string
+  response: AvailabilityResponse
+}
+
+interface SetResponseForContext {
+  previous: EventResponseRow[] | undefined
+}
+
+/**
+ * A manager records a player's availability on their behalf (S18.1). A player texts "I'm in" but
+ * never taps; the manager sets it from the event's "Who's in" list. Goes through the security-
+ * definer `set_response_for` RPC — the `event_responses` table policies stay player-only, so this
+ * is the manager's single audited way in, and a non-manager (or a closed window) is refused in the
+ * DB with `not_authorised`, never just the UI. Optimistic on `eventKeys.responses(eventId)` (the
+ * cache the counts and the roster both read, D48), rolled back on refusal, re-synced on settle.
+ */
+export function useSetResponseFor(
+  eventId: string,
+): UseMutationResult<void, AppError, SetResponseForVars, SetResponseForContext> {
+  const qc = useQueryClient()
+  const key = eventKeys.responses(eventId)
+  return useMutation({
+    mutationFn: async ({ userId, response }) => {
+      await callRpc('set_response_for', {
+        p_event_id: eventId,
+        p_user_id: userId,
+        p_response: response,
+      })
+    },
+    onMutate: async ({ userId, response }) => {
+      await qc.cancelQueries({ queryKey: key })
+      const previous = qc.getQueryData<EventResponseRow[]>(key)
+      if (previous) {
+        const others = previous.filter((r) => r.user_id !== userId)
+        // `updated_at` is audit the roster never renders; a placeholder stands in until the settle
+        // refetch replaces the row with the server's truth.
+        qc.setQueryData<EventResponseRow[]>(key, [
+          ...others,
+          { event_id: eventId, user_id: userId, response, updated_at: '' },
+        ])
+      }
+      return { previous }
+    },
+    onError: (_error, _vars, ctx) => {
+      if (ctx?.previous) qc.setQueryData(key, ctx.previous)
+    },
+    onSettled: () => {
+      void qc.invalidateQueries({ queryKey: key })
+    },
+  })
 }

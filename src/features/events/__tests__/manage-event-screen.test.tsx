@@ -55,6 +55,11 @@ vi.mock('@/api/attendance', () => ({
   useSetAttendance: () => ({ mutate: vi.fn(), isPending: false }),
   useBulkMarkAttended: () => ({ mutate: vi.fn(), isPending: false }),
 }))
+// S18.1: the on-behalf availability write. Inert here — this suite is about states and counts, not
+// the write (covered by its own hook and card tests).
+vi.mock('@/api/availability', () => ({
+  useSetResponseFor: () => ({ mutate: vi.fn(), isPending: false }),
+}))
 // The overflow menu's dialogs own mutation hooks that reach the query cache; stub them so this
 // screen test is about states and counts, not their behaviour (covered by the S4.2 tests).
 vi.mock('@/features/events/components/EventFormDialog', () => ({ EventFormDialog: () => null }))

@@ -2,6 +2,9 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { ArrowLeft, ChevronRight } from 'lucide-react'
 import { Link, useNavigate } from 'react-router'
 import { useBulkMarkAttended, useSetAttendance } from '@/api/attendance'
+import { useSetResponseFor } from '@/api/availability'
+import type { AvailabilityResponse } from '@/features/availability/schema'
+import { serverNow } from '@/lib/serverClock'
 import { NotFound } from '@/components/not-found'
 import { EmptyState, ErrorState } from '@/components/states'
 import { Button } from '@/components/ui/button'
@@ -132,9 +135,17 @@ function ManagerEventView({ detail }: { detail: EventDetail }): React.JSX.Elemen
   // the hook, since a mutation instance tracks one call at a time but many rows write in parallel.
   const setAttendance = useSetAttendance(detail.id)
   const bulkMark = useBulkMarkAttended(detail.id)
+  const setResponseFor = useSetResponseFor(detail.id)
   const cancelled = detail.status === 'cancelled'
+  // Availability closes at kick-off (D12), the same window the player's own controls obey, so the
+  // on-behalf menu is offered only while the event is still open — after that the manager records
+  // attendance instead. The RPC enforces this too (S18.1); this just hides a control that would fail.
+  const responsesOpen =
+    detail.status === 'scheduled' && new Date(detail.startsAt).getTime() > serverNow().getTime()
   const [savingUserIds, setSavingUserIds] = useState<ReadonlySet<string>>(new Set())
   const [failedUserIds, setFailedUserIds] = useState<ReadonlySet<string>>(new Set())
+  const [responseSavingUserIds, setResponseSavingUserIds] = useState<ReadonlySet<string>>(new Set())
+  const [responseFailedUserIds, setResponseFailedUserIds] = useState<ReadonlySet<string>>(new Set())
   const [bulkMessage, setBulkMessage] = useState<string | null>(null)
   const [bulkFailed, setBulkFailed] = useState(false)
 
@@ -164,6 +175,28 @@ function ManagerEventView({ detail }: { detail: EventDetail }): React.JSX.Elemen
       )
     },
     [setAttendance],
+  )
+
+  // S18.1: the manager answers on a player's behalf. Same per-row saving/failed bookkeeping as
+  // attendance, on its own sets so a response write and an attendance write on the same card never
+  // clobber each other's spinner or line. The optimistic pill flips at once; a refusal rolls it back.
+  const handleResponseChange = useCallback(
+    (userId: string, response: AvailabilityResponse) => {
+      setResponseFailedUserIds((prev) => withoutId(prev, userId))
+      setResponseSavingUserIds((prev) => withId(prev, userId))
+      setResponseFor.mutate(
+        { userId, response },
+        {
+          onError: () => {
+            setResponseFailedUserIds((prev) => withId(prev, userId))
+          },
+          onSettled: () => {
+            setResponseSavingUserIds((prev) => withoutId(prev, userId))
+          },
+        },
+      )
+    },
+    [setResponseFor],
   )
 
   const availableIds = roster ? availableForAttendance(roster) : []
@@ -308,6 +341,9 @@ function ManagerEventView({ detail }: { detail: EventDetail }): React.JSX.Elemen
             savingUserIds={savingUserIds}
             failedUserIds={failedUserIds}
             disabledReason={cancelled ? 'Cancelled — nothing to record.' : undefined}
+            onResponseChange={responsesOpen ? handleResponseChange : undefined}
+            responseSavingUserIds={responseSavingUserIds}
+            responseFailedUserIds={responseFailedUserIds}
           />
         )}
       </section>

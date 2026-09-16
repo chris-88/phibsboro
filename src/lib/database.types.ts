@@ -680,6 +680,14 @@ export type Database = {
         Returns: undefined
       }
       set_own_avatar: { Args: { p_path: string }; Returns: undefined }
+      set_response_for: {
+        Args: {
+          p_event_id: string
+          p_response: Database['public']['Enums']['availability_response']
+          p_user_id: string
+        }
+        Returns: undefined
+      }
       set_squad_member: {
         Args: {
           p_event_id: string
