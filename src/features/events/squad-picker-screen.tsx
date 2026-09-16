@@ -18,12 +18,18 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { EventTypeBadge } from '@/features/events/components/EventTypeBadge'
+import { ShareButton } from '@/features/events/components/ShareButton'
 import {
   buildPickerModel,
   freeNumbers,
   MAX_SQUAD,
   type PickerEntry,
 } from '@/features/events/squad-picker'
+import {
+  buildMatchShareMessage,
+  type MatchShareEvent,
+  type MatchShareSquadMember,
+} from '@/lib/shareMessage'
 import type { AppError } from '@/lib/errors'
 import { mapRpcError } from '@/lib/errors'
 import { paths } from '@/lib/paths'
@@ -183,6 +189,25 @@ function SquadPickerView({ detail }: { detail: EventDetail }): React.JSX.Element
 
   const failed = responses.isError || members.isError || squad.isError
 
+  // The teamsheet share lives here on the Squad view, not on the Schedule tab (Chris, 2026-09-16):
+  // the numbered side is chosen here, so it is shared from here. Built from the picked squad and the
+  // team directory, the same club format as the availability invite minus the squad section.
+  const shareEvent: MatchShareEvent = {
+    id: detail.id,
+    opponent: detail.opponent,
+    home_away: detail.homeAway,
+    jersey: detail.jersey,
+    location: detail.location,
+    starts_at: detail.startsAt,
+    meet_at: detail.meetAt,
+  }
+  const shareNames = new Map((members.data ?? []).map((m) => [m.user_id, m.name]))
+  const shareSquad: MatchShareSquadMember[] = (squad.data ?? []).map((s) => ({
+    shirtNumber: s.shirt_number,
+    name: shareNames.get(s.user_id) ?? 'Former member',
+    isCaptain: s.is_captain,
+  }))
+
   return (
     <div className="flex flex-col gap-4 py-4">
       <BackLink />
@@ -203,6 +228,18 @@ function SquadPickerView({ detail }: { detail: EventDetail }): React.JSX.Element
           </p>
         </CardContent>
       </Card>
+
+      {/* Share the numbered teamsheet once a side is picked (S5.2 controls, S9.3 message). */}
+      {shareSquad.length > 0 && (
+        <Card>
+          <CardContent>
+            <ShareButton
+              message={buildMatchShareMessage(shareEvent, detail.teamName, shareSquad)}
+              label="Share squad to WhatsApp"
+            />
+          </CardContent>
+        </Card>
+      )}
 
       {errorMessage !== null && (
         <p role="alert" className="px-1 text-sm text-destructive">

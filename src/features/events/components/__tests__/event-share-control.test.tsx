@@ -9,9 +9,6 @@ import { eventUrl } from '@/lib/paths'
 const hoisted = vi.hoisted(() => ({
   isManagerOf: vi.fn<(teamId: string) => boolean>(() => true),
   status: 'ready',
-  // Drives the match branch's squad/members reads; training tests never touch these.
-  squad: [] as { user_id: string; shirt_number: number; is_captain: boolean }[],
-  members: [] as { user_id: string; name: string }[],
 }))
 
 vi.mock('@/lib/serverClock', () => ({ serverNow: () => new Date('2026-09-10T00:00:00Z') }))
@@ -21,8 +18,6 @@ vi.mock('@/features/auth/use-current-user', () => ({
       ? { status: 'ready', user: { isAdmin: false, isManagerOf: hoisted.isManagerOf } }
       : { status: 'signedOut' },
 }))
-vi.mock('@/api/squad', () => ({ useEventSquad: () => ({ data: hoisted.squad }) }))
-vi.mock('@/api/members', () => ({ useTeamMembers: () => ({ data: hoisted.members }) }))
 
 const { EventShareControl } = await import('@/features/events/components/EventShareControl')
 
@@ -45,8 +40,6 @@ const base: EventActionData = {
 afterEach(() => {
   hoisted.status = 'ready'
   hoisted.isManagerOf.mockReturnValue(true)
-  hoisted.squad = []
-  hoisted.members = []
   vi.clearAllMocks()
 })
 
@@ -87,18 +80,10 @@ describe('EventShareControl', () => {
     expect(body).toContain('Are you available?')
   })
 
-  // S9.3 AC7 — a match shares the club teamsheet (team name + picked squad) and, since the
-  // 2026-09-15 fix, still ends with the availability link so the share is never a dead end. Names
-  // are resolved from the mocked team directory.
-  it('shares the match teamsheet with the picked squad and the availability link (AC7)', () => {
-    hoisted.members = [
-      { user_id: 'u1', name: 'John Smith' },
-      { user_id: 'u2', name: 'Jane Doe' },
-    ]
-    hoisted.squad = [
-      { user_id: 'u2', shirt_number: 7, is_captain: true },
-      { user_id: 'u1', shirt_number: 1, is_captain: false },
-    ]
+  // Chris, 2026-09-16 — the Schedule tab shares the club fixture as the availability invite, with
+  // NO squad; the numbered teamsheet moved to the Squad view (the squad picker). Both end with the
+  // event link so the share is never a dead end.
+  it('shares a match as the fixture invite with no squad section (teamsheet moved to Squad)', () => {
     const match: EventActionData = {
       ...base,
       type: 'match',
@@ -116,16 +101,11 @@ describe('EventShareControl', () => {
         'KO: 19:30',
         'Home Game: Bogies',
         '',
-        'Squad:',
-        ' 1. John Smith',
-        ' 7. Jane Doe (C)',
-        '',
         `Are you available? ${eventUrl(base.id)}`,
       ].join('\n'),
     )
-    // The teamsheet now carries the event link (so players can register / set availability), but
-    // still never a raw wa.me link inside the body.
-    expect(body).toContain(eventUrl(base.id))
+    // No squad section here; that lives on the Squad view now.
+    expect(body).not.toContain('Squad:')
     expect(body).not.toContain('wa.me')
   })
 })

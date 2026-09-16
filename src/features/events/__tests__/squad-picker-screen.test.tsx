@@ -248,4 +248,34 @@ describe('SquadPickerScreen (S9.2)', () => {
     expect(screen.getByText("Couldn't load the squad.")).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument()
   })
+
+  // Chris, 2026-09-16 — the numbered teamsheet is shared from the Squad view (here), not the
+  // Schedule tab, which keeps only the availability invite + reminder.
+  it('shares the picked teamsheet from the Squad view once a side is chosen', () => {
+    hoisted.detail.value = hoisted.settled<EventDetail | null>(detail())
+    hoisted.responses.value = hoisted.settled<EventResponseRow[]>([
+      response('a', 'available'),
+      response('b', 'available'),
+    ])
+    hoisted.members.value = hoisted.settled<MemberDirectoryRow[]>(members)
+    hoisted.squad.value = hoisted.settled<SquadRow[]>([pick('a', 1), pick('b', 7, true)])
+    renderScreen()
+    const link = screen.getByRole('link', { name: 'Share squad to WhatsApp' })
+    const body = decodeURIComponent(
+      (link.getAttribute('href') ?? '').slice('https://wa.me/?text='.length),
+    )
+    expect(body).toContain('Firsts vs Bohemians')
+    expect(body).toContain('Squad:')
+    expect(body).toContain(' 1. Aaron')
+    expect(body).toContain(' 7. Ben (C)')
+  })
+
+  it('offers no squad share until someone is picked', () => {
+    hoisted.detail.value = hoisted.settled<EventDetail | null>(detail())
+    hoisted.responses.value = hoisted.settled<EventResponseRow[]>([response('a', 'available')])
+    hoisted.members.value = hoisted.settled<MemberDirectoryRow[]>(members)
+    hoisted.squad.value = hoisted.settled<SquadRow[]>([])
+    renderScreen()
+    expect(screen.queryByRole('link', { name: 'Share squad to WhatsApp' })).not.toBeInTheDocument()
+  })
 })
