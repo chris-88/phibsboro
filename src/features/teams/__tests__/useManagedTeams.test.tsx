@@ -39,6 +39,7 @@ const ready = (over: Partial<CurrentUser>): CurrentUserState => ({
     name: 'U',
     phone: '+353870000000',
     isAdmin: false,
+    avatarPath: null,
     memberships: [],
     managedTeams: [],
     administrableTeams: [],
@@ -84,6 +85,7 @@ describe('useManagedTeams (S6.3)', () => {
     const roles: Record<string, 'player' | 'manager'> = { a: 'manager', b: 'player' }
     hoisted.account.value = ready({
       isAdmin: false,
+      avatarPath: null,
       roleForTeam: (id: string) => roles[id] ?? null,
     })
     hoisted.teams.value = {

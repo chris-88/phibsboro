@@ -65,6 +65,7 @@ export function fakeUser(role: 'player' | 'manager' | 'admin'): CurrentUser {
     name: role === 'player' ? 'Pat Player' : role === 'manager' ? 'Mel Manager' : 'Ada Admin',
     phone: '+353871234567',
     isAdmin,
+    avatarPath: null,
     memberships,
     managedTeams: managed,
     administrableTeams,

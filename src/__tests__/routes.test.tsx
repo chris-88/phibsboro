@@ -86,7 +86,6 @@ describe('route table (D34)', () => {
       '/join/:token',
       '/reset/:token',
       '/event/:id',
-      '/history',
       '/manage',
       '/manage/event/new',
       '/manage/event/:id',
@@ -96,6 +95,7 @@ describe('route table (D34)', () => {
       '/admin',
       '/admin/feedback',
       '/admin/users',
+      '/profile',
       '*',
     ])
     expect(new Set(paths).size).toBe(paths.length)
@@ -120,7 +120,6 @@ describe('route table (D34)', () => {
       '/join/:token': 'bare',
       '/reset/:token': 'bare',
       '/event/:id': 'bare',
-      '/history': 'nav',
       '/manage': 'nav',
       '/manage/event/new': 'nav',
       '/manage/event/:id': 'nav',
@@ -130,6 +129,7 @@ describe('route table (D34)', () => {
       '/admin': 'nav',
       '/admin/feedback': 'nav',
       '/admin/users': 'nav',
+      '/profile': 'nav',
       '*': 'bare',
     })
   })
@@ -144,12 +144,11 @@ describe('resolving routes (AC1, AC15)', () => {
   // case below asserts its own; the home, reset, manage and event screens are covered by their
   // own suites and the chrome/title cases in this file.
 
-  it('renders the real S3.5 history screen for /history, not a placeholder', () => {
-    mount('/history')
-    // The admin fixture has a real id, so the infinite query is enabled and starts fetching:
-    // its initial state is `pending`, which the screen renders as the "Loading history" skeleton
-    // synchronously on first commit — before the fetch can settle in this backend-less harness.
-    expect(screen.getByLabelText('Loading history')).toBeInTheDocument()
+  it('renders the real profile screen for /profile, not a placeholder', async () => {
+    mount('/profile')
+    // A lazy route: await its chunk. The profile carries the moved menu actions — Sign out proves
+    // the real screen mounted (S16.3, W9).
+    expect(await screen.findByRole('button', { name: 'Sign out' })).toBeInTheDocument()
     expect(screen.queryByTestId('route-placeholder')).not.toBeInTheDocument()
   })
 
@@ -224,11 +223,10 @@ describe('document title (AC13)', () => {
     await findHome()
     expect(document.title).toBe(`Home${TITLE_SUFFIX}`)
 
-    await act(() => router.navigate('/history'))
-    // The real S3.5 screen mounts on its loading skeleton (backend-less harness); the title is
-    // what this case asserts.
-    expect(screen.getByLabelText('Loading history')).toBeInTheDocument()
-    expect(document.title).toBe(`History${TITLE_SUFFIX}`)
+    await act(() => router.navigate('/profile'))
+    // A lazy route; await its chunk, then the title is what this case asserts.
+    expect(await screen.findByRole('button', { name: 'Sign out' })).toBeInTheDocument()
+    expect(document.title).toBe(`Profile${TITLE_SUFFIX}`)
 
     await act(() => router.navigate('/nope'))
     await screen.findByRole('heading', { name: 'Nothing here.' })

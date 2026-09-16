@@ -264,6 +264,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          avatar_path: string | null
           created_at: string
           id: string
           is_admin: boolean
@@ -271,6 +272,7 @@ export type Database = {
           phone: string
         }
         Insert: {
+          avatar_path?: string | null
           created_at?: string
           id: string
           is_admin?: boolean
@@ -278,6 +280,7 @@ export type Database = {
           phone: string
         }
         Update: {
+          avatar_path?: string | null
           created_at?: string
           id?: string
           is_admin?: boolean
@@ -575,6 +578,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      set_own_avatar: { Args: { p_path: string }; Returns: undefined }
       set_squad_member: {
         Args: {
           p_event_id: string

@@ -1,3 +1,4 @@
+vi.mock('@/features/profile/ProfileButton', () => ({ ProfileButton: () => null }))
 import { render as rtlRender, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router'

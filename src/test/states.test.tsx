@@ -147,38 +147,6 @@ describe('/event/:id — S3.3', () => {
   })
 })
 
-describe('/history — S3.5', () => {
-  const opts = {
-    role: 'player',
-    driver: 'events',
-    fixtures: { events: fx.historyEventRows },
-  } as const
-
-  it('loading: skeleton list', async () => {
-    const { container } = renderRoute('/history', { ...opts, scenario: 'loading' })
-    expect(await screen.findByRole('status', { name: 'Loading history' })).toBeInTheDocument()
-    expectHealthy(container)
-  })
-
-  it('empty: "No past events yet."', async () => {
-    const { container } = renderRoute('/history', { ...opts, scenario: 'empty' })
-    expect(await screen.findByText('No past events yet.')).toBeInTheDocument()
-    expectHealthy(container)
-  })
-
-  it('error: inline line and a Retry that refetches', async () => {
-    await expectRetryRefetches('/history', opts, "Couldn't load your history.")
-  })
-
-  it('populated: past events with status', async () => {
-    const { container } = renderRoute('/history', { ...opts, scenario: 'populated' })
-    expect(await screen.findByText('Tuesday training')).toBeInTheDocument()
-    expectHealthy(container)
-  })
-})
-
-// —————————————————————————————————————— Auth / token ————————————————————————————
-
 describe('/login — S2.2', () => {
   it('loading: session restoring, no form flash', async () => {
     const { container } = renderRoute('/login', { scenario: 'populated', loading: true })

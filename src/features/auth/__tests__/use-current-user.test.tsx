@@ -64,6 +64,7 @@ const profileRow = (name: string, admin: boolean) => ({
   name,
   phone: '+353870000001',
   is_admin: admin,
+  avatar_path: null,
 })
 
 async function ready(row: CurrentUserRow) {

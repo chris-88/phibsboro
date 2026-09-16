@@ -27,7 +27,7 @@ export interface CurrentUserMembershipRow {
 /** The raw shape the query caches under `userKeys.current()`. The hook derives `CurrentUser`
  *  and its helpers from this (S2.9). */
 export interface CurrentUserRow {
-  profile: Pick<Tables<'profiles'>, 'id' | 'name' | 'phone' | 'is_admin'>
+  profile: Pick<Tables<'profiles'>, 'id' | 'name' | 'phone' | 'is_admin' | 'avatar_path'>
   memberships: CurrentUserMembershipRow[]
 }
 
@@ -44,7 +44,11 @@ export interface CurrentUserRow {
  */
 export async function fetchCurrentUser(userId: string): Promise<CurrentUserRow> {
   const [profileResult, membershipResult] = await Promise.all([
-    supabase.from('profiles').select('id, name, phone, is_admin').eq('id', userId).single(),
+    supabase
+      .from('profiles')
+      .select('id, name, phone, is_admin, avatar_path')
+      .eq('id', userId)
+      .single(),
     supabase
       .from('team_members')
       .select('team_id, role, joined_at, teams!inner(name)')

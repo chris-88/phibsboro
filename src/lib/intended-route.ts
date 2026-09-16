@@ -27,7 +27,6 @@ const TTL_MS = 60 * 60 * 1000
 export const RESTORABLE_PATTERNS: readonly string[] = [
   '/',
   '/event/:id',
-  '/history',
   '/manage',
   '/manage/event/new',
   '/manage/event/:id',
@@ -37,6 +36,7 @@ export const RESTORABLE_PATTERNS: readonly string[] = [
   '/admin',
   '/admin/feedback',
   '/admin/users',
+  '/profile',
 ]
 
 const RESTORABLE_ROUTES: RouteObject[] = RESTORABLE_PATTERNS.map((path) => ({ path }))

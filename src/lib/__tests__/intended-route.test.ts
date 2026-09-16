@@ -18,13 +18,13 @@ afterEach(() => {
 
 describe('setIntendedRoute / takeIntendedRoute (AC4, AC8)', () => {
   it('round-trips a path through the {path, at} envelope', () => {
-    setIntendedRoute('/history')
+    setIntendedRoute('/profile')
     const raw = localStorage.getItem(KEY)
     expect(raw).not.toBeNull()
     const parsed = JSON.parse(raw ?? '{}') as { path: string; at: number }
-    expect(parsed.path).toBe('/history')
+    expect(parsed.path).toBe('/profile')
     expect(typeof parsed.at).toBe('number')
-    expect(takeIntendedRoute()).toBe('/history')
+    expect(takeIntendedRoute()).toBe('/profile')
   })
 
   it('keeps the query string on the path', () => {
@@ -33,8 +33,8 @@ describe('setIntendedRoute / takeIntendedRoute (AC4, AC8)', () => {
   })
 
   it('take removes the key (single use)', () => {
-    setIntendedRoute('/history')
-    expect(takeIntendedRoute()).toBe('/history')
+    setIntendedRoute('/profile')
+    expect(takeIntendedRoute()).toBe('/profile')
     expect(localStorage.getItem(KEY)).toBeNull()
     expect(takeIntendedRoute()).toBeNull()
   })
@@ -53,10 +53,10 @@ describe('setIntendedRoute / takeIntendedRoute (AC4, AC8)', () => {
 
 describe('peekIntendedRoute does not consume (boot gate)', () => {
   it('returns the value and leaves it in place for take', () => {
-    setIntendedRoute('/history')
-    expect(peekIntendedRoute()).toBe('/history')
-    expect(peekIntendedRoute()).toBe('/history')
-    expect(takeIntendedRoute()).toBe('/history')
+    setIntendedRoute('/profile')
+    expect(peekIntendedRoute()).toBe('/profile')
+    expect(peekIntendedRoute()).toBe('/profile')
+    expect(takeIntendedRoute()).toBe('/profile')
     expect(peekIntendedRoute()).toBeNull()
   })
 })
@@ -112,7 +112,7 @@ describe('validation rejects unsafe or non-destination paths (AC9, AC10)', () =>
   const allowed = [
     '/',
     '/event/9f1c',
-    '/history',
+    '/profile',
     '/manage',
     '/manage/event/new',
     '/manage/event/abc',
@@ -131,11 +131,11 @@ describe('degrades when localStorage throws (AC16)', () => {
       throw new Error('quota')
     })
     expect(() => {
-      setIntendedRoute('/history')
+      setIntendedRoute('/profile')
     }).not.toThrow()
     // The in-memory fallback answers reads within the tab even though nothing was persisted.
     expect(localStorage.getItem(KEY)).toBeNull()
-    expect(takeIntendedRoute()).toBe('/history')
+    expect(takeIntendedRoute()).toBe('/profile')
   })
 
   it('takeIntendedRoute returns null when getItem throws and no memory copy exists', () => {

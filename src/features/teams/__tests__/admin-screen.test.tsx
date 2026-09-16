@@ -23,6 +23,7 @@ const ready = (isAdmin: boolean): CurrentUserState => ({
     name: 'Admin',
     phone: '+353870000000',
     isAdmin,
+    avatarPath: null,
     memberships: [],
     managedTeams: [],
     administrableTeams: [],

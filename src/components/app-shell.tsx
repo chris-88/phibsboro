@@ -1,5 +1,5 @@
 import { ChevronLeft } from 'lucide-react'
-import { AppShellMenu } from '@/components/app-shell-menu'
+import { ProfileButton } from '@/features/profile/ProfileButton'
 import { BottomNav } from '@/components/bottom-nav'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -59,7 +59,7 @@ export function AppShell({
             affordance instead (AC17, D41). */}
         {chrome === 'nav' && (
           <div className="ml-auto">
-            <AppShellMenu />
+            <ProfileButton />
           </div>
         )}
       </header>

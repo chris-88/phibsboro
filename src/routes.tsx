@@ -5,7 +5,6 @@ import { NotFound } from '@/components/not-found'
 import { loadChunk } from '@/lib/chunk-reload'
 import { RouteError } from '@/components/route-error'
 import { RequireAdmin, RequireAuth, RequireManager } from '@/features/auth/guards'
-import HistoryScreen from '@/features/attendance/routes/HistoryScreen'
 import JoinByTokenScreen from '@/features/teams/JoinByTokenScreen'
 import LoginScreen from '@/features/auth/login-screen'
 import RegisterScreen from '@/features/auth/register-screen'
@@ -98,13 +97,6 @@ export const routeTable: readonly AppRoute[] = [
     screen: { element: <EventScreen /> },
   },
   {
-    path: paths.history(),
-    chrome: 'nav',
-    guard: 'authed',
-    title: 'History',
-    screen: { element: <HistoryScreen /> },
-  },
-  {
     path: paths.manage(),
     chrome: 'nav',
     guard: 'manager',
@@ -166,6 +158,13 @@ export const routeTable: readonly AppRoute[] = [
     guard: 'admin',
     title: 'Users',
     screen: { lazy: () => import('@/features/admin/AdminUsersScreen') },
+  },
+  {
+    path: paths.profile(),
+    chrome: 'nav',
+    guard: 'authed',
+    title: 'Profile',
+    screen: { lazy: () => import('@/features/profile/routes/ProfileScreen') },
   },
   {
     path: '*',

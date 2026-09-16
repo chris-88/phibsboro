@@ -11,7 +11,7 @@ describe('paths', () => {
     expect(paths.join('abc')).toBe('/join/abc')
     expect(paths.reset('abc')).toBe('/reset/abc')
     expect(paths.event(ID)).toBe(`/event/${ID}`)
-    expect(paths.history()).toBe('/history')
+    expect(paths.profile()).toBe('/profile')
     expect(paths.manage()).toBe('/manage')
     expect(paths.newEvent()).toBe('/manage/event/new')
     expect(paths.manageEvent(ID)).toBe(`/manage/event/${ID}`)

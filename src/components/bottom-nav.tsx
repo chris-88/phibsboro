@@ -24,33 +24,42 @@ export function BottomNav({ role, currentPath }: BottomNavProps): React.JSX.Elem
     >
       <ul className="mx-auto flex max-w-screen-sm">
         {items.map((item) => {
-          const active = isNavItemActive(item.to, currentPath)
+          const active = !item.disabled && isNavItemActive(item.to, currentPath)
           const Icon = item.icon
+          const content = (
+            <>
+              <span
+                aria-hidden="true"
+                className={cn(
+                  'absolute inset-x-3 top-0 h-0.5 rounded-full',
+                  active ? 'bg-foreground' : 'bg-transparent',
+                )}
+              />
+              <Icon className="size-5" aria-hidden="true" />
+              {item.label}
+            </>
+          )
+          const cls = cn(
+            'relative flex min-h-tap flex-col items-center justify-center gap-0.5 px-2 py-1 text-xs',
+            // Active is marked three ways — a bar, weight and colour — so it survives a greyscale
+            // screenshot (AC10).
+            active ? 'font-semibold text-foreground' : 'font-normal text-muted-foreground',
+          )
           return (
             <li key={item.to} className="flex-1">
-              {/* A router Link, not a bare `<a href="#/…">`: a native fragment jump arrives as a
-                  popstate with no history key, so ScrollRestoration restores the old page's
-                  scroll onto the new one instead of starting at the top (S0.3 AC14). */}
-              <Link
-                to={item.to}
-                aria-current={active ? 'page' : undefined}
-                className={cn(
-                  'relative flex min-h-tap flex-col items-center justify-center gap-0.5 px-2 py-1 text-xs',
-                  // Active is marked three ways — a bar, weight and colour — so it
-                  // survives a greyscale screenshot (AC10).
-                  active ? 'font-semibold text-foreground' : 'font-normal text-muted-foreground',
-                )}
-              >
-                <span
-                  aria-hidden="true"
-                  className={cn(
-                    'absolute inset-x-3 top-0 h-0.5 rounded-full',
-                    active ? 'bg-foreground' : 'bg-transparent',
-                  )}
-                />
-                <Icon className="size-5" aria-hidden="true" />
-                {item.label}
-              </Link>
+              {item.disabled ? (
+                // A signpost, not a destination (W8): greyed, un-tappable, and announced disabled.
+                <span aria-disabled="true" className={cn(cls, 'opacity-40')}>
+                  {content}
+                </span>
+              ) : (
+                // A router Link, not a bare `<a href="#/…">`: a native fragment jump arrives as a
+                // popstate with no history key, so ScrollRestoration restores the old page's scroll
+                // onto the new one instead of starting at the top (S0.3 AC14).
+                <Link to={item.to} aria-current={active ? 'page' : undefined} className={cls}>
+                  {content}
+                </Link>
+              )}
             </li>
           )
         })}

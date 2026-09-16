@@ -1,4 +1,4 @@
-import { ClipboardList, History, House, Shield, Users, type LucideIcon } from 'lucide-react'
+import { BarChart3, ClipboardList, House, Shield, Users, type LucideIcon } from 'lucide-react'
 import { paths } from '@/lib/paths'
 
 export type AppRole = 'player' | 'manager' | 'admin'
@@ -7,6 +7,9 @@ export interface NavItem {
   label: string
   to: string
   icon: LucideIcon
+  /** A signpost tab that is shown but not selectable — greyed, no navigation (W8, the Stats
+   *  placeholder). Its `to` is never navigated to. */
+  disabled?: boolean
 }
 
 /**
@@ -17,7 +20,9 @@ export interface NavItem {
 export function navItemsForRole(role: AppRole): NavItem[] {
   const items: NavItem[] = [
     { label: 'Home', to: paths.home(), icon: House },
-    { label: 'History', to: paths.history(), icon: History },
+    // Stats is a disabled placeholder where History used to be (W8): a richer stats surface is a
+    // later epic. The calendar Home covers reverse-chronology in the meantime.
+    { label: 'Stats', to: '/stats', icon: BarChart3, disabled: true },
   ]
   if (role === 'manager' || role === 'admin') {
     items.push({ label: 'Manage', to: paths.manage(), icon: ClipboardList })

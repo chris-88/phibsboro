@@ -64,6 +64,7 @@ export const profileRowSchema = z.object({
   name: z.string().trim().min(1).max(80),
   phone: e164Schema,
   is_admin: z.boolean(),
+  avatar_path: z.string().nullable(),
   created_at: timestampSchema,
 })
 export type ProfileRow = z.infer<typeof profileRowSchema>

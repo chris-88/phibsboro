@@ -4,16 +4,18 @@ import { isNavItemActive, navItemsForRole } from '@/lib/nav'
 const labels = (role: 'player' | 'manager' | 'admin') => navItemsForRole(role).map((i) => i.label)
 
 describe('navItemsForRole (AC7)', () => {
-  it('gives a player Home and History', () => {
-    expect(labels('player')).toEqual(['Home', 'History'])
+  it('gives a player Home and a disabled Stats placeholder (W8)', () => {
+    expect(labels('player')).toEqual(['Home', 'Stats'])
+    const stats = navItemsForRole('player').find((i) => i.label === 'Stats')
+    expect(stats?.disabled).toBe(true)
   })
 
-  it('gives a manager Home, History, Manage and Squad (S10.3 AC1)', () => {
-    expect(labels('manager')).toEqual(['Home', 'History', 'Manage', 'Squad'])
+  it('gives a manager Home, Stats, Manage and Squad (S10.3 AC1)', () => {
+    expect(labels('manager')).toEqual(['Home', 'Stats', 'Manage', 'Squad'])
   })
 
-  it('gives an admin Home, History, Manage and Admin — no Squad (Q4, AC1)', () => {
-    expect(labels('admin')).toEqual(['Home', 'History', 'Manage', 'Admin'])
+  it('gives an admin Home, Stats, Manage and Admin — no Squad (Q4, AC1)', () => {
+    expect(labels('admin')).toEqual(['Home', 'Stats', 'Manage', 'Admin'])
     expect(labels('admin')).not.toContain('Squad')
   })
 
@@ -24,15 +26,10 @@ describe('navItemsForRole (AC7)', () => {
   })
 
   it('uses the D34 route paths', () => {
-    expect(navItemsForRole('admin').map((i) => i.to)).toEqual([
-      '/',
-      '/history',
-      '/manage',
-      '/admin',
-    ])
+    expect(navItemsForRole('admin').map((i) => i.to)).toEqual(['/', '/stats', '/manage', '/admin'])
     expect(navItemsForRole('manager').map((i) => i.to)).toEqual([
       '/',
-      '/history',
+      '/stats',
       '/manage',
       '/squad',
     ])

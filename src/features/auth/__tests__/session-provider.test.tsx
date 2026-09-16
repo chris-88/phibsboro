@@ -34,7 +34,7 @@ vi.mock('@/lib/supabase', () => ({
 vi.mock('@/app/router', () => ({
   router: { navigate: h.navigate },
   // The route the player was on when the refresh failed; the expiry path remembers it (AC10).
-  currentHashPath: () => '/history',
+  currentHashPath: () => '/profile',
 }))
 
 import { queryClient } from '@/api/queryClient'
@@ -147,7 +147,7 @@ describe('SIGNED_OUT teardown (AC10, AC11)', () => {
     await waitFor(() => {
       expect(screen.getByTestId('status').textContent).toBe('signedIn')
     })
-    localStorage.setItem('pfc.intendedRoute', JSON.stringify({ path: '/history', at: Date.now() }))
+    localStorage.setItem('pfc.intendedRoute', JSON.stringify({ path: '/profile', at: Date.now() }))
 
     markSignOutRequested()
     emit('SIGNED_OUT', null)
@@ -171,7 +171,7 @@ describe('SIGNED_OUT teardown (AC10, AC11)', () => {
     const stored = JSON.parse(localStorage.getItem('pfc.intendedRoute') ?? '{}') as {
       path?: string
     }
-    expect(stored.path).toBe('/history') // currentHashPath(), so S2.5 returns them
+    expect(stored.path).toBe('/profile') // currentHashPath(), so S2.5 returns them
     expect(consumeExpiryNotice()).toBe(true)
     expect(h.navigate).toHaveBeenCalledWith('/login', { replace: true })
   })

@@ -1,3 +1,4 @@
+vi.mock('@/features/profile/ProfileButton', () => ({ ProfileButton: () => null }))
 import { render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 import { afterEach, describe, expect, it } from 'vitest'

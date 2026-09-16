@@ -50,6 +50,7 @@ const ready = (over: Partial<CurrentUser>): CurrentUserState => ({
     name: 'U',
     phone: '+353870000000',
     isAdmin: false,
+    avatarPath: null,
     memberships: [],
     managedTeams: [],
     administrableTeams: [],
@@ -92,14 +93,14 @@ describe('RequireAuth (AC6, AC8)', () => {
 
   it('sends a signed-out visitor to /login and records the intended route', async () => {
     hoisted.account.value = { status: 'signedOut' }
-    const router = mount('/history')
+    const router = mount('/profile')
     await waitFor(() => {
       expect(router.state.location.pathname).toBe('/login')
     })
     const stored = JSON.parse(localStorage.getItem('pfc.intendedRoute') ?? '{}') as {
       path?: string
     }
-    expect(stored.path).toBe('/history')
+    expect(stored.path).toBe('/profile')
   })
 })
 

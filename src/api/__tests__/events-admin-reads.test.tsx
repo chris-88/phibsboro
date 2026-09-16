@@ -56,6 +56,7 @@ function user(over: Partial<CurrentUser>): CurrentUser {
     name: 'U',
     phone: '+353870000000',
     isAdmin: false,
+    avatarPath: null,
     memberships: [],
     managedTeams: [],
     administrableTeams: [],

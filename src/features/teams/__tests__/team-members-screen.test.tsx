@@ -16,6 +16,7 @@ const ready = (manages: boolean, admin: boolean): CurrentUserState => ({
     name: 'Someone',
     phone: '+353870000000',
     isAdmin: admin,
+    avatarPath: null,
     memberships: [],
     managedTeams: [],
     administrableTeams: [],

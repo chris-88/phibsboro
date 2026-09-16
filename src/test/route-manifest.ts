@@ -15,7 +15,6 @@ export const ROUTES = [
   { code: '/join/:token', name: 'join' },
   { code: '/reset/:token', name: 'reset' },
   { code: '/event/:id', name: 'event' },
-  { code: '/history', name: 'history' },
   { code: '/manage', name: 'manage' },
   { code: '/manage/event/new', name: 'new event' },
   { code: '/manage/event/:id', name: 'manage event' },

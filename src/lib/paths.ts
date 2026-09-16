@@ -13,7 +13,6 @@ export const paths = {
   join: (token: string) => `/join/${token}`,
   reset: (token: string) => `/reset/${token}`,
   event: (id: string) => `/event/${id}`,
-  history: () => '/history',
   manage: () => '/manage',
   newEvent: () => '/manage/event/new',
   manageEvent: (id: string) => `/manage/event/${id}`,
@@ -23,6 +22,7 @@ export const paths = {
   admin: () => '/admin',
   adminFeedback: () => '/admin/feedback',
   adminUsers: () => '/admin/users',
+  profile: () => '/profile',
 } as const
 
 /** Thrown rather than returning a relative `"/#/event/x"` that would look right in a test

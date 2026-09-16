@@ -23,6 +23,8 @@ export interface CurrentUser {
   /** E.164, own row only. Never rendered next to anyone else's. */
   phone: string
   isAdmin: boolean
+  /** Storage path of the profile photo, or null for the initials fallback (W10). */
+  avatarPath: string | null
   memberships: readonly TeamMembership[]
   managedTeams: readonly TeamMembership[]
   /**
@@ -115,6 +117,7 @@ export function useCurrentUser(): CurrentUserState {
       name: data.profile.name,
       phone: data.profile.phone,
       isAdmin: data.profile.is_admin,
+      avatarPath: data.profile.avatar_path,
       memberships,
       managedTeams,
       administrableTeams,
