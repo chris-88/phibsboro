@@ -29,6 +29,9 @@ export const eventKeys = {
   responses: (eventId: string) => ['events', 'responses', eventId] as const,
   attendance: (eventId: string) => ['events', 'attendance', eventId] as const,
   squad: (eventId: string) => ['events', 'squad', eventId] as const,
+  /** The game-stats header read (S17.4): the match's title, team, MOTM and score — event columns,
+   *  so under the `events` prefix, and the MOTM/score write invalidates it through `eventKeys.all`. */
+  match: (eventId: string) => ['events', 'match', eventId] as const,
 } as const
 
 export const teamKeys = {
@@ -75,4 +78,7 @@ export const statsKeys = {
   all: ['stats'] as const,
   attendance: (teamId: string) => ['stats', 'attendance', teamId] as const,
   performance: (teamId: string) => ['stats', 'performance', teamId] as const,
+  /** The `match_stats` rows for one match, the game-stats collection screen's read (S17.4). Its own
+   *  member so a per-player upsert can invalidate it, and `statsKeys.all` still reaches performance. */
+  match: (eventId: string) => ['stats', 'match', eventId] as const,
 } as const

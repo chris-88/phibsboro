@@ -19,6 +19,7 @@ export const paths = {
   teamMembers: (teamId: string) => `/manage/team/${teamId}/members`,
   squad: () => '/squad',
   squadEvent: (id: string) => `/squad/event/${id}`,
+  gameStats: (id: string) => `/squad/game-stats/${id}`,
   admin: () => '/admin',
   adminFeedback: () => '/admin/feedback',
   adminUsers: () => '/admin/users',

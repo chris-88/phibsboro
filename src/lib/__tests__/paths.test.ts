@@ -17,6 +17,8 @@ describe('paths', () => {
     expect(paths.manageEvent(ID)).toBe(`/manage/event/${ID}`)
     expect(paths.teamMembers(ID)).toBe(`/manage/team/${ID}/members`)
     expect(paths.squad()).toBe('/squad')
+    expect(paths.squadEvent(ID)).toBe(`/squad/event/${ID}`)
+    expect(paths.gameStats(ID)).toBe(`/squad/game-stats/${ID}`)
     expect(paths.admin()).toBe('/admin')
   })
 })

@@ -139,6 +139,13 @@ export const routeTable: readonly AppRoute[] = [
     screen: { lazy: () => import('@/features/events/squad-picker-screen') },
   },
   {
+    path: '/squad/game-stats/:id',
+    chrome: 'nav',
+    guard: 'manager',
+    title: 'Game stats',
+    screen: { lazy: () => import('@/features/stats/routes/GameStatsScreen') },
+  },
+  {
     path: paths.admin(),
     chrome: 'nav',
     guard: 'admin',
