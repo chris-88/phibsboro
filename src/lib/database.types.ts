@@ -143,6 +143,9 @@ export type Database = {
         Row: {
           created_at: string
           created_by: string | null
+          first_half_kickoff_at: string | null
+          full_time_at: string | null
+          half_time_at: string | null
           home_away: Database['public']['Enums']['home_away'] | null
           id: string
           jersey: Database['public']['Enums']['jersey'] | null
@@ -153,6 +156,7 @@ export type Database = {
           opponent: string | null
           score_them: number | null
           score_us: number | null
+          second_half_kickoff_at: string | null
           series_id: string | null
           starts_at: string
           status: Database['public']['Enums']['event_status']
@@ -164,6 +168,9 @@ export type Database = {
         Insert: {
           created_at?: string
           created_by?: string | null
+          first_half_kickoff_at?: string | null
+          full_time_at?: string | null
+          half_time_at?: string | null
           home_away?: Database['public']['Enums']['home_away'] | null
           id?: string
           jersey?: Database['public']['Enums']['jersey'] | null
@@ -174,6 +181,7 @@ export type Database = {
           opponent?: string | null
           score_them?: number | null
           score_us?: number | null
+          second_half_kickoff_at?: string | null
           series_id?: string | null
           starts_at: string
           status?: Database['public']['Enums']['event_status']
@@ -185,6 +193,9 @@ export type Database = {
         Update: {
           created_at?: string
           created_by?: string | null
+          first_half_kickoff_at?: string | null
+          full_time_at?: string | null
+          half_time_at?: string | null
           home_away?: Database['public']['Enums']['home_away'] | null
           id?: string
           jersey?: Database['public']['Enums']['jersey'] | null
@@ -195,6 +206,7 @@ export type Database = {
           opponent?: string | null
           score_them?: number | null
           score_us?: number | null
+          second_half_kickoff_at?: string | null
           series_id?: string | null
           starts_at?: string
           status?: Database['public']['Enums']['event_status']

@@ -61,6 +61,10 @@ function event(over: Partial<EventRow> & Pick<EventRow, 'id'>): EventRow {
     motm_user_id: null,
     score_us: null,
     score_them: null,
+    first_half_kickoff_at: null,
+    half_time_at: null,
+    second_half_kickoff_at: null,
+    full_time_at: null,
     meet_at: null,
     starts_at: '2026-09-20T14:00:00Z',
     status: 'scheduled',
@@ -262,7 +266,20 @@ describe('Game Stats view (S17.2 AC2, AC3)', () => {
     expect(screen.queryByText('Past cancelled')).not.toBeInTheDocument()
   })
 
-  it('shows an empty state when no match has kicked off', async () => {
+  it('shows a match from an hour before kick-off, before it has started (S18.3)', async () => {
+    // NOW is 12:00; a match at 12:30 is 30 min away — inside the one-hour lead — so it shows here
+    // even though it hasn't kicked off. A match six days out does not.
+    withEvents([
+      event({ id: 'soon', title: 'Kicking off soon', starts_at: '2026-09-14T12:30:00Z' }),
+      event({ id: 'far', title: 'Days away', starts_at: '2026-09-20T14:00:00Z' }),
+    ])
+    renderScreen()
+    await switchTo('Game Stats')
+    expect(screen.getByText('Kicking off soon')).toBeInTheDocument()
+    expect(screen.queryByText('Days away')).not.toBeInTheDocument()
+  })
+
+  it('shows an empty state when no match is within the window yet', async () => {
     withEvents([event({ id: 'future', starts_at: '2026-09-20T14:00:00Z' })])
     renderScreen()
     await switchTo('Game Stats')

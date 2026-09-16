@@ -13,6 +13,7 @@ import { useSession } from '@/features/auth/session-context'
 import type { Update } from '@/lib/db'
 import { matchStatsRowSchema, type MatchStatsRow } from '@/features/stats/schema'
 import type { PlayerStat } from '@/features/stats/game-stats'
+import type { ClockField } from '@/features/stats/match-clock'
 import { supabase } from '@/lib/supabase'
 
 /**
@@ -26,7 +27,8 @@ import { supabase } from '@/lib/supabase'
 
 // ---- The match header (event columns MOTM/score live on `events`, X4) --------------------------
 
-/** Just what the collection screen's header needs; a subset of the event row, camel-cased. */
+/** Just what the collection screen's header needs; a subset of the event row, camel-cased —
+ *  including the four match-clock markers (S18.3), from which the screen derives the live minute. */
 export interface MatchForStats {
   id: string
   teamId: string
@@ -36,9 +38,14 @@ export interface MatchForStats {
   motmUserId: string | null
   scoreUs: number | null
   scoreThem: number | null
+  firstHalfKickoffAt: string | null
+  halfTimeAt: string | null
+  secondHalfKickoffAt: string | null
+  fullTimeAt: string | null
 }
 
-const MATCH_SELECT = 'id, team_id, type, title, starts_at, motm_user_id, score_us, score_them'
+const MATCH_SELECT =
+  'id, team_id, type, title, starts_at, motm_user_id, score_us, score_them, first_half_kickoff_at, half_time_at, second_half_kickoff_at, full_time_at'
 /** Parse only the columns we selected, derived from the event row schema (never a second literal). */
 const matchForStatsSchema = eventRowSchema.pick({
   id: true,
@@ -49,6 +56,10 @@ const matchForStatsSchema = eventRowSchema.pick({
   motm_user_id: true,
   score_us: true,
   score_them: true,
+  first_half_kickoff_at: true,
+  half_time_at: true,
+  second_half_kickoff_at: true,
+  full_time_at: true,
 })
 
 /**
@@ -81,6 +92,10 @@ export function useMatchForStats(
         motmUserId: row.motm_user_id,
         scoreUs: row.score_us,
         scoreThem: row.score_them,
+        firstHalfKickoffAt: row.first_half_kickoff_at,
+        halfTimeAt: row.half_time_at,
+        secondHalfKickoffAt: row.second_half_kickoff_at,
+        fullTimeAt: row.full_time_at,
       }
     },
   })
@@ -235,6 +250,60 @@ export function useSetMatchMeta(
     onSettled: () => {
       void qc.invalidateQueries({ queryKey: eventKeys.match(eventId) })
       void qc.invalidateQueries({ queryKey: statsKeys.all })
+    },
+  })
+}
+
+// ---- The match clock (S18.3) -------------------------------------------------------------------
+
+/** The four event columns the clock writes. */
+type ClockColumn =
+  'first_half_kickoff_at' | 'half_time_at' | 'second_half_kickoff_at' | 'full_time_at'
+
+/** Camel marker → the event column it writes. */
+const CLOCK_COLUMN: Record<ClockField, ClockColumn> = {
+  firstHalfKickoffAt: 'first_half_kickoff_at',
+  halfTimeAt: 'half_time_at',
+  secondHalfKickoffAt: 'second_half_kickoff_at',
+  fullTimeAt: 'full_time_at',
+}
+
+/** A patch of clock markers: a marker set to an ISO time (an advance) or to null (a reset). */
+export type MatchClockPatch = Partial<Record<ClockField, string | null>>
+
+/**
+ * Advance or reset the manual match clock (S18.3). Writes the period markers on the event directly
+ * (manager/admin under RLS, the same path as MOTM/score), so the clock survives a reload and reads
+ * the same everywhere. Optimistic on `eventKeys.match`; the running minute is derived on the screen,
+ * so a marker landing is all this has to persist.
+ */
+export function useSetMatchClock(
+  eventId: string,
+): UseMutationResult<void, PostgrestError, MatchClockPatch, MetaContext> {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (patch) => {
+      const update: Partial<Record<ClockColumn, string | null>> = {}
+      for (const key of Object.keys(patch) as ClockField[]) {
+        const value = patch[key]
+        if (value !== undefined) update[CLOCK_COLUMN[key]] = value
+      }
+      const { error } = await supabase.from('events').update(update).eq('id', eventId)
+      if (error) throw error
+    },
+    onMutate: async (patch) => {
+      await qc.cancelQueries({ queryKey: eventKeys.match(eventId) })
+      const previous = qc.getQueryData<MatchForStats | null>(eventKeys.match(eventId))
+      if (previous) {
+        qc.setQueryData<MatchForStats | null>(eventKeys.match(eventId), { ...previous, ...patch })
+      }
+      return { previous }
+    },
+    onError: (_error, _patch, ctx) => {
+      if (ctx?.previous) qc.setQueryData(eventKeys.match(eventId), ctx.previous)
+    },
+    onSettled: () => {
+      void qc.invalidateQueries({ queryKey: eventKeys.match(eventId) })
     },
   })
 }

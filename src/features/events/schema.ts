@@ -57,6 +57,12 @@ export const eventRowSchema = z.object({
   motm_user_id: uuidSchema.nullable(),
   score_us: z.number().int().nullable(),
   score_them: z.number().int().nullable(),
+  // Match only (S18.3): the manual match clock's four period markers. The running minute is derived
+  // from these and the current time — nothing ticking is stored. Null until the manager taps.
+  first_half_kickoff_at: timestampSchema.nullable(),
+  half_time_at: timestampSchema.nullable(),
+  second_half_kickoff_at: timestampSchema.nullable(),
+  full_time_at: timestampSchema.nullable(),
   // Match only (V4, S8.3): the arrival time, earlier than `starts_at` (kick-off). Null for
   // training and social, and for a match with no separate meet time. The DB check enforces the
   // ordering; `starts_at` stays kick-off and keeps driving the S3.4 respond-until rule.

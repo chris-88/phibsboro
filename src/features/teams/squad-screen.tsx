@@ -160,10 +160,15 @@ function SelectionRow({ match }: { match: EventRow }): React.JSX.Element {
   )
 }
 
+/** A match appears in Game Stats from an hour before kick-off (S18.3) — kick-off is manual, and
+ *  games get delayed, so the collection screen (and its clock) is ready before the scheduled time. */
+const GAME_STATS_LEAD_MS = 60 * 60 * 1000
+
 /**
- * Game Stats (AC1, AC2): the team's matches that have kicked off — recent and in-progress, not
- * cancelled — most recent first, each opening the collection screen (S17.4). Same `useTeamEvents`
- * read (deduped, distinct copy so a failure here doesn't collide with Selection's).
+ * Game Stats (AC1, AC2; S18.3): the team's matches from an hour before kick-off onward — imminent,
+ * in-progress and recent, not cancelled — most recent first, each opening the collection screen
+ * (S17.4). Same `useTeamEvents` read (deduped, distinct copy so a failure here doesn't collide with
+ * Selection's).
  */
 function GameStatsList({ teamId }: { teamId: string }): React.JSX.Element {
   const events = useTeamEvents(teamId)
@@ -179,12 +184,19 @@ function GameStatsList({ teamId }: { teamId: string }): React.JSX.Element {
   const matches = events.data
     .filter(
       (e) =>
-        e.type === 'match' && e.status !== 'cancelled' && new Date(e.starts_at).getTime() < nowMs,
+        e.type === 'match' &&
+        e.status !== 'cancelled' &&
+        new Date(e.starts_at).getTime() <= nowMs + GAME_STATS_LEAD_MS,
     )
     .sort((a, b) => new Date(b.starts_at).getTime() - new Date(a.starts_at).getTime())
 
   if (matches.length === 0) {
-    return <EmptyState title="No matches to score yet." body="Kicked-off matches show up here." />
+    return (
+      <EmptyState
+        title="No matches to score yet."
+        body="Matches appear from an hour before kick-off."
+      />
+    )
   }
 
   return (

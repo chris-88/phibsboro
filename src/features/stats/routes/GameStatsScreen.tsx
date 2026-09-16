@@ -1,12 +1,14 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { ArrowLeft, Loader2, Minus, Plus } from 'lucide-react'
 import { Link } from 'react-router'
 import { useTeamMembers } from '@/api/members'
 import {
   useMatchForStats,
   useMatchStats,
+  useSetMatchClock,
   useSetMatchMeta,
   useSetMatchStat,
+  type MatchClockPatch,
   type MatchForStats,
 } from '@/api/match-stats'
 import { useEventSquad } from '@/api/squad'
@@ -32,7 +34,17 @@ import {
   type GameStatsRow,
   type PlayerStat,
 } from '@/features/stats/game-stats'
+import {
+  clockPhase,
+  clockRunning,
+  clockSeconds,
+  formatClock,
+  nextAction,
+  PHASE_LABEL,
+  type MatchClock,
+} from '@/features/stats/match-clock'
 import { paths } from '@/lib/paths'
+import { serverNow } from '@/lib/serverClock'
 import { formatEventTime } from '@/lib/time'
 import { useRouteParam } from '@/lib/use-route-param'
 
@@ -181,6 +193,15 @@ function GameStatsView({ match }: { match: MatchForStats }): React.JSX.Element {
         />
       ) : (
         <>
+          <ClockCard
+            match={match}
+            onError={() => {
+              setErrorMessage(SAVE_ERROR)
+            }}
+            clearError={() => {
+              setErrorMessage(null)
+            }}
+          />
           <ScoreCard
             match={match}
             rows={rows}
@@ -214,6 +235,102 @@ function GameStatsView({ match }: { match: MatchForStats }): React.JSX.Element {
         </>
       )}
     </div>
+  )
+}
+
+/**
+ * The manual match clock (S18.3): the phase, the live minute (ticking each second while a half is
+ * running), one button to advance — Kick off → Half time → Kick off 2nd half → Full time — and a
+ * Reset for a mis-tap. Every marker is stored on the event, so the clock survives a reload and reads
+ * the same on any device; the minute is derived here, nothing ticking is persisted.
+ */
+function ClockCard({
+  match,
+  onError,
+  clearError,
+}: {
+  match: MatchForStats
+  onError: () => void
+  clearError: () => void
+}): React.JSX.Element {
+  const setClock = useSetMatchClock(match.id)
+  const clock: MatchClock = useMemo(
+    () => ({
+      firstHalfKickoffAt: match.firstHalfKickoffAt,
+      halfTimeAt: match.halfTimeAt,
+      secondHalfKickoffAt: match.secondHalfKickoffAt,
+      fullTimeAt: match.fullTimeAt,
+    }),
+    [match.firstHalfKickoffAt, match.halfTimeAt, match.secondHalfKickoffAt, match.fullTimeAt],
+  )
+  const running = clockRunning(clock)
+  const [, setTick] = useState(0)
+  useEffect(() => {
+    if (!running) return
+    const id = setInterval(() => {
+      setTick((t) => t + 1)
+    }, 1000)
+    return () => {
+      clearInterval(id)
+    }
+  }, [running])
+
+  const phase = clockPhase(clock)
+  const seconds = clockSeconds(clock, serverNow().getTime())
+  const action = nextAction(clock)
+
+  const advance = (): void => {
+    if (action === null) return
+    clearError()
+    const patch: MatchClockPatch = { [action.field]: new Date().toISOString() }
+    setClock.mutate(patch, { onError })
+  }
+  const reset = (): void => {
+    clearError()
+    setClock.mutate(
+      {
+        firstHalfKickoffAt: null,
+        halfTimeAt: null,
+        secondHalfKickoffAt: null,
+        fullTimeAt: null,
+      },
+      { onError },
+    )
+  }
+
+  return (
+    <Card>
+      <CardContent className="flex items-center gap-3">
+        <div className="flex min-w-0 flex-1 flex-col">
+          <span className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+            {PHASE_LABEL[phase]}
+          </span>
+          <span
+            className="text-2xl font-bold text-foreground tabular-nums"
+            role="timer"
+            aria-label="Match clock"
+          >
+            {seconds === null ? '—' : formatClock(seconds)}
+          </span>
+        </div>
+        {phase !== 'pre' && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="shrink-0 text-muted-foreground"
+            onClick={reset}
+          >
+            Reset
+          </Button>
+        )}
+        {action !== null && (
+          <Button type="button" className="min-h-tap shrink-0" onClick={advance}>
+            {action.label}
+          </Button>
+        )}
+      </CardContent>
+    </Card>
   )
 }
 
