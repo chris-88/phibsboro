@@ -24,10 +24,17 @@ export interface AdminUser {
   id: string
   name: string
   phone: string
+  /** The global admin flag `is_admin()` reads (D2); an admin toggles it via `admin_set_admin` (S18.2). */
+  isAdmin: boolean
   memberships: AdminUserMembership[]
 }
 
-const profileSchema = z.object({ id: z.string(), name: z.string(), phone: z.string() })
+const profileSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  phone: z.string(),
+  is_admin: z.boolean(),
+})
 const membershipSchema = z.object({
   team_id: z.string(),
   user_id: z.string(),
@@ -47,7 +54,7 @@ export function useAllUsers(): UseQueryResult<AdminUser[]> {
     queryKey: userKeys.allUsers(),
     queryFn: async (): Promise<AdminUser[]> => {
       const [p, m, t] = await Promise.all([
-        supabase.from('profiles').select('id, name, phone'),
+        supabase.from('profiles').select('id, name, phone, is_admin'),
         supabase.from('team_members').select('team_id, user_id, role'),
         supabase.from('teams').select('id, name'),
       ])
@@ -74,6 +81,7 @@ export function useAllUsers(): UseQueryResult<AdminUser[]> {
           id: pr.id,
           name: pr.name,
           phone: pr.phone,
+          isAdmin: pr.is_admin,
           memberships: (byUser.get(pr.id) ?? []).sort((a, b) =>
             a.teamName.localeCompare(b.teamName),
           ),
@@ -121,6 +129,46 @@ export function useAdminRemoveMembership(): UseMutationResult<
     },
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: userKeys.allUsers() })
+    },
+  })
+}
+
+/**
+ * Grant or revoke another user's admin (S18.2) through the admin-only `admin_set_admin` RPC, which
+ * writes `profiles.is_admin` (D2). The RPC refuses a non-admin and refuses stripping one's own
+ * admin. Invalidates the all-users directory so the badge and actions follow.
+ */
+export function useAdminSetAdmin(): UseMutationResult<
+  void,
+  AppError,
+  { userId: string; isAdmin: boolean }
+> {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ userId, isAdmin }) => {
+      await callRpc('admin_set_admin', { p_user_id: userId, p_is_admin: isAdmin })
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: userKeys.allUsers() })
+    },
+  })
+}
+
+/**
+ * Permanently delete a person (S18.2) through the admin-only `admin_delete_user` RPC, which removes
+ * the auth account; their profile and every row keyed on it cascade away (memberships, responses,
+ * attendance, squad picks, match stats, feedback). Irreversible — the screen confirms first. The
+ * RPC refuses a non-admin and refuses self-deletion. Invalidates the directory and the team caches.
+ */
+export function useAdminDeleteUser(): UseMutationResult<void, AppError, { userId: string }> {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ userId }) => {
+      await callRpc('admin_delete_user', { p_user_id: userId })
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: userKeys.allUsers() })
+      void qc.invalidateQueries({ queryKey: teamKeys.all })
     },
   })
 }

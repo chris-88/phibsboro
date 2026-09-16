@@ -534,6 +534,11 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_delete_user: { Args: { p_user_id: string }; Returns: undefined }
+      admin_set_admin: {
+        Args: { p_is_admin: boolean; p_user_id: string }
+        Returns: undefined
+      }
       admin_set_membership: {
         Args: {
           p_role: Database['public']['Enums']['member_role']

@@ -2,14 +2,17 @@ import { useMemo, useState } from 'react'
 import { Navigate } from 'react-router'
 import {
   useAdminRemoveMembership,
+  useAdminSetAdmin,
   useAdminSetMembership,
   useAllUsers,
   type AdminUser,
 } from '@/api/admin-users'
 import { useTeams } from '@/api/teams'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { DeleteUserDialog } from '@/features/admin/DeleteUserDialog'
 import {
   Select,
   SelectContent,
@@ -25,10 +28,11 @@ import { paths } from '@/lib/paths'
 const ROLE_LABEL: Record<MemberRole, string> = { player: 'Player', manager: 'Manager' }
 
 /**
- * The admin user manager `/admin/users` (S14.2, W6). Every person, the teams and roles they hold,
- * and the god-mode actions: assign to a team, change a role, remove — the repair tool for when a
- * normal path can't fix it. Admin-guarded (S2.9) + inline gate; RLS is the boundary. Reads and
- * writes go through `useAllUsers` / `admin_set_membership` / `remove_member`.
+ * The admin user manager `/admin/users` (S14.2, W6; S18.2). Every person, the teams and roles they
+ * hold, and the god-mode actions: assign to a team, change a role, remove, promote/demote another
+ * admin, and fully delete a person — the repair tool for when a normal path can't fix it.
+ * Admin-guarded (S2.9) + inline gate; RLS is the boundary. Reads and writes go through `useAllUsers`
+ * / `admin_set_membership` / `remove_member` / `admin_set_admin` / `admin_delete_user`.
  */
 export default function AdminUsersScreen(): React.JSX.Element {
   const account = useCurrentUser()
@@ -43,10 +47,10 @@ export default function AdminUsersScreen(): React.JSX.Element {
   if (account.status !== 'ready' || !account.user.isAdmin) {
     return <Navigate to={paths.home()} replace />
   }
-  return <Users />
+  return <Users currentUserId={account.user.id} />
 }
 
-function Users(): React.JSX.Element {
+function Users({ currentUserId }: { currentUserId: string }): React.JSX.Element {
   const users = useAllUsers()
   const [query, setQuery] = useState('')
 
@@ -90,7 +94,7 @@ function Users(): React.JSX.Element {
               <ul className="flex flex-col gap-3">
                 {filtered.map((user) => (
                   <li key={user.id}>
-                    <UserCard user={user} />
+                    <UserCard user={user} isSelf={user.id === currentUserId} />
                   </li>
                 ))}
               </ul>
@@ -101,13 +105,15 @@ function Users(): React.JSX.Element {
   )
 }
 
-function UserCard({ user }: { user: AdminUser }): React.JSX.Element {
+function UserCard({ user, isSelf }: { user: AdminUser; isSelf: boolean }): React.JSX.Element {
   const setMembership = useAdminSetMembership()
   const removeMembership = useAdminRemoveMembership()
+  const setAdmin = useAdminSetAdmin()
   const teams = useTeams()
   const [confirmRemove, setConfirmRemove] = useState<string | null>(null)
   const [addTeamId, setAddTeamId] = useState('')
   const [addRole, setAddRole] = useState<MemberRole>('player')
+  const [deleteOpen, setDeleteOpen] = useState(false)
 
   const memberTeamIds = new Set(user.memberships.map((m) => m.teamId))
   // Only active teams the user is not already on can be added (the RPC accepts inactive too, but
@@ -117,7 +123,17 @@ function UserCard({ user }: { user: AdminUser }): React.JSX.Element {
   return (
     <Card>
       <CardHeader className="pb-2">
-        <CardTitle className="text-base">{user.name}</CardTitle>
+        <CardTitle className="flex items-center gap-2 text-base">
+          <span className="min-w-0 truncate">{user.name}</span>
+          {user.isAdmin && (
+            <Badge variant="secondary" className="shrink-0">
+              Admin
+            </Badge>
+          )}
+          {isSelf && (
+            <span className="shrink-0 text-xs font-normal text-muted-foreground">You</span>
+          )}
+        </CardTitle>
         <p className="text-sm text-muted-foreground">{user.phone}</p>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
@@ -222,7 +238,34 @@ function UserCard({ user }: { user: AdminUser }): React.JSX.Element {
           </div>
         )}
 
-        {(setMembership.isError || removeMembership.isError) && (
+        {/* God-mode actions on the whole person (S18.2), never on the admin's own row: promote or
+            demote another admin, and the hard delete behind a type-the-name confirm. */}
+        {!isSelf && (
+          <div className="flex flex-wrap items-center gap-2 border-t border-border pt-3">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={setAdmin.isPending}
+              onClick={() => {
+                setAdmin.mutate({ userId: user.id, isAdmin: !user.isAdmin })
+              }}
+            >
+              {user.isAdmin ? 'Remove admin' : 'Make admin'}
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              className="ml-auto"
+              onClick={() => {
+                setDeleteOpen(true)
+              }}
+            >
+              Delete user…
+            </Button>
+          </div>
+        )}
+
+        {(setMembership.isError || removeMembership.isError || setAdmin.isError) && (
           <p className="text-sm text-destructive" aria-live="polite">
             That change didn't save. Try again.
           </p>
@@ -234,6 +277,7 @@ function UserCard({ user }: { user: AdminUser }): React.JSX.Element {
           </p>
         )}
       </CardContent>
+      {!isSelf && <DeleteUserDialog user={user} open={deleteOpen} onOpenChange={setDeleteOpen} />}
     </Card>
   )
 }

@@ -92,6 +92,7 @@ describe('the service-role client stays out of assertions (S1.4 AC8)', () => {
       'match-stats.test.ts', // S17.3 - match_stats table RLS
       'profiles.test.ts',
       'reset-tokens.test.ts',
+      'rpc-admin-users.test.ts', // S18.2 — admin_set_admin + admin_delete_user
       'rpc-invites.test.ts',
       'rpc-join.test.ts',
       'rpc-members.test.ts',
