@@ -54,6 +54,27 @@ export type Database = {
           },
         ]
       }
+      club_settings: {
+        Row: {
+          id: boolean
+          pay_link: string | null
+          subs_amount: number
+          updated_at: string
+        }
+        Insert: {
+          id?: boolean
+          pay_link?: string | null
+          subs_amount?: number
+          updated_at?: string
+        }
+        Update: {
+          id?: boolean
+          pay_link?: string | null
+          subs_amount?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       event_responses: {
         Row: {
           event_id: string
@@ -432,6 +453,48 @@ export type Database = {
           },
           {
             foreignKeyName: 'reset_tokens_user_id_fkey'
+            columns: ['user_id']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      subs_payments: {
+        Row: {
+          amount: number
+          id: string
+          note: string | null
+          recorded_at: string
+          recorded_by: string | null
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          id?: string
+          note?: string | null
+          recorded_at?: string
+          recorded_by?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          id?: string
+          note?: string | null
+          recorded_at?: string
+          recorded_by?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'subs_payments_recorded_by_fkey'
+            columns: ['recorded_by']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'subs_payments_user_id_fkey'
             columns: ['user_id']
             isOneToOne: false
             referencedRelation: 'profiles'

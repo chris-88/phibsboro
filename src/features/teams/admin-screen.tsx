@@ -1,4 +1,4 @@
-import { ChevronRight, MessageSquare, Users } from 'lucide-react'
+import { ChevronRight, MessageSquare, Users, Wallet } from 'lucide-react'
 import { Link, Navigate } from 'react-router'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { EmptyState, ErrorState, LoadingState } from '@/components/states'
@@ -72,6 +72,14 @@ function AdminTeams(): React.JSX.Element {
       >
         <MessageSquare className="size-5 shrink-0 text-muted-foreground" aria-hidden="true" />
         <span className="min-w-0 flex-1 font-medium text-foreground">Feedback</span>
+        <ChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+      </Link>
+      <Link
+        to={paths.adminSubs()}
+        className="flex items-center gap-3 rounded-xl border bg-card px-4 py-3 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+      >
+        <Wallet className="size-5 shrink-0 text-muted-foreground" aria-hidden="true" />
+        <span className="min-w-0 flex-1 font-medium text-foreground">Subs</span>
         <ChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
       </Link>
 

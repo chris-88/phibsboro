@@ -37,6 +37,7 @@ export const RESTORABLE_PATTERNS: readonly string[] = [
   '/admin',
   '/admin/feedback',
   '/admin/users',
+  '/admin/subs',
   '/profile',
   '/stats',
 ]

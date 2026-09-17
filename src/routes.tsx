@@ -167,6 +167,13 @@ export const routeTable: readonly AppRoute[] = [
     screen: { lazy: () => import('@/features/admin/AdminUsersScreen') },
   },
   {
+    path: paths.adminSubs(),
+    chrome: 'nav',
+    guard: 'admin',
+    title: 'Subs',
+    screen: { lazy: () => import('@/features/subs/routes/AdminSubsScreen') },
+  },
+  {
     path: paths.profile(),
     chrome: 'nav',
     guard: 'authed',

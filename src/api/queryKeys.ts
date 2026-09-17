@@ -73,3 +73,14 @@ export const statsKeys = {
    *  member so a per-player upsert can invalidate it, and `statsKeys.all` still reaches performance. */
   match: (eventId: string) => ['stats', 'match', eventId] as const,
 } as const
+
+/**
+ * The subs (fees/membership) reads (Epic 19). Its own prefix so recording a payment invalidates only
+ * the subs caches and nothing else churns them. `payments` is the caller's RLS-readable set (own for
+ * a player, their teams' members for a manager, all for an admin), filtered per screen.
+ */
+export const subsKeys = {
+  all: ['subs'] as const,
+  settings: () => ['subs', 'settings'] as const,
+  payments: () => ['subs', 'payments'] as const,
+} as const

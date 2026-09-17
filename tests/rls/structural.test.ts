@@ -7,11 +7,15 @@ import { sql } from '../helpers/sql.ts'
 
 const TABLES = [
   'attendance',
+  'club_settings',
   'event_responses',
   'event_squad',
   'events',
+  'feedback',
+  'match_stats',
   'profiles',
   'reset_tokens',
+  'subs_payments',
   'team_invites',
   'team_members',
   'teams',
@@ -23,7 +27,7 @@ const DENY_ALL = ['reset_tokens', 'team_invites'] as const
 const ANON_FUNCTIONS = ['get_event_preview', 'lookup_team_invite', 'redeem_reset_token'] as const
 
 describe('row 1 — every table in public has row-level security on', () => {
-  it('the eight tables exist and each has rowsecurity true', async () => {
+  it('the tables exist and each has rowsecurity true', async () => {
     const rows = await sql<{ tablename: string; rowsecurity: boolean }>(
       `select tablename, rowsecurity from pg_tables where schemaname = 'public' order by 1`,
     )
@@ -42,7 +46,7 @@ describe('row 1 — every table in public has row-level security on', () => {
 })
 
 describe('row 2 — every table has a policy unless it is one of the two deny-all tables', () => {
-  it('each of the six policied tables has at least one policy', async () => {
+  it('each policied table has at least one policy', async () => {
     const rows = await sql<{ tablename: string; policies: number }>(
       `select t.tablename, (select count(*) from pg_policies p where p.schemaname = 'public' and p.tablename = t.tablename)::int as policies
          from pg_tables t where t.schemaname = 'public' order by 1`,

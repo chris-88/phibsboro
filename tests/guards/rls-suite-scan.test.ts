@@ -85,6 +85,7 @@ describe('the service-role client stays out of assertions (S1.4 AC8)', () => {
     expect(files).toEqual([
       'api-event-preview.test.ts', // S1.5 AC16 — the worked hook through the app client
       'attendance.test.ts',
+      'club-settings.test.ts', // Epic 19 — club_settings table RLS
       'event-detail-embed.test.ts', // S3.3 AC15 — the member-read embed filter regression guard
       'event-responses.test.ts',
       'events.test.ts',
@@ -103,6 +104,7 @@ describe('the service-role client stays out of assertions (S1.4 AC8)', () => {
       'squad.test.ts', // S9.1 — event_squad table, policies and RPCs
       'stranger.test.ts',
       'structural.test.ts',
+      'subs-payments.test.ts', // Epic 19 — subs_payments table RLS
       'team-invites.test.ts',
       'team-members.test.ts',
       'teams.test.ts',

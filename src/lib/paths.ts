@@ -23,6 +23,7 @@ export const paths = {
   admin: () => '/admin',
   adminFeedback: () => '/admin/feedback',
   adminUsers: () => '/admin/users',
+  adminSubs: () => '/admin/subs',
   profile: () => '/profile',
   stats: () => '/stats',
 } as const
