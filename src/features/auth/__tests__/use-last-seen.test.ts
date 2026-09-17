@@ -7,7 +7,9 @@ vi.mock('@/lib/supabase', () => ({ supabase: { rpc: (fn: string) => rpc(fn) } })
 const { useLastSeen } = await import('@/features/auth/use-last-seen')
 
 beforeEach(() => {
-  rpc.mockClear()
+  rpc.mockReset()
+  // The hook `.then()`s the builder to fire it, so the mock must return a thenable.
+  rpc.mockResolvedValue({ data: null, error: null })
   localStorage.clear()
 })
 

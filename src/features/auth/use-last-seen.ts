@@ -27,8 +27,13 @@ function touch(): void {
   } catch {
     // Ignore: worst case we touch again next navigation.
   }
-  // Zero-arg RPC: gen-types types Args as `never`, so call it directly. Fire-and-forget.
-  void supabase.rpc('touch_last_seen')
+  // Zero-arg RPC: gen-types types Args as `never`, so call it directly. The PostgREST builder is
+  // lazy — it only sends the request when awaited or `.then()`-ed — so `.then()` is what actually
+  // fires it; both handlers no-op because this is best-effort telemetry, never part of a flow.
+  void supabase.rpc('touch_last_seen').then(
+    () => undefined,
+    () => undefined,
+  )
 }
 
 /**
