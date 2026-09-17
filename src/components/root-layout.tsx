@@ -5,6 +5,7 @@ import { LoadingState } from '@/components/states'
 import { SessionInvalidError } from '@/api/current-user'
 import { useCurrentUser } from '@/features/auth/use-current-user'
 import { useLastSeen } from '@/features/auth/use-last-seen'
+import { SubsReminderModal } from '@/features/subs/components/SubsReminderModal'
 import { supabase } from '@/lib/supabase'
 import { PendingJoinGate } from '@/features/teams/PendingJoinGate'
 import { NOT_FOUND_TITLE, useDocumentTitle } from '@/lib/document-title'
@@ -98,6 +99,8 @@ function RoutedShell(): React.JSX.Element {
       >
         <Outlet />
       </AppShell>
+      {/* S19.3: a signed-in member who owes subs gets a once-a-session reminder over any screen. */}
+      {user.status === 'ready' && <SubsReminderModal />}
     </>
   )
 }

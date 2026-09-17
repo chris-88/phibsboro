@@ -7,6 +7,7 @@ import { FeedbackSheet } from '@/features/feedback/FeedbackSheet'
 import { InstallSheet } from '@/features/install/install-sheet'
 import { useInstallMenuItem } from '@/features/install/use-install-menu-item'
 import { Avatar } from '@/features/profile/Avatar'
+import { SubsCard } from '@/features/subs/components/SubsCard'
 
 /**
  * The profile screen `/profile` (W9), reached from the header avatar. It carries the user's
@@ -30,6 +31,8 @@ export default function ProfileScreen(): React.JSX.Element {
           <p className="text-sm text-muted-foreground">{phone}</p>
         </div>
       </div>
+
+      <SubsCard />
 
       <section className="flex flex-col gap-2">
         <h2 className="px-1 text-sm font-medium text-muted-foreground">Teams</h2>

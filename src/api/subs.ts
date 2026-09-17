@@ -7,6 +7,7 @@ import {
 } from '@tanstack/react-query'
 import type { PostgrestError } from '@supabase/supabase-js'
 import { z } from 'zod'
+import { useMemo } from 'react'
 import { subsKeys } from '@/api/queryKeys'
 import { useSession } from '@/features/auth/session-context'
 import {
@@ -14,6 +15,7 @@ import {
   subsPaymentRowSchema,
   type SubsPaymentRow,
 } from '@/features/subs/schema'
+import { mySubs } from '@/features/subs/subs'
 import { supabase } from '@/lib/supabase'
 
 /**
@@ -123,4 +125,33 @@ export function useDeleteSubsPayment(): UseMutationResult<void, PostgrestError, 
       void qc.invalidateQueries({ queryKey: subsKeys.payments() })
     },
   })
+}
+
+/** The signed-in user's own subs (Epic 19), composed from the club amount + their own payments (which
+ *  is all a plain player's `useSubsPayments` returns anyway). For the profile card and the reminder
+ *  modal. `null` amount means subs aren't set up; the callers hide themselves then. */
+export interface MySubs {
+  amountDue: number
+  paid: number
+  outstanding: number
+  payLink: string | null
+}
+
+export function useMySubs(): { data: MySubs | undefined; isPending: boolean; isError: boolean } {
+  const session = useSession()
+  const userId = session.status === 'signedIn' ? session.session.user.id : undefined
+  const settings = useClubSettings()
+  const payments = useSubsPayments()
+
+  const data = useMemo<MySubs | undefined>(() => {
+    if (!settings.data || !payments.data || userId === undefined) return undefined
+    const own = payments.data.filter((p) => p.user_id === userId)
+    return { ...mySubs(own, settings.data.amount), payLink: settings.data.payLink }
+  }, [settings.data, payments.data, userId])
+
+  return {
+    data,
+    isPending: settings.isPending || payments.isPending,
+    isError: settings.isError || payments.isError,
+  }
 }

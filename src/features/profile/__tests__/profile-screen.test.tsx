@@ -17,6 +17,8 @@ const hoisted = vi.hoisted(() => ({
 }))
 
 vi.mock('@/features/auth/use-current-user', () => ({ useSignedInUser: () => hoisted.user.value }))
+// The subs card reads its own queries; this suite is about the profile essentials, so stub it.
+vi.mock('@/features/subs/components/SubsCard', () => ({ SubsCard: () => null }))
 vi.mock('@/features/auth/use-sign-out', () => ({
   useSignOut: () => ({ signOut: hoisted.signOut, isPending: false }),
 }))
