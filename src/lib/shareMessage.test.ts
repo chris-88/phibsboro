@@ -5,6 +5,7 @@ import {
   buildMatchShareMessage,
   buildReminderMessage,
   buildShareMessage,
+  buildSubsReminderMessage,
   EVENT_EMOJI,
   type MatchShareEvent,
   type MatchShareSquadMember,
@@ -407,5 +408,19 @@ describe('waMeUrl', () => {
     expect(newlines).toBeGreaterThan(0)
     expect((url.match(/%0A/g) ?? []).length).toBe(newlines)
     expect(decodeURIComponent(new URL(url).searchParams.get('text') ?? '')).toBe(message)
+  })
+})
+
+describe('buildSubsReminderMessage (Epic 19)', () => {
+  it('names the player, the amount and the pay link', () => {
+    expect(buildSubsReminderMessage('Aaron', '€40.00', 'https://pay.example/x')).toBe(
+      '💶 Aaron, you’ve €40.00 of subs still to pay.\nPay here: https://pay.example/x',
+    )
+  })
+
+  it('falls back to "ask a manager" when no link is set', () => {
+    expect(buildSubsReminderMessage('Ben', '€100.00', null)).toBe(
+      '💶 Ben, you’ve €100.00 of subs still to pay.\nAsk a manager how to pay.',
+    )
   })
 })

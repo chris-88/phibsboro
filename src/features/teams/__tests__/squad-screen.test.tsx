@@ -130,7 +130,7 @@ describe('the segmented switch (Chris, 2026-09-16)', () => {
   it('offers the three views and shows Selection first', () => {
     withEvents([event({ id: 'up', title: 'Upcoming', starts_at: '2026-09-20T14:00:00Z' })])
     renderScreen()
-    for (const name of ['Selection', 'Game Stats', 'Members']) {
+    for (const name of ['Selection', 'Game Stats', 'Members', 'Subs']) {
       expect(screen.getByRole('radio', { name })).toBeInTheDocument()
     }
     // Selection is the default view: its match shows, the members roster does not.

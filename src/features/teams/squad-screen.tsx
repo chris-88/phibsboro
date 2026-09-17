@@ -12,6 +12,7 @@ import { squadStatusText } from '@/features/events/squad-picker'
 import type { EventRow } from '@/features/events/schema'
 import { ManageHeader } from '@/features/teams/components/ManageHeader'
 import { MemberList } from '@/features/teams/member-list'
+import { TeamSubsList } from '@/features/subs/components/TeamSubsList'
 import { NoManagedTeams } from '@/features/teams/components/NoManagedTeams'
 import { useActiveTeam } from '@/features/teams/hooks/useActiveTeam'
 import { useCurrentUser } from '@/features/auth/use-current-user'
@@ -20,8 +21,8 @@ import { paths } from '@/lib/paths'
 import { serverNow } from '@/lib/serverClock'
 import { formatEventTime } from '@/lib/time'
 
-/** Which of the three manager jobs the Squad tab is showing. */
-type SquadView = 'selection' | 'games' | 'members'
+/** Which of the manager jobs the Squad tab is showing. */
+type SquadView = 'selection' | 'games' | 'members' | 'subs'
 
 /**
  * `/squad` (S10.3, V11/V12; S17.2, X3): the manager's squad hub. One segmented switch at the top
@@ -75,7 +76,7 @@ export default function SquadScreen(): React.JSX.Element {
         onValueChange={(v) => {
           // Radix hands back '' when the active item is tapped again; ignore that so a view is
           // always selected (mirrors the Stats tab, S17.7).
-          if (v === 'selection' || v === 'games' || v === 'members') setView(v)
+          if (v === 'selection' || v === 'games' || v === 'members' || v === 'subs') setView(v)
         }}
         className="w-full"
       >
@@ -88,6 +89,9 @@ export default function SquadScreen(): React.JSX.Element {
         <ToggleGroupItem value="members" variant="outline" className="flex-1">
           Members
         </ToggleGroupItem>
+        <ToggleGroupItem value="subs" variant="outline" className="flex-1">
+          Subs
+        </ToggleGroupItem>
       </ToggleGroup>
 
       {view === 'selection' && <SelectionList teamId={teamId} />}
@@ -95,6 +99,9 @@ export default function SquadScreen(): React.JSX.Element {
       {/* The S6.4 roster, embedded not duplicated: reset / remove / change-role, its own four
           states. The admin-only actions follow the caller's role. */}
       {view === 'members' && <MemberList teamId={teamId} teamName={team.name} isAdmin={isAdmin} />}
+      {/* Who's paid and who's behind (S19.4); recording is the admin's job, this view is read-only
+          with a WhatsApp Remind per player still owing. */}
+      {view === 'subs' && <TeamSubsList teamId={teamId} />}
     </div>
   )
 }

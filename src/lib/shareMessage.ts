@@ -154,3 +154,18 @@ export function buildMatchShareMessage(
 export function waMeUrl(message: string): string {
   return `https://wa.me/?text=${encodeURIComponent(message)}`
 }
+
+/**
+ * A subs-reminder message a manager sends to a player over WhatsApp (Epic 19, Y4). Names the amount
+ * outstanding and the pay link when one is set. Pure; the caller passes the figures and link. Kept
+ * with the other share text so the club voice stays in one place.
+ */
+export function buildSubsReminderMessage(
+  name: string,
+  outstanding: string,
+  payLink: string | null,
+): string {
+  const lines = [`💶 ${name.trim()}, you’ve ${outstanding} of subs still to pay.`]
+  lines.push(payLink !== null ? `Pay here: ${payLink.trim()}` : 'Ask a manager how to pay.')
+  return lines.join('\n')
+}
