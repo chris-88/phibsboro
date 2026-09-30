@@ -97,6 +97,22 @@ describe('useManagedTeams (S6.3)', () => {
     expect(result.current.teams.map((t) => t.id)).toEqual(['a'])
   })
 
+  it('returns both teams for a non-admin who manages two (the dual-manager switch, S20.1)', () => {
+    // #5: a manager of two teams must get both so the header becomes a picker they can switch with.
+    const roles: Record<string, 'player' | 'manager'> = { a: 'manager', b: 'manager' }
+    hoisted.account.value = ready({
+      isAdmin: false,
+      roleForTeam: (id: string) => roles[id] ?? null,
+    })
+    hoisted.teams.value = {
+      isPending: false,
+      isError: false,
+      data: [team('a', 'Firsts'), team('b', 'Seconds')],
+    }
+    const { result } = renderHook(() => useManagedTeams())
+    expect(result.current.teams.map((t) => t.id)).toEqual(['a', 'b'])
+  })
+
   it('orders active teams before inactive, then case-insensitively by name', () => {
     hoisted.account.value = ready({ isAdmin: true })
     hoisted.teams.value = {
