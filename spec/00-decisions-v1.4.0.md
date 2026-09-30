@@ -7,20 +7,20 @@ Items marked **OPEN** need Chris to confirm before that story is built.
 
 | # | Title | Affects |
 |---|---|---|
-| Z1 | Player name is edited on the profile; who may edit (OPEN) | S20.2 |
+| Z1 | Player name edit: **managers (their team) + admins** (decided 2026-09-30) | S20.2 |
 | Z2 | Injury status: who sets it + where it surfaces (OPEN) | S20.3 |
 | Z3 | WhatsApp format refresh needs the target wording (OPEN) | S20.4 |
 
-The team-switcher fix (S20.1) needs no decision — it's a bug.
+The team-switcher fix (S20.1) needs no decision — it's a bug. **Done & live (250d282).**
 
 ---
 
-### Z1 — Player name is edited on the profile; who may edit — OPEN
+### Z1 — Player name is edited on the profile; who may edit — DECIDED (2026-09-30: managers + admins)
 The app stores one `profiles.name` per person; the team sheet, roster and shares all read it. #7 wants a
-manager to fix a wrong name. **Proposed:** a security-definer RPC that sets `profiles.name` for a member,
+manager to fix a wrong name. **Decided:** a security-definer RPC that sets `profiles.name` for a member,
 callable by an **admin, or a manager of a team the person is on** (mirrors the on-behalf pattern, S18.1),
 audited. It edits the person's single name, not a per-team alias (a per-team display name is more data and
-wasn't asked for). Chris to confirm: admin-only, or managers too?
+wasn't asked for).
 
 ### Z2 — Injury status: who sets it + where it surfaces — OPEN
 #4 wants players marked injured (by themselves or a manager) with an expected return date and updates.
