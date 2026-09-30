@@ -32,7 +32,12 @@ export function TeamPicker({ teams, teamId, onChange }: TeamPickerProps): React.
       className="w-full flex-wrap"
     >
       {teams.map((t) => (
-        <ToggleGroupItem key={t.id} value={t.id} variant="outline" className="min-w-0 flex-1 gap-1.5">
+        <ToggleGroupItem
+          key={t.id}
+          value={t.id}
+          variant="outline"
+          className="min-w-0 flex-1 gap-1.5"
+        >
           <span className="truncate">{t.name}</span>
           {!t.active && (
             <Badge variant="secondary" className="shrink-0">
