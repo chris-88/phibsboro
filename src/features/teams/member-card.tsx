@@ -15,10 +15,14 @@ import {
   useSetMemberPhone,
   useSetMemberRole,
 } from '@/api/members'
+import { useClearInjury, useSetInjury } from '@/api/injuries'
 import { ChangeRoleDialog } from '@/features/teams/change-role-dialog'
 import { CorrectNameDialog } from '@/features/teams/correct-name-dialog'
 import { CorrectPhoneDialog } from '@/features/teams/correct-phone-dialog'
 import { RemoveMemberDialog } from '@/features/teams/remove-member-dialog'
+import { InjuryDialog } from '@/features/injury/InjuryDialog'
+import { formatReturnDate } from '@/features/injury/injury'
+import type { PlayerInjuryRow } from '@/features/injury/schema'
 import type { MemberDirectoryRow, MemberRole } from '@/features/teams/schema'
 import type { AppErrorCode } from '@/lib/errors'
 import { formatEventTime } from '@/lib/time'
@@ -31,6 +35,8 @@ export interface MemberCardProps {
   isAdmin: boolean
   /** Managers currently on the team, so the last-manager warning fires on the only one (AC7). */
   managerCount: number
+  /** The member's current injury (S20.3), or null when fit. Drives the badge and the menu label. */
+  injury?: PlayerInjuryRow | null
   /**
    * The row-action slot (AC8). Empty in this story; S2.3 mounts the reset action here. A card with
    * an empty slot lays out unchanged, and the slot is only ever an item inside the action menu.
@@ -38,7 +44,7 @@ export interface MemberCardProps {
   resetSlot?: React.ReactNode
 }
 
-type OpenDialog = 'remove' | 'role' | 'phone' | 'name' | null
+type OpenDialog = 'remove' | 'role' | 'phone' | 'name' | 'injury' | null
 
 /** Two overrides on the shared copy; the rest fall through to the generic line (S6.4 error map). */
 function actionError(code: AppErrorCode): string {
@@ -59,6 +65,7 @@ export function MemberCard({
   member,
   isAdmin,
   managerCount,
+  injury = null,
   resetSlot,
 }: MemberCardProps): React.JSX.Element {
   const [open, setOpen] = useState<OpenDialog>(null)
@@ -67,11 +74,14 @@ export function MemberCard({
   const setRole = useSetMemberRole(teamId)
   const setPhone = useSetMemberPhone(teamId)
   const setName = useSetMemberName()
+  const setInjury = useSetInjury()
+  const clearInjury = useClearInjury()
 
   const [removeError, setRemoveError] = useState<string | null>(null)
   const [roleError, setRoleError] = useState<string | null>(null)
   const [phoneTaken, setPhoneTaken] = useState<string | null>(null)
   const [nameError, setNameError] = useState<string | null>(null)
+  const [injuryError, setInjuryError] = useState<string | null>(null)
 
   const isOnlyManager = member.role === 'manager' && managerCount === 1
   // A manager may remove only players; an admin may remove anyone. RLS enforces it regardless.
@@ -146,6 +156,36 @@ export function MemberCard({
     )
   }
 
+  function saveInjury(expectedReturn: string | null, note: string | null): void {
+    setInjuryError(null)
+    setInjury.mutate(
+      { userId: member.user_id, expectedReturn, note },
+      {
+        onSuccess: () => {
+          setOpen(null)
+        },
+        onError: (err) => {
+          setInjuryError(actionError(err.code))
+        },
+      },
+    )
+  }
+
+  function clearMemberInjury(): void {
+    setInjuryError(null)
+    clearInjury.mutate(
+      { userId: member.user_id },
+      {
+        onSuccess: () => {
+          setOpen(null)
+        },
+        onError: (err) => {
+          setInjuryError(actionError(err.code))
+        },
+      },
+    )
+  }
+
   return (
     <Card>
       <CardContent className="flex items-start justify-between gap-3 py-3">
@@ -155,11 +195,17 @@ export function MemberCard({
             <Badge variant={member.role === 'manager' ? 'default' : 'secondary'}>
               {member.role === 'manager' ? 'Manager' : 'Player'}
             </Badge>
+            {injury !== null && <Badge variant="destructive">Injured</Badge>}
             {isOnlyManager && <span className="text-xs text-muted-foreground">Only manager</span>}
           </div>
           <p className="text-sm break-all text-muted-foreground">
             {member.phone ?? '—'} · Joined {formatEventTime(member.joined_at, 'short')}
           </p>
+          {injury?.expected_return != null && (
+            <p className="text-xs text-muted-foreground">
+              Back {formatReturnDate(injury.expected_return)}
+            </p>
+          )}
         </div>
 
         <DropdownMenu>
@@ -189,6 +235,13 @@ export function MemberCard({
               }}
             >
               Correct name
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onSelect={() => {
+                setOpen('injury')
+              }}
+            >
+              {injury !== null ? 'Update injury' : 'Mark injured'}
             </DropdownMenuItem>
             {canCorrectPhone && (
               <DropdownMenuItem
@@ -250,6 +303,18 @@ export function MemberCard({
         pending={setName.isPending}
         errorText={nameError}
         onSave={saveName}
+      />
+      <InjuryDialog
+        open={open === 'injury'}
+        onOpenChange={(o) => {
+          setOpen(o ? 'injury' : null)
+        }}
+        current={injury}
+        savePending={setInjury.isPending}
+        clearPending={clearInjury.isPending}
+        errorText={injuryError}
+        onSave={saveInjury}
+        onClear={clearMemberInjury}
       />
       {canCorrectPhone && (
         <CorrectPhoneDialog

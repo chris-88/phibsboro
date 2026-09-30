@@ -372,6 +372,45 @@ export type Database = {
           },
         ]
       }
+      player_injuries: {
+        Row: {
+          expected_return: string | null
+          note: string | null
+          updated_at: string
+          updated_by: string | null
+          user_id: string
+        }
+        Insert: {
+          expected_return?: string | null
+          note?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          user_id: string
+        }
+        Update: {
+          expected_return?: string | null
+          note?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'player_injuries_updated_by_fkey'
+            columns: ['updated_by']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'player_injuries_user_id_fkey'
+            columns: ['user_id']
+            isOneToOne: true
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_path: string | null
@@ -648,6 +687,7 @@ export type Database = {
           user_id: string
         }[]
       }
+      clear_injury: { Args: { p_user_id: string }; Returns: undefined }
       clear_squad: { Args: { p_event_id: string }; Returns: undefined }
       create_team_invite: {
         Args: {
@@ -758,6 +798,10 @@ export type Database = {
           p_role: Database['public']['Enums']['member_role']
           p_team_id: string
         }
+        Returns: undefined
+      }
+      set_injury: {
+        Args: { p_expected_return?: string; p_note?: string; p_user_id: string }
         Returns: undefined
       }
       set_member_name: {

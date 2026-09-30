@@ -8,7 +8,7 @@ Items marked **OPEN** need Chris to confirm before that story is built.
 | # | Title | Affects |
 |---|---|---|
 | Z1 | Player name edit: **managers (their team) + admins** (decided 2026-09-30) | S20.2 |
-| Z2 | Injury status: who sets it + where it surfaces (OPEN) | S20.3 |
+| Z2 | Injury: **self or a manager; informational only** (decided 2026-09-30) | S20.3 |
 | Z3 | WhatsApp format refresh needs the target wording (OPEN) | S20.4 |
 
 The team-switcher fix (S20.1) needs no decision — it's a bug. **Done & live (250d282).**
@@ -22,13 +22,12 @@ callable by an **admin, or a manager of a team the person is on** (mirrors the o
 audited. It edits the person's single name, not a per-team alias (a per-team display name is more data and
 wasn't asked for).
 
-### Z2 — Injury status: who sets it + where it surfaces — OPEN
+### Z2 — Injury status: who sets it + where it surfaces — DECIDED (2026-09-30)
 #4 wants players marked injured (by themselves or a manager) with an expected return date and updates.
-**Proposed shape:** an `injury` on the player (status + expected-return + a note), set by the **player
-themselves or a manager of their team**; shown on the profile, on the roster/squad picker as an "Injured"
-flag, and optionally excluded from the availability "awaiting" chase. Confirm the scope — is a single
-current-injury record enough, or do they want a history? And is it purely informational for v1, or does it
-affect availability / squad selection?
+**Decided:** a `player_injuries` record (expected-return + note), set by the **player themselves, a manager
+of their team, or an admin**; shown on the profile (self) and the manager roster as an "Injured" flag +
+return date. **Informational only** — it does not change availability or squad selection. A **single current
+record** per player (a row = injured, no row = fit), no history. Shipped in S20.3.
 
 ### Z3 — WhatsApp format refresh needs the target wording — OPEN
 #6 ("update the WhatsApp messages to a better format") is not actionable without the target. The current

@@ -84,3 +84,15 @@ export const subsKeys = {
   settings: () => ['subs', 'settings'] as const,
   payments: () => ['subs', 'payments'] as const,
 } as const
+
+/**
+ * Injury status (S20.3). Its own prefix so a set/clear invalidates only injury caches. `mine` is the
+ * signed-in player's own current injury (profile card); `visible` is every injury row RLS lets the
+ * caller read (own, plus players on teams they manage; all for an admin), mapped per team in the
+ * roster.
+ */
+export const injuryKeys = {
+  all: ['injuries'] as const,
+  mine: () => ['injuries', 'mine'] as const,
+  visible: () => ['injuries', 'visible'] as const,
+} as const

@@ -36,7 +36,7 @@ feedback inbox — these items stay **open** for a future round.
 |---|---|---|---|---|---|---|
 | 1 | S20.1 | Fix multi-team manager team switching | #5 (#2, #3) | M | **P0 (blocker)** | ☑ done, live |
 | 2 | S20.2 | Managers correct a player's name | #7 | S | P1 | ☑ done |
-| 3 | S20.3 | Injury status + expected return | #4 | M | P2 | ☐ |
+| 3 | S20.3 | Injury status + expected return | #4 | M | P2 | ☑ done |
 | 4 | S20.4 | WhatsApp message format refresh | #6 | S | P2 (needs detail) | ☐ |
 
 Order rationale: the **team-switcher bug (S20.1)** is first — it locks a multi-team manager out of their

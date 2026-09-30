@@ -91,6 +91,7 @@ describe('the service-role client stays out of assertions (S1.4 AC8)', () => {
       'events.test.ts',
       'feedback.test.ts', // S12.1 — feedback table, RLS and resolve_feedback
       'match-stats.test.ts', // S17.3 - match_stats table RLS
+      'player-injuries.test.ts', // S20.3 — player_injuries table RLS + set_injury/clear_injury
       'profiles.test.ts',
       'reset-tokens.test.ts',
       'rpc-admin-users.test.ts', // S18.2 — admin_set_admin + admin_delete_user

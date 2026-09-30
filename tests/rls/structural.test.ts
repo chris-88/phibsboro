@@ -13,6 +13,7 @@ const TABLES = [
   'events',
   'feedback',
   'match_stats',
+  'player_injuries',
   'profiles',
   'reset_tokens',
   'subs_payments',

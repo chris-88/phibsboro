@@ -1,6 +1,7 @@
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useTeamMembers } from '@/api/members'
+import { useInjuries } from '@/api/injuries'
 import { IssueResetLinkAction } from '@/features/teams/IssueResetLinkAction'
 import { MemberCard } from '@/features/teams/member-card'
 
@@ -21,6 +22,10 @@ export interface MemberListProps {
  */
 export function MemberList({ teamId, teamName, isAdmin }: MemberListProps): React.JSX.Element {
   const members = useTeamMembers(teamId)
+  // Injuries are supplementary (S20.3): the roster renders on the directory alone and shows the
+  // injury flag once this RLS-scoped read arrives. It never gates the four states below.
+  const injuries = useInjuries()
+  const injuryByUser = new Map((injuries.data ?? []).map((i) => [i.user_id, i]))
 
   if (members.isPending) {
     return (
@@ -67,6 +72,7 @@ export function MemberList({ teamId, teamName, isAdmin }: MemberListProps): Reac
           member={member}
           isAdmin={isAdmin}
           managerCount={managerCount}
+          injury={injuryByUser.get(member.user_id) ?? null}
           resetSlot={<IssueResetLinkAction teamId={teamId} member={member} />}
         />
       ))}

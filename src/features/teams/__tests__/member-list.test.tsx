@@ -12,6 +12,7 @@ interface MembersState {
 const hoisted = vi.hoisted(() => ({ members: { value: null as unknown as MembersState } }))
 
 vi.mock('@/api/members', () => ({ useTeamMembers: () => hoisted.members.value }))
+vi.mock('@/api/injuries', () => ({ useInjuries: () => ({ data: [] }) }))
 vi.mock('@/features/teams/member-card', () => ({
   MemberCard: ({ member, managerCount }: { member: MemberDirectoryRow; managerCount: number }) => (
     <div data-testid="member-card">

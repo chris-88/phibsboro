@@ -2,15 +2,22 @@ import { describe, expect, it } from 'vitest'
 import * as keys from '@/api/queryKeys'
 
 describe('query keys (AC15, A6)', () => {
-  it('exports exactly six factories', () => {
+  it('exports exactly seven factories', () => {
     expect(Object.keys(keys).sort()).toEqual([
       'eventKeys',
       'feedbackKeys',
+      'injuryKeys',
       'statsKeys',
       'subsKeys',
       'teamKeys',
       'userKeys',
     ])
+  })
+
+  it('injury keys sit under their own prefix so a set/clear churns nothing else', () => {
+    expect(keys.injuryKeys.mine()).toEqual(['injuries', 'mine'])
+    expect(keys.injuryKeys.visible()).toEqual(['injuries', 'visible'])
+    expect(keys.injuryKeys.mine()[0]).toBe(keys.injuryKeys.all[0])
   })
 
   it('every event key starts with the entity segment, so eventKeys.all invalidates them all', () => {

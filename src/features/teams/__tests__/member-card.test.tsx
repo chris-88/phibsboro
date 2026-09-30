@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
+import type { PlayerInjuryRow } from '@/features/injury/schema'
 import type { MemberDirectoryRow } from '@/features/teams/schema'
 
 const hoisted = vi.hoisted(() => ({
@@ -8,6 +9,8 @@ const hoisted = vi.hoisted(() => ({
   setRole: { fn: vi.fn(), isPending: false },
   setPhone: { fn: vi.fn(), isPending: false },
   setName: { fn: vi.fn(), isPending: false },
+  setInjury: { fn: vi.fn(), isPending: false },
+  clearInjury: { fn: vi.fn(), isPending: false },
 }))
 
 vi.mock('@/api/members', () => ({
@@ -15,6 +18,13 @@ vi.mock('@/api/members', () => ({
   useSetMemberRole: () => ({ mutate: hoisted.setRole.fn, isPending: hoisted.setRole.isPending }),
   useSetMemberPhone: () => ({ mutate: hoisted.setPhone.fn, isPending: hoisted.setPhone.isPending }),
   useSetMemberName: () => ({ mutate: hoisted.setName.fn, isPending: hoisted.setName.isPending }),
+}))
+vi.mock('@/api/injuries', () => ({
+  useSetInjury: () => ({ mutate: hoisted.setInjury.fn, isPending: hoisted.setInjury.isPending }),
+  useClearInjury: () => ({
+    mutate: hoisted.clearInjury.fn,
+    isPending: hoisted.clearInjury.isPending,
+  }),
 }))
 
 const { MemberCard } = await import('@/features/teams/member-card')
@@ -31,7 +41,12 @@ const member = (over: Partial<MemberDirectoryRow> = {}): MemberDirectoryRow => (
 })
 
 function renderCard(
-  props: { isAdmin?: boolean; managerCount?: number; member?: Partial<MemberDirectoryRow> } = {},
+  props: {
+    isAdmin?: boolean
+    managerCount?: number
+    member?: Partial<MemberDirectoryRow>
+    injury?: PlayerInjuryRow | null
+  } = {},
 ) {
   return render(
     <MemberCard
@@ -40,9 +55,19 @@ function renderCard(
       member={member(props.member)}
       isAdmin={props.isAdmin ?? false}
       managerCount={props.managerCount ?? 2}
+      injury={props.injury ?? null}
     />,
   )
 }
+
+const injuryRow = (over: Partial<PlayerInjuryRow> = {}): PlayerInjuryRow => ({
+  user_id: '00000000-0000-4000-8000-0000000000aa',
+  expected_return: '2026-10-14',
+  note: 'hamstring',
+  updated_by: null,
+  updated_at: '2026-09-30T00:00:00Z',
+  ...over,
+})
 
 beforeAll(() => {
   Element.prototype.hasPointerCapture = () => false
@@ -56,6 +81,8 @@ beforeEach(() => {
   hoisted.setRole.fn.mockReset()
   hoisted.setPhone.fn.mockReset()
   hoisted.setName.fn.mockReset()
+  hoisted.setInjury.fn.mockReset()
+  hoisted.clearInjury.fn.mockReset()
   hoisted.remove.isPending = false
 })
 
@@ -124,6 +151,38 @@ describe('correct name (S20.2)', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Save' }))
     expect(await screen.findByText('Give them a name.')).toBeInTheDocument()
     expect(hoisted.setName.fn).not.toHaveBeenCalled()
+  })
+})
+
+describe('injury (S20.3)', () => {
+  it('shows the Injured badge, expected return and an Update injury action when injured', async () => {
+    renderCard({ injury: injuryRow() })
+    expect(screen.getByText('Injured')).toBeInTheDocument()
+    expect(screen.getByText(/Back Wed 14 Oct/)).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: /Actions for Aaron/ }))
+    expect(await screen.findByRole('menuitem', { name: 'Update injury' })).toBeInTheDocument()
+  })
+
+  it('offers Mark injured (no badge) when fit, and saves a note', async () => {
+    renderCard({ injury: null })
+    expect(screen.queryByText('Injured')).not.toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: /Actions for Aaron/ }))
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Mark injured' }))
+    await userEvent.type(await screen.findByRole('textbox', { name: /Note/ }), 'ankle')
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }))
+    expect(hoisted.setInjury.fn).toHaveBeenCalledOnce()
+    expect(hoisted.setInjury.fn.mock.calls[0]?.[0]).toMatchObject({
+      expectedReturn: null,
+      note: 'ankle',
+    })
+  })
+
+  it('marks an injured player fit again', async () => {
+    renderCard({ injury: injuryRow() })
+    await userEvent.click(screen.getByRole('button', { name: /Actions for Aaron/ }))
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Update injury' }))
+    await userEvent.click(await screen.findByRole('button', { name: 'Mark as fit' }))
+    expect(hoisted.clearInjury.fn).toHaveBeenCalledOnce()
   })
 })
 

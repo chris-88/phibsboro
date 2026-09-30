@@ -7,6 +7,7 @@ import { FeedbackSheet } from '@/features/feedback/FeedbackSheet'
 import { InstallSheet } from '@/features/install/install-sheet'
 import { useInstallMenuItem } from '@/features/install/use-install-menu-item'
 import { Avatar } from '@/features/profile/Avatar'
+import { InjuryCard } from '@/features/injury/InjuryCard'
 import { SubsCard } from '@/features/subs/components/SubsCard'
 
 /**
@@ -33,6 +34,8 @@ export default function ProfileScreen(): React.JSX.Element {
       </div>
 
       <SubsCard />
+
+      <InjuryCard />
 
       <section className="flex flex-col gap-2">
         <h2 className="px-1 text-sm font-medium text-muted-foreground">Teams</h2>
