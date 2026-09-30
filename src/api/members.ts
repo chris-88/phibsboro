@@ -5,7 +5,7 @@ import {
   type UseMutationResult,
   type UseQueryResult,
 } from '@tanstack/react-query'
-import { eventKeys, teamKeys } from '@/api/queryKeys'
+import { eventKeys, statsKeys, subsKeys, teamKeys } from '@/api/queryKeys'
 import { callRpc } from '@/api/rpc'
 import {
   byRoleThenName,
@@ -147,5 +147,34 @@ export function useSetMemberPhone(
       await callRpc('set_member_phone', { p_user_id: userId, p_phone: phone })
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: teamKeys.members(teamId) }),
+  })
+}
+
+/**
+ * Corrects a member's name through `set_member_name` (S20.2, feedback #7). Z1: callable by a manager
+ * of a team the person is on, or an admin — the RPC enforces it, a player who reaches the action is
+ * refused. Validated 1-60 chars, trimmed (`correctNameSchema`); a bad length raises `not_authorised`
+ * as the backstop. Not optimistic — the correction shows a pending state and, on success, invalidates
+ * every family a name is read in: the members directory (teams), responses/rosters/squad/attendance
+ * (events), player stats, and the subs list. So a fixed name reads right everywhere, including the
+ * team sheet, not only on the card that edited it. No `teamId` parameter: unlike the sibling
+ * corrections it invalidates across teams, because the name is one club-wide value.
+ */
+export function useSetMemberName(): UseMutationResult<
+  void,
+  AppError,
+  { userId: string; name: string }
+> {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ userId, name }): Promise<void> => {
+      await callRpc('set_member_name', { p_user_id: userId, p_name: name })
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: teamKeys.all })
+      void qc.invalidateQueries({ queryKey: eventKeys.all })
+      void qc.invalidateQueries({ queryKey: statsKeys.all })
+      void qc.invalidateQueries({ queryKey: subsKeys.all })
+    },
   })
 }

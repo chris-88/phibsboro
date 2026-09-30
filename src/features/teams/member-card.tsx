@@ -9,8 +9,14 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { useRemoveMember, useSetMemberPhone, useSetMemberRole } from '@/api/members'
+import {
+  useRemoveMember,
+  useSetMemberName,
+  useSetMemberPhone,
+  useSetMemberRole,
+} from '@/api/members'
 import { ChangeRoleDialog } from '@/features/teams/change-role-dialog'
+import { CorrectNameDialog } from '@/features/teams/correct-name-dialog'
 import { CorrectPhoneDialog } from '@/features/teams/correct-phone-dialog'
 import { RemoveMemberDialog } from '@/features/teams/remove-member-dialog'
 import type { MemberDirectoryRow, MemberRole } from '@/features/teams/schema'
@@ -32,7 +38,7 @@ export interface MemberCardProps {
   resetSlot?: React.ReactNode
 }
 
-type OpenDialog = 'remove' | 'role' | 'phone' | null
+type OpenDialog = 'remove' | 'role' | 'phone' | 'name' | null
 
 /** Two overrides on the shared copy; the rest fall through to the generic line (S6.4 error map). */
 function actionError(code: AppErrorCode): string {
@@ -60,17 +66,21 @@ export function MemberCard({
   const remove = useRemoveMember(teamId)
   const setRole = useSetMemberRole(teamId)
   const setPhone = useSetMemberPhone(teamId)
+  const setName = useSetMemberName()
 
   const [removeError, setRemoveError] = useState<string | null>(null)
   const [roleError, setRoleError] = useState<string | null>(null)
   const [phoneTaken, setPhoneTaken] = useState<string | null>(null)
+  const [nameError, setNameError] = useState<string | null>(null)
 
   const isOnlyManager = member.role === 'manager' && managerCount === 1
   // A manager may remove only players; an admin may remove anyone. RLS enforces it regardless.
   const canRemove = isAdmin || member.role === 'player'
   const canChangeRole = isAdmin
   const canCorrectPhone = isAdmin
-  const hasMenu = canRemove || canChangeRole || canCorrectPhone || resetSlot != null
+  // Name correction (S20.2, Z1) is always offered here: this list renders only to a manager of the
+  // team or an admin, and both may correct a name — so the action menu is always present, and the
+  // RPC enforces the permission regardless of what the UI shows.
 
   function confirmRemove(): void {
     setRemoveError(null)
@@ -121,6 +131,21 @@ export function MemberCard({
     )
   }
 
+  function saveName(name: string): void {
+    setNameError(null)
+    setName.mutate(
+      { userId: member.user_id, name },
+      {
+        onSuccess: () => {
+          setOpen(null)
+        },
+        onError: (err) => {
+          setNameError(actionError(err.code))
+        },
+      },
+    )
+  }
+
   return (
     <Card>
       <CardContent className="flex items-start justify-between gap-3 py-3">
@@ -137,51 +162,56 @@ export function MemberCard({
           </p>
         </div>
 
-        {hasMenu && (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                aria-label={`Actions for ${member.name}`}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              aria-label={`Actions for ${member.name}`}
+            >
+              <EllipsisVertical aria-hidden="true" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            {canChangeRole && (
+              <DropdownMenuItem
+                onSelect={() => {
+                  setOpen('role')
+                }}
               >
-                <EllipsisVertical aria-hidden="true" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              {canChangeRole && (
-                <DropdownMenuItem
-                  onSelect={() => {
-                    setOpen('role')
-                  }}
-                >
-                  Change role
-                </DropdownMenuItem>
-              )}
-              {canCorrectPhone && (
-                <DropdownMenuItem
-                  onSelect={() => {
-                    setOpen('phone')
-                  }}
-                >
-                  Correct phone
-                </DropdownMenuItem>
-              )}
-              {resetSlot}
-              {canRemove && (
-                <DropdownMenuItem
-                  className="text-destructive focus:text-destructive"
-                  onSelect={() => {
-                    setOpen('remove')
-                  }}
-                >
-                  Remove
-                </DropdownMenuItem>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        )}
+                Change role
+              </DropdownMenuItem>
+            )}
+            <DropdownMenuItem
+              onSelect={() => {
+                setOpen('name')
+              }}
+            >
+              Correct name
+            </DropdownMenuItem>
+            {canCorrectPhone && (
+              <DropdownMenuItem
+                onSelect={() => {
+                  setOpen('phone')
+                }}
+              >
+                Correct phone
+              </DropdownMenuItem>
+            )}
+            {resetSlot}
+            {canRemove && (
+              <DropdownMenuItem
+                className="text-destructive focus:text-destructive"
+                onSelect={() => {
+                  setOpen('remove')
+                }}
+              >
+                Remove
+              </DropdownMenuItem>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
       </CardContent>
 
       <RemoveMemberDialog
@@ -211,6 +241,16 @@ export function MemberCard({
           onSave={saveRole}
         />
       )}
+      <CorrectNameDialog
+        open={open === 'name'}
+        onOpenChange={(o) => {
+          setOpen(o ? 'name' : null)
+        }}
+        currentName={member.name}
+        pending={setName.isPending}
+        errorText={nameError}
+        onSave={saveName}
+      />
       {canCorrectPhone && (
         <CorrectPhoneDialog
           open={open === 'phone'}

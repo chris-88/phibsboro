@@ -296,6 +296,64 @@ describe('row 36 — set_member_phone (D51)', () => {
   })
 })
 
+// S20.2 (feedback #7, Z1) — set_member_name. A manager of a team the person is on, or an admin,
+// corrects a name; a manager of another team, a player and a stranger cannot; anon has no execute;
+// a name over 60 chars is refused. `renumbered` is a Seconds player, so managerSeconds (Niamh) may
+// rename them and managerFirsts (Declan — manages Firsts, only plays Seconds) may not.
+describe('set_member_name (S20.2, Z1)', () => {
+  it('a manager of another team, a player and a stranger raise not_authorised; anon cannot execute', async () => {
+    for (const fixture of ['managerFirsts', 'playerFirsts', 'stranger'] as const) {
+      expectRpcError(
+        await (
+          await signInAs(fixture)
+        ).rpc('set_member_name', {
+          p_user_id: renumbered.id,
+          p_name: 'Hacked Name',
+        }),
+        'not_authorised',
+      )
+    }
+    expectNoExecute(
+      await anonClient().rpc('set_member_name', {
+        p_user_id: renumbered.id,
+        p_name: 'Hacked Name',
+      }),
+    )
+    await expectRowUnchanged('profiles', { id: renumbered.id }, { name: 'Wrong Number' })
+  })
+
+  it('a name over 60 characters raises not_authorised', async () => {
+    const admin = await signInAs('admin')
+    expectRpcError(
+      await admin.rpc('set_member_name', { p_user_id: renumbered.id, p_name: 'x'.repeat(61) }),
+      'not_authorised',
+    )
+    await expectRowUnchanged('profiles', { id: renumbered.id }, { name: 'Wrong Number' })
+  })
+
+  it("a manager of the person's team corrects the name, trimmed", async () => {
+    const niamh = await signInAs('managerSeconds')
+    expect(
+      (
+        await niamh.rpc('set_member_name', {
+          p_user_id: renumbered.id,
+          p_name: '  Fixed By Manager  ',
+        })
+      ).error,
+    ).toBeNull()
+    await expectRowUnchanged('profiles', { id: renumbered.id }, { name: 'Fixed By Manager' })
+  })
+
+  it("an admin corrects anyone's name", async () => {
+    const admin = await signInAs('admin')
+    expect(
+      (await admin.rpc('set_member_name', { p_user_id: renumbered.id, p_name: 'Fixed By Admin' }))
+        .error,
+    ).toBeNull()
+    await expectRowUnchanged('profiles', { id: renumbered.id }, { name: 'Fixed By Admin' })
+  })
+})
+
 // S14.1 (W6) — admin_set_membership: the god-mode assign. An admin puts any user on any team at an
 // exact role (up OR down), a non-admin is refused, and it reaches an inactive team. Uses `stranger`
 // (member of nothing) and cleans up its own rows.

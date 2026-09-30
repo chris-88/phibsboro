@@ -760,6 +760,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      set_member_name: {
+        Args: { p_name: string; p_user_id: string }
+        Returns: undefined
+      }
       set_member_phone: {
         Args: { p_phone: string; p_user_id: string }
         Returns: undefined

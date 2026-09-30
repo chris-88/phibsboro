@@ -115,6 +115,16 @@ export type CorrectPhoneInput = z.input<typeof correctPhoneSchema>
 export type CorrectPhoneValues = z.output<typeof correctPhoneSchema>
 
 /**
+ * The name correction (S20.2, feedback #7). One field, trimmed, 1-60 chars — the same bound as
+ * registration and the client half of the `set_member_name` RPC guard (Z1). Rejected inline;
+ * nothing is sent for an empty or over-long name.
+ */
+export const correctNameSchema = z.object({
+  name: z.string().trim().min(1, 'Give them a name.').max(60, 'Keep it under 60 characters.'),
+})
+export type CorrectNameValues = z.output<typeof correctNameSchema>
+
+/**
  * Not selectable by any client (S1.3); reachable only through the invite RPCs. The schema
  * exists so a column change nobody told the frontend about still breaks `typecheck` (AC2).
  */
