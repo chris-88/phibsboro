@@ -1,68 +1,46 @@
 import { Badge } from '@/components/ui/badge'
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-} from '@/components/ui/select'
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import type { Team } from '@/features/teams/schema'
 
 export interface TeamPickerProps {
-  /** Already ordered active-first then by name by `useManagedTeams`; this only splits the two. */
+  /** Already ordered active-first then by name by `useManagedTeams`; rendered in that order. */
   teams: readonly Team[]
   teamId: string
   onChange: (teamId: string) => void
 }
 
 /**
- * The manage-area team picker (S6.3). A shadcn `Select` on every width — one tap, a native-feeling
- * sheet on iOS, no custom dismissal. Active teams first, then a labelled "Inactive" group; each
- * inactive row and the trigger itself carry an "Inactive" badge, so an admin is never quietly
- * editing a retired team. The trigger truncates rather than wrapping the header (AC12).
+ * The manage-area team switcher (S6.3; S20.1). Inline pills on a shadcn `ToggleGroup`, not a
+ * dropdown: the Radix `Select` it replaced did not open reliably in the iOS PWA / WhatsApp in-app
+ * browser, so a multi-team admin could not switch team from the Schedule or Squad header (Chris,
+ * 2026-09-30). `ToggleGroup` is the exact control the Squad tab's view switch uses — proven to work
+ * on the same screen — and one tap beats a dropdown on a phone. Active teams come first (the caller
+ * pre-sorts), each inactive pill badged so an admin is never quietly editing a retired team. Wraps
+ * on a narrow screen; every pill carries the 44px floor from `toggleVariants` (A16).
  */
 export function TeamPicker({ teams, teamId, onChange }: TeamPickerProps): React.JSX.Element {
-  const active = teams.filter((t) => t.active)
-  const inactive = teams.filter((t) => !t.active)
-  const current = teams.find((t) => t.id === teamId) ?? null
-
   return (
-    <Select value={teamId} onValueChange={onChange}>
-      <SelectTrigger className="w-full" aria-label="Team">
-        <span className="flex min-w-0 items-center gap-2">
-          <span className="truncate">{current?.name}</span>
-          {current !== null && !current.active && (
+    <ToggleGroup
+      type="single"
+      value={teamId}
+      onValueChange={(v) => {
+        // Radix hands back '' when the current pill is tapped again; ignore it so a team stays
+        // selected (mirrors the Squad view switch, S17.2).
+        if (v) onChange(v)
+      }}
+      aria-label="Team"
+      className="w-full flex-wrap"
+    >
+      {teams.map((t) => (
+        <ToggleGroupItem key={t.id} value={t.id} variant="outline" className="min-w-0 flex-1 gap-1.5">
+          <span className="truncate">{t.name}</span>
+          {!t.active && (
             <Badge variant="secondary" className="shrink-0">
               Inactive
             </Badge>
           )}
-        </span>
-      </SelectTrigger>
-      <SelectContent>
-        {active.length > 0 && (
-          <SelectGroup>
-            {active.map((t) => (
-              <SelectItem key={t.id} value={t.id}>
-                <span className="truncate">{t.name}</span>
-              </SelectItem>
-            ))}
-          </SelectGroup>
-        )}
-        {inactive.length > 0 && (
-          <SelectGroup>
-            <SelectLabel>Inactive</SelectLabel>
-            {inactive.map((t) => (
-              <SelectItem key={t.id} value={t.id}>
-                <span className="truncate">{t.name}</span>
-                <Badge variant="secondary" className="shrink-0">
-                  Inactive
-                </Badge>
-              </SelectItem>
-            ))}
-          </SelectGroup>
-        )}
-      </SelectContent>
-    </Select>
+        </ToggleGroupItem>
+      ))}
+    </ToggleGroup>
   )
 }

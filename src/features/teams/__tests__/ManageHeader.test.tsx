@@ -1,5 +1,7 @@
 import { render, screen } from '@testing-library/react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import userEvent from '@testing-library/user-event'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { useManageStore } from '@/features/teams/manageStore'
 import { TEAM_COLOUR_DEFAULT } from '@/features/teams/palette'
 import type { CurrentUserState } from '@/features/auth/use-current-user'
 import type { ActiveTeam } from '@/features/teams/hooks/useActiveTeam'
@@ -47,6 +49,9 @@ const set = (teams: Team[], teamId: string, account: CurrentUserState): void => 
   }
 }
 
+beforeEach(() => {
+  useManageStore.setState({ selectedTeamId: null })
+})
 afterEach(() => {
   vi.clearAllMocks()
 })
@@ -56,26 +61,36 @@ describe('ManageHeader (S6.3)', () => {
     set([team('a', 'Firsts')], 'a', readyAdmin(false))
     render(<ManageHeader />)
     expect(screen.getByText('Firsts')).toBeInTheDocument()
-    expect(screen.queryByRole('combobox')).not.toBeInTheDocument()
+    expect(screen.queryByRole('radiogroup')).not.toBeInTheDocument()
   })
 
-  it('shows a picker for an admin even with a single team (AC3)', () => {
+  it('shows the pill switcher for an admin even with a single team (AC3)', () => {
     set([team('a', 'Firsts')], 'a', readyAdmin(true))
     render(<ManageHeader />)
-    expect(screen.getByRole('combobox', { name: 'Team' })).toBeInTheDocument()
+    expect(screen.getByRole('radiogroup', { name: 'Team' })).toBeInTheDocument()
+    expect(screen.getByRole('radio', { name: 'Firsts' })).toBeInTheDocument()
   })
 
-  it('shows a picker for a manager of more than one team (AC2)', () => {
+  it('shows a pill per team for a manager of more than one team (S20.1: an inline switch, no dropdown)', () => {
     set([team('a', 'Firsts'), team('b', 'Seconds')], 'a', readyAdmin(false))
     render(<ManageHeader />)
-    expect(screen.getByRole('combobox', { name: 'Team' })).toBeInTheDocument()
+    expect(screen.getByRole('radiogroup', { name: 'Team' })).toBeInTheDocument()
+    expect(screen.getByRole('radio', { name: 'Firsts' })).toBeInTheDocument()
+    expect(screen.getByRole('radio', { name: 'Seconds' })).toBeInTheDocument()
   })
 
-  it('badges the trigger Inactive when the active team is inactive (AC5)', () => {
+  it('switches team when another pill is tapped (S20.1)', async () => {
+    set([team('a', 'Firsts'), team('b', 'Seconds')], 'a', readyAdmin(false))
+    render(<ManageHeader />)
+    await userEvent.setup().click(screen.getByRole('radio', { name: 'Seconds' }))
+    expect(useManageStore.getState().selectedTeamId).toBe('b')
+  })
+
+  it('badges the inactive team pill Inactive (AC5)', () => {
     set([team('a', 'Firsts', false), team('b', 'Seconds')], 'a', readyAdmin(true))
     render(<ManageHeader />)
-    const trigger = screen.getByRole('combobox', { name: 'Team' })
-    expect(trigger).toHaveTextContent('Firsts')
-    expect(trigger).toHaveTextContent('Inactive')
+    const inactivePill = screen.getByRole('radio', { name: /Firsts/ })
+    expect(inactivePill).toHaveTextContent('Firsts')
+    expect(inactivePill).toHaveTextContent('Inactive')
   })
 })
